@@ -496,6 +496,39 @@ Rationale:
 - preserves the atomic execution boundary already chosen for the pipeline
 - avoids ambiguity about which events, prompts, or diagnostics belong to a specific command submission
 
+Expected-failure handling direction:
+
+- ordinary expected command failure should return a normal execution result rather than throw
+
+Implication:
+
+- validation failure and similar rule-level rejection should return a rich result object with the canonical state and structured failure metadata
+- the returned state should remain the unchanged pre-execution canonical state for those expected non-success cases
+- unexpected engine failures, invariant violations, or consumer-rule bugs should still surface as fatal errors rather than being hidden inside ordinary rejection results
+
+Rationale:
+
+- preserves atomicity without forcing consumers to special-case state access on ordinary rejection
+- keeps illegal or unavailable actions in the category of normal gameplay outcomes rather than program crashes
+- still preserves loud failure for actual kernel or rule-code bugs
+
+Action-discovery direction:
+
+- action discovery should be treated as an important first-class capability, but not as one giant `getAllPossibleMoves()` API
+
+Implication:
+
+- the kernel should define discovery API contracts, contexts, and conventions
+- consumers should implement the actual game-specific discovery logic rather than relying on the kernel to infer legal actions from `validate()`
+- discovery should be structured and query-oriented, such as progressive queries over command inputs, targets, options, or pending-choice responses
+- `validate()` remains authoritative for final legality checks even when discovery exists
+
+Rationale:
+
+- legal-input discovery is not the same problem as yes/no validation and generally cannot be inferred efficiently from validation logic alone
+- many games need strong guidance for first-time players, bots, and agents
+- some games have combinatorial or impractical full input spaces, so structured discovery is a better fit than exhaustive move enumeration
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
