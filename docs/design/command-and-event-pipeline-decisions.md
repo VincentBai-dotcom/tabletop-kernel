@@ -464,6 +464,22 @@ Rationale:
 - improves replay/debug expectations by keeping the event catalog more predictable
 - mirrors the same pragmatic approach already chosen for command definitions
 
+Event payload weight direction:
+
+- committed events should stay lightweight and semantic by default
+- events should not carry full before/after state snapshots or diffs by default
+
+Implication:
+
+- replay, snapshots, and state-diff handling remain engine concerns outside the core event payload model
+- if debugging tooling later needs before/after inspection, it should come from execution metadata, history/snapshot systems, or dedicated debug tooling rather than from every canonical event payload
+
+Rationale:
+
+- preserves the semantic event model already chosen
+- avoids bloating the event stream with duplicated state data
+- keeps replay/history responsibilities separate from event payload design
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
