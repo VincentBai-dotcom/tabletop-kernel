@@ -6,6 +6,21 @@ Update this file whenever a visibility-model design decision is agreed during di
 
 ## Agreed So Far
 
+### Topic status
+
+Dedicated visibility and hidden-information modeling is deferred for now.
+
+Current high-level direction:
+
+- the kernel should not yet force a first-class visibility subsystem in the first implementation pass
+- consumers may still handle visibility in higher-level code until concrete consistency problems show that a kernel-level model is worth standardizing
+- the notes below should be treated as provisional design direction rather than immediate implementation commitments
+
+Rationale:
+
+- current value is too low relative to the added subsystem complexity
+- a stronger design can be made later once real implementation pressure exposes the important consistency problems
+
 ### Hidden-information model
 
 Hidden information should be modeled primarily as viewer-specific filtered projections of one canonical state.

@@ -59,7 +59,7 @@ It is not a complete blueprint for this repo because it does not provide a first
 - domain event bus
 - triggered-ability engine
 - stack/priority resolution model
-- rich hidden-information model
+- kernel-level hidden-information model that fits this repo's current direction
 - semantic replay model for complex tabletop engines
 
 ## Immediate Priorities
@@ -71,11 +71,11 @@ The next implementation work should define the kernel architecture around a few 
 3. Command and event pipeline
 4. Trigger engine
 5. Resolution stack/queue abstraction
-6. Visibility/hidden-information model
-7. Deterministic RNG service
-8. Serialization and snapshot format
-9. Replay/history model
-10. Kernel-native test harness
+6. Deterministic RNG service
+7. Serialization and snapshot format
+8. Replay/history model
+9. Kernel-native test harness
+10. Whether hidden-information handling needs a first-class kernel model after initial implementation experience
 
 ## Working Principle
 

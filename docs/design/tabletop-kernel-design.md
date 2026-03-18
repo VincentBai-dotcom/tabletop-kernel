@@ -43,7 +43,7 @@ Examples:
 
 - domain events should be first-class
 - triggered abilities should be first-class
-- visibility rules should be first-class
+- hidden-information handling should eventually be coherent, but does not need to be a first-class kernel subsystem in the first implementation pass
 - replay should be first-class
 
 ### 2. Pure runtime core
@@ -161,7 +161,7 @@ Instead, consumers should provide game definitions that plug into kernel contrac
 - domain event definitions
 - trigger definitions
 - resolution policies
-- visibility policies
+- visibility policies when or if the kernel later standardizes them
 - end-condition logic
 
 The responsibility split should be:
@@ -317,10 +317,10 @@ The next design and implementation work should define:
 2. the command and event pipeline
 3. the trigger engine model
 4. the resolution model
-5. the visibility model
-6. the RNG and replay model
-7. the simulation/test harness
-8. the external host protocol shape
+5. the RNG and replay model
+6. the simulation/test harness
+7. the external host protocol shape
+8. whether hidden-information handling needs a first-class kernel model after initial implementation experience
 
 ## Open Questions
 
