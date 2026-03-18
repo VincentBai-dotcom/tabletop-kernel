@@ -574,6 +574,21 @@ Rationale:
 - avoids boilerplate for commands whose legal input space is trivial
 - keeps discovery important without making it mandatory where it provides no value
 
+Discovery-input direction:
+
+- per-command discovery should receive both the read-only context and a partial command payload
+
+Implication:
+
+- discovery can answer follow-up questions such as "given this selected card, what targets are legal next?"
+- discovery remains useful for both ordinary commands and multi-step interactions without forcing every flow to split into additional commands
+- pending-choice state can still carry prior step context, but discovery should not be limited to context-only input
+
+Rationale:
+
+- many discovery questions depend on partially chosen inputs rather than only the raw game state
+- keeps the API flexible enough for target selection, modal option narrowing, and similar progressive input flows
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
