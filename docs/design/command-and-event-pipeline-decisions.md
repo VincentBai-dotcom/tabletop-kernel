@@ -637,6 +637,55 @@ Rationale:
 - avoids making discovery too weak to be useful in games with private hands, decks, or role-specific knowledge
 - acknowledges the boundary with the later visibility design topic without forcing that full model now
 
+Command-versus-step abstraction direction:
+
+- `Command` and `InternalStep` should remain distinct first-class concepts for consumers, even if they share much of the same underlying execution machinery inside the engine
+
+Implication:
+
+- commands are the public outside-submitted input abstraction
+- internal steps are engine-scheduled continuation work and should not be exposed as the same public input concept
+- the engine may still normalize both into a similar internal executable form for sequencing, event emission, and result handling
+
+Rationale:
+
+- preserves the important semantic boundary between outside intent and engine continuation
+- keeps the public API, auditing model, and replay semantics clearer
+- still allows the kernel to avoid duplicating execution machinery internally
+
+Command-and-step contract direction:
+
+- commands should require both `validate()` and `execute()`
+- internal steps should require `execute()` but not ordinary command-style `validate()`
+
+Implication:
+
+- commands always have an explicit legality gate because they come from outside the engine
+- internal steps are trusted engine-scheduled work, though the engine may still use invariants or precondition checks internally when needed
+- full validation remains part of the command abstraction rather than the step abstraction
+
+Rationale:
+
+- preserves the semantic distinction between accepted external input and trusted internal continuation
+- avoids making internal steps drift into a second public command system
+- keeps consumer-facing rule authoring simpler
+
+Helper-effect abstraction direction:
+
+- helpers or effects should remain consumer-owned implementation structure rather than a first-class kernel abstraction in v1
+
+Implication:
+
+- the kernel should not require a formal `Effect` or helper registration model yet
+- consumers may structure reusable game logic as ordinary functions, objects, or other local abstractions
+- helpers can be called from commands or internal steps, but they are not themselves first-class pipeline inputs
+
+Rationale:
+
+- avoids over-prescribing how consumers organize ordinary game logic
+- keeps the kernel focused on execution semantics rather than consumer implementation style
+- leaves room to promote effects or abilities into a richer kernel abstraction later if trigger or resolution design proves it necessary
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
