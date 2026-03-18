@@ -529,6 +529,21 @@ Rationale:
 - many games need strong guidance for first-time players, bots, and agents
 - some games have combinatorial or impractical full input spaces, so structured discovery is a better fit than exhaustive move enumeration
 
+Discovery-ownership shape direction:
+
+- discovery should be rooted primarily in per-command discovery hooks rather than a single central cross-command discovery service in v1
+
+Implication:
+
+- discovery should stay close to command semantics, much like `validate()` and `execute()`
+- if a future higher-level "what can this actor do right now?" query is needed, it should be layered on top of per-command discovery rather than replacing it
+
+Rationale:
+
+- keeps discovery logic local to the command definitions that already own legality and execution meaning
+- avoids turning a central discovery service into a second monolithic rules engine
+- still leaves room to compose command-local discovery into broader actor-centric queries later
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
