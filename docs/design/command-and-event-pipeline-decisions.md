@@ -544,6 +544,36 @@ Rationale:
 - avoids turning a central discovery service into a second monolithic rules engine
 - still leaves room to compose command-local discovery into broader actor-centric queries later
 
+Discovery-shape detail direction:
+
+- per-command discovery should be command-local and semantics-driven rather than forced into universal staged hook shapes
+
+Implication:
+
+- the kernel should not hardcode universal discovery stages such as `listCards` or `listTargets`
+- each command or pending-choice response can define discovery in the shape that matches its own semantics
+- multi-step interactions are the preferred way to break complex discovery into smaller command-specific or choice-specific steps
+
+Rationale:
+
+- not every command has the same discovery structure
+- many complex flows are better modeled as explicit multi-step interactions than as one command with many hardcoded discovery stages
+- this keeps discovery aligned with the earlier first-class pending-choice design
+
+Discovery-optionality direction:
+
+- per-command discovery hooks should be optional
+
+Implication:
+
+- commands that need no input guidance, such as `roll_dice`, `pass`, or `end_turn`, do not need discovery hooks
+- `validate()` and `execute()` remain required, while `discover()` is only implemented when the command benefits from guided input or option surfacing
+
+Rationale:
+
+- avoids boilerplate for commands whose legal input space is trivial
+- keeps discovery important without making it mandatory where it provides no value
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
