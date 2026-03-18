@@ -50,6 +50,26 @@ Rationale:
 - smaller-grained rules are easier to evolve and reason about
 - this preserves consistency with the earlier decision that canonical state remains plain serializable data
 
+### Visibility scope
+
+The visibility model should cover all viewer-facing outputs rather than only projected game state.
+
+Current high-level direction:
+
+- visibility filtering should apply to projected state, discovery results, events, logs, and similar viewer-facing outputs
+- the same underlying visibility policy should govern what a given viewer is allowed to know across those surfaces
+
+Implication:
+
+- hidden information handling stays consistent across state views and other outputs
+- the kernel does not treat state filtering and output filtering as unrelated separate concerns
+
+Rationale:
+
+- a game can leak hidden information through discovery, logs, or events even if state projection is filtered correctly
+- keeping visibility policy broader than state projection matches earlier decisions around viewer-specific discovery
+- this gives the kernel a more coherent hidden-information boundary
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
