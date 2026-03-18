@@ -589,6 +589,22 @@ Rationale:
 - many discovery questions depend on partially chosen inputs rather than only the raw game state
 - keeps the API flexible enough for target selection, modal option narrowing, and similar progressive input flows
 
+Discovery-output boundary direction:
+
+- discovery output should stay semantic rather than UI-oriented
+
+Implication:
+
+- `discover()` should return the available next inputs or semantic options for the command in the given state
+- presentation labels, UI grouping, and display wording should remain the responsibility of the consumer layer rather than the kernel
+- if richer output is needed later, it should prefer lightweight semantic classification over UI-facing metadata
+
+Rationale:
+
+- preserves the transport-agnostic kernel boundary
+- lets different hosts and interfaces present the same discovered options differently
+- keeps discovery aligned with engine semantics rather than presentation concerns
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
