@@ -67,6 +67,25 @@ Rationale:
 - basic deterministic primitives cover many games while keeping the kernel generic
 - higher-level random operations are easier to add later than to remove if the initial surface becomes too opinionated
 
+### RNG trace significance
+
+RNG consumption order should be treated as part of the authoritative deterministic behavior the kernel preserves.
+
+Current high-level direction:
+
+- the kernel should care not only about random outcomes, but also about when random values are consumed during execution
+- replay and simulation should preserve the same sequence of RNG usage, not merely the same final outcome shape
+
+Implication:
+
+- changes that alter random-consumption order are meaningful deterministic behavior changes
+- debugging and replay can reason about divergence caused by extra, missing, or reordered RNG calls
+
+Rationale:
+
+- the same seed can produce different outcomes if random values are consumed in a different order
+- treating RNG consumption as part of the deterministic trace makes replay and debugging more trustworthy
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
