@@ -705,6 +705,21 @@ Rationale:
 - keeps step behavior composable while preserving the same execution semantics already chosen for steps
 - aligns with the goal of letting consumers express richer automatic rule flows without exposing kernel-private runtime operations
 
+Step-created choice direction:
+
+- consumer-defined internal steps may create pending choices or prompts just like commands
+
+Implication:
+
+- automatic continuation work may still pause and wait for new outside input when the game rules require a choice after a step resolves
+- the same pending-choice model and response-command rules should apply regardless of whether the choice originated from a command or a step
+
+Rationale:
+
+- many real rule flows reach a user choice only after automatic continuation or trigger-like processing has begun
+- avoids awkwardly forcing those interaction points to be modeled as fake extra commands
+- keeps the step abstraction expressive enough for richer game-specific workflows
+
 Helper-effect abstraction direction:
 
 - helpers or effects should remain consumer-owned implementation structure rather than a first-class kernel abstraction in v1
