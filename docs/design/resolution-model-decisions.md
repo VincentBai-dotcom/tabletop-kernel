@@ -47,6 +47,26 @@ Rationale:
 - the right richer model depends on later work around triggers, steps, interruptions, and real implementation experience
 - keeping the extension path open avoids overcommitting before the first working kernel exists
 
+### Default completion boundary
+
+Direct sequencing should complete within the same atomic execution transaction by default.
+
+Current high-level direction:
+
+- ordinary resolution should run to completion inside the same accepted execution boundary
+- unresolved pending resolution across later commands or turns should not be a baseline assumption in v1
+
+Implication:
+
+- the default model stays aligned with the earlier atomic execution decision in the command pipeline
+- games that eventually need multi-transaction pending resolution can be handled as a later richer extension rather than the baseline behavior
+
+Rationale:
+
+- keeps the first kernel simpler and more predictable
+- matches the direct-sequencing default already chosen
+- avoids introducing long-lived partially resolved work before the kernel has a stronger richer-resolution design
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
