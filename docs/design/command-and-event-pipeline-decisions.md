@@ -621,6 +621,22 @@ Rationale:
 - avoids over-constraining consumers who may need richer analysis for UI, bots, or agent guidance
 - keeps the kernel focused on semantics while leaving performance strategy to the game implementation
 
+Discovery-visibility direction:
+
+- discovery results may legitimately vary by viewer or actor when hidden information matters
+
+Implication:
+
+- the same canonical state and command can yield different discovered options for different viewers
+- discovery should run against a viewer-aware read-only context rather than assuming one globally identical answer
+- the exact rules governing what each viewer may discover should be aligned later with the dedicated visibility and hidden-information model
+
+Rationale:
+
+- avoids leaking hidden information through discovery
+- avoids making discovery too weak to be useful in games with private hands, decks, or role-specific knowledge
+- acknowledges the boundary with the later visibility design topic without forcing that full model now
+
 ## Current discussion
 
 We are discussing the near-term design goals in strict order.
