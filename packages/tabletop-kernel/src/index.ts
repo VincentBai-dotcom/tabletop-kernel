@@ -2,6 +2,7 @@ export { defineGame } from "./game-definition";
 export { createKernel } from "./kernel/create-kernel";
 export { appendReplayStep, createReplayRecord, replayRecord } from "./replay/history";
 export { createSnapshot, restoreSnapshot } from "./snapshot/snapshot";
+export { runScenario } from "./testing/harness";
 
 export type { GameDefinition, GameDefinitionInput } from "./game-definition";
 export type {

@@ -1,18 +1,32 @@
 # tabletop-kernel
 
-Reusable runtime kernel package for tabletop rules engines.
+Reusable runtime kernel package for tabletop and board-game rules engines.
+
+## Current scope
+
+This package currently provides a runtime skeleton with:
+
+- canonical `{ game, runtime }` state types
+- command definitions with `validate` and `execute`
+- transactional command execution
+- semantic event collection
+- deterministic RNG primitives
+- snapshot and replay helpers
+- a small scenario-style test harness
+
+## Intentional deferrals
+
+The current package does **not** yet implement:
+
+- the long-lived Splendor example
+- a first-class visibility / hidden-information subsystem
+- a first-class public internal-step abstraction
+- rich trigger resolution beyond the current skeleton
+- richer stack / queue resolution models
+
+## Scripts
 
 ```bash
 bun run test
+bun run typecheck
 ```
-
-The public API is intentionally tiny at this stage and will grow from the
-runtime skeleton first.
-*** Add File: /home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-kernel/src/index.ts
-export {};
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
