@@ -6,7 +6,25 @@ Update this file whenever a progression-model design decision is agreed during d
 
 ## Agreed So Far
 
-No progression-model decisions have been locked yet in this document.
+### Generic progression concept
+
+Turn, phase, step, round, and similar labels should be treated as named instances of one generic progression concept rather than as distinct built-in kernel concepts.
+
+Current high-level direction:
+
+- a progression segment is a bounded interval of game progression with an entry, an exit, and rules that apply while it is active
+- labels such as turn, phase, step, and round mainly differ by naming, nesting, ownership, and transition rules
+- the kernel should not hardcode fundamentally different semantics for those labels in the first version
+
+Implication:
+
+- consumers can model many different game structures without the kernel forcing one specific turn/phase taxonomy
+- nesting like round -> turn -> phase -> step can be expressed as one family of progression segments rather than separate unrelated concepts
+
+Rationale:
+
+- many games use similar progression ideas with different names and structures
+- a generic segment model is more flexible than hardcoded built-in turn/phase semantics
 
 ## Current discussion
 
