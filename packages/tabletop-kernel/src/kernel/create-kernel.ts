@@ -6,6 +6,7 @@ import type { Command, CommandDefinition } from "../types/command";
 import type { ExecutionFailure, ExecutionResult, ExecutionSuccess } from "../types/result";
 import type { CanonicalState, RuntimeState } from "../types/state";
 import type { ProgressionSegmentState } from "../types/progression";
+import { createRNGService } from "../rng/service";
 
 type CommandDefinitions<GameState> = Record<
   string,
@@ -102,9 +103,10 @@ export function createKernel<
 
       const workingState = cloneCanonicalState(state);
       const collector = createEventCollector();
+      const rng = createRNGService(workingState.runtime.rng);
 
       definition.execute(
-        createExecuteContext(workingState, command, collector.emit),
+        createExecuteContext(workingState, command, rng, collector.emit),
       );
 
       const success: ExecutionSuccess<CanonicalState<GameState>> = {

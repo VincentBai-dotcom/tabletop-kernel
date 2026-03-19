@@ -31,5 +31,5 @@ export type {
   ProgressionSegmentState,
   ProgressionState,
 } from "./types/progression";
-export type { RNGState } from "./types/rng";
+export type { RNGApi, RNGState } from "./types/rng";
 export type { ReplayRecord, Snapshot } from "./types/snapshot";

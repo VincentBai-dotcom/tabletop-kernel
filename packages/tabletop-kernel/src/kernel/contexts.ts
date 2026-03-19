@@ -5,6 +5,7 @@ import type {
 } from "../types/command";
 import type { KernelEvent } from "../types/event";
 import type { CanonicalState, RuntimeState } from "../types/state";
+import type { RNGApi } from "../types/rng";
 
 export function createValidationContext<
   GameState,
@@ -27,6 +28,7 @@ export function createExecuteContext<
 >(
   state: CanonicalState<GameState, Runtime>,
   command: Cmd,
+  rng: RNGApi,
   emitEvent: (event: KernelEvent) => void,
 ): ExecuteContext<GameState, Runtime, Cmd> {
   return {
@@ -34,6 +36,7 @@ export function createExecuteContext<
     command,
     game: state.game,
     runtime: state.runtime,
+    rng,
     emitEvent,
   };
 }

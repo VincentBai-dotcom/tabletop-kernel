@@ -1,6 +1,7 @@
 import type { KernelEvent } from "./event";
 import type { ValidationOutcome } from "./result";
 import type { CanonicalState, RuntimeState } from "./state";
+import type { RNGApi } from "./rng";
 
 export interface Command<
   Payload extends Record<string, unknown> = Record<string, unknown>,
@@ -26,6 +27,7 @@ export interface ExecuteContext<
 > extends ValidationContext<GameState, Runtime, Cmd> {
   game: GameState;
   runtime: Readonly<Runtime>;
+  rng: RNGApi;
   emitEvent(event: KernelEvent): void;
 }
 
