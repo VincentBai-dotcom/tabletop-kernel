@@ -1,0 +1,99 @@
+import { expect, test } from "bun:test";
+import { createKernel } from "../src/kernel/create-kernel";
+import { defineGame } from "../src/game-definition";
+
+test("createKernel creates initial state and commits successful commands", () => {
+  const game = defineGame({
+    name: "counter-game",
+    initialState: () => ({
+      counter: 0,
+    }),
+    commands: {
+      increment_counter: {
+        validate: () => ({ ok: true as const }),
+        execute: ({ game, command, emitEvent }) => {
+          const amount =
+            typeof command.payload?.amount === "number"
+              ? command.payload.amount
+              : 1;
+
+          game.counter += amount;
+          emitEvent({
+            category: "domain",
+            type: "counter_incremented",
+            payload: { amount },
+          });
+        },
+      },
+      decrement_counter: {
+        validate: ({ state }) =>
+          state.game.counter > 0
+            ? { ok: true as const }
+            : {
+                ok: false as const,
+                reason: "counter_is_zero",
+              },
+        execute: ({ game }) => {
+          game.counter -= 1;
+        },
+      },
+    },
+    rngSeed: "test-seed",
+  });
+
+  const kernel = createKernel(game);
+  const initialState = kernel.createInitialState();
+  const success = kernel.executeCommand(initialState, {
+    type: "increment_counter",
+    payload: { amount: 2 },
+  });
+
+  expect(initialState.game.counter).toBe(0);
+  expect(initialState.runtime.rng.seed).toBe("test-seed");
+  expect(success.ok).toBe(true);
+  expect(success.state.game.counter).toBe(2);
+  expect(success.events).toHaveLength(1);
+  expect(success.events[0]?.type).toBe("counter_incremented");
+});
+
+test("createKernel returns unchanged state for validation failures", () => {
+  const game = defineGame({
+    name: "counter-game",
+    initialState: () => ({
+      counter: 0,
+    }),
+    commands: {
+      decrement_counter: {
+        validate: ({ state }) =>
+          state.game.counter > 0
+            ? { ok: true as const }
+            : {
+                ok: false as const,
+                reason: "counter_is_zero",
+                metadata: { minimum: 1 },
+              },
+        execute: ({ game }) => {
+          game.counter -= 1;
+        },
+      },
+    },
+  });
+
+  const kernel = createKernel(game);
+  const initialState = kernel.createInitialState();
+  const failure = kernel.executeCommand(initialState, {
+    type: "decrement_counter",
+  });
+
+  expect(failure.ok).toBe(false);
+
+  if (failure.ok) {
+    throw new Error("expected validation failure");
+  }
+
+  expect(failure.state).toBe(initialState);
+  expect(failure.state.game.counter).toBe(0);
+  expect(failure.reason).toBe("counter_is_zero");
+  expect(failure.metadata).toEqual({ minimum: 1 });
+  expect(failure.events).toHaveLength(0);
+});

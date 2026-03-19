@@ -1,14 +1,13 @@
+export { defineGame } from "./game-definition";
+export { createKernel } from "./kernel/create-kernel";
+
+export type { GameDefinition, GameDefinitionInput } from "./game-definition";
 export type {
   Command,
   CommandDefinition,
   ExecuteContext,
   ValidationContext,
 } from "./types/command";
-export { defineGame } from "./game-definition";
-export type {
-  GameDefinition,
-  GameDefinitionInput,
-} from "./game-definition";
 export type { KernelEvent } from "./types/event";
 export type {
   ExecutionFailure,

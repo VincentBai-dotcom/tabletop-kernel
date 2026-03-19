@@ -2,8 +2,7 @@ import type { Command, CommandDefinition } from "./types/command";
 import type { ProgressionDefinition } from "./types/progression";
 
 export interface GameDefinition<
-  GameState = Record<string, unknown>,
-  RuntimeState = unknown,
+  GameState extends Record<string, unknown> = Record<string, unknown>,
   Commands extends Record<string, CommandDefinition<GameState, any, any>> = Record<
     string,
     CommandDefinition<GameState, any, any>
@@ -14,27 +13,24 @@ export interface GameDefinition<
   commands: Commands;
   progression?: ProgressionDefinition;
   rngSeed?: string | number;
-  runtime?: RuntimeState;
 }
 
 export interface GameDefinitionInput<
-  GameState = Record<string, unknown>,
-  RuntimeState = unknown,
+  GameState extends Record<string, unknown> = Record<string, unknown>,
   Commands extends Record<string, CommandDefinition<GameState, any, any>> = Record<
     string,
     CommandDefinition<GameState, any, any>
   >,
-> extends Omit<GameDefinition<GameState, RuntimeState, Commands>, "name"> {
+> extends Omit<GameDefinition<GameState, Commands>, "name"> {
   name: string;
 }
 
 export function defineGame<
-  GameState = Record<string, unknown>,
-  RuntimeState = unknown,
+  GameState extends Record<string, unknown> = Record<string, unknown>,
   Commands extends Record<string, CommandDefinition<GameState, any, any>> = Record<
     string,
     CommandDefinition<GameState, any, any>
   >,
->(config: GameDefinitionInput<GameState, RuntimeState, Commands>): GameDefinition<GameState, RuntimeState, Commands> {
+>(config: GameDefinitionInput<GameState, Commands>): GameDefinition<GameState, Commands> {
   return config;
 }
