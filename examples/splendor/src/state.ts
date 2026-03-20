@@ -51,7 +51,7 @@ export interface SplendorGameState {
   winnerIds: string[] | null;
 }
 
-export interface ReturnTokensPayload extends Partial<TokenCounts> {}
+export type ReturnTokensPayload = Partial<TokenCounts>;
 
 export interface TakeThreeDistinctGemsPayload {
   colors: [GemTokenColor, GemTokenColor, GemTokenColor];

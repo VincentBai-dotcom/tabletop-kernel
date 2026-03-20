@@ -3,9 +3,13 @@ import type { ProgressionDefinition } from "./types/progression";
 import type { RuntimeState } from "./types/state";
 import type { RNGApi } from "./types/rng";
 
-export interface GameSetupContext<
-  GameState extends object = object,
-> {
+type AnyCommandDefinition<GameState extends object> = CommandDefinition<
+  GameState,
+  RuntimeState,
+  Command
+>;
+
+export interface GameSetupContext<GameState extends object = object> {
   game: GameState;
   runtime: RuntimeState;
   rng: RNGApi;
@@ -14,9 +18,9 @@ export interface GameSetupContext<
 
 export interface GameDefinition<
   GameState extends object = object,
-  Commands extends Record<string, CommandDefinition<GameState, any, any>> = Record<
+  Commands extends Record<string, AnyCommandDefinition<GameState>> = Record<
     string,
-    CommandDefinition<GameState, any, any>
+    AnyCommandDefinition<GameState>
   >,
 > {
   name: string;
@@ -29,9 +33,9 @@ export interface GameDefinition<
 
 export interface GameDefinitionInput<
   GameState extends object = object,
-  Commands extends Record<string, CommandDefinition<GameState, any, any>> = Record<
+  Commands extends Record<string, AnyCommandDefinition<GameState>> = Record<
     string,
-    CommandDefinition<GameState, any, any>
+    AnyCommandDefinition<GameState>
   >,
 > extends Omit<GameDefinition<GameState, Commands>, "name"> {
   name: string;
@@ -39,10 +43,12 @@ export interface GameDefinitionInput<
 
 export function defineGame<
   GameState extends object = object,
-  Commands extends Record<string, CommandDefinition<GameState, any, any>> = Record<
+  Commands extends Record<string, AnyCommandDefinition<GameState>> = Record<
     string,
-    CommandDefinition<GameState, any, any>
+    AnyCommandDefinition<GameState>
   >,
->(config: GameDefinitionInput<GameState, Commands>): GameDefinition<GameState, Commands> {
+>(
+  config: GameDefinitionInput<GameState, Commands>,
+): GameDefinition<GameState, Commands> {
   return config;
 }

@@ -3,7 +3,11 @@ import { createExecuteContext, createValidationContext } from "./contexts";
 import { createEventCollector } from "./events";
 import { cloneCanonicalState } from "./transaction";
 import type { Command, CommandDefinition } from "../types/command";
-import type { ExecutionFailure, ExecutionResult, ExecutionSuccess } from "../types/result";
+import type {
+  ExecutionFailure,
+  ExecutionResult,
+  ExecutionSuccess,
+} from "../types/result";
 import type { CanonicalState, RuntimeState } from "../types/state";
 import type { ProgressionSegmentState } from "../types/progression";
 import { createRNGService } from "../rng/service";
@@ -13,11 +17,10 @@ type CommandDefinitions<GameState extends object> = Record<
   CommandDefinition<GameState, RuntimeState, Command>
 >;
 
-export interface Kernel<
-  GameState extends object,
-  Commands extends CommandDefinitions<GameState>,
-> {
-  createInitialState(options?: { playerIds?: readonly string[] }): CanonicalState<GameState>;
+export interface Kernel<GameState extends object> {
+  createInitialState(options?: {
+    playerIds?: readonly string[];
+  }): CanonicalState<GameState>;
   executeCommand(
     state: CanonicalState<GameState>,
     command: Command,
@@ -29,7 +32,9 @@ function createInitialRuntimeState<GameState extends object>(
 ): RuntimeState {
   const segments: Record<string, ProgressionSegmentState> = {};
 
-  for (const [id, segment] of Object.entries(game.progression?.segments ?? {})) {
+  for (const [id, segment] of Object.entries(
+    game.progression?.segments ?? {},
+  )) {
     segments[id] = {
       ...segment,
       active: game.progression?.initial === id,
@@ -59,7 +64,7 @@ function createInitialRuntimeState<GameState extends object>(
 export function createKernel<
   GameState extends object,
   Commands extends CommandDefinitions<GameState>,
->(game: GameDefinition<GameState, Commands>): Kernel<GameState, Commands> {
+>(game: GameDefinition<GameState, Commands>): Kernel<GameState> {
   return {
     createInitialState(options) {
       const gameState = game.initialState();

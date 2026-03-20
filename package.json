@@ -8,12 +8,31 @@
   ],
   "scripts": {
     "test": "bun test --cwd packages/tabletop-kernel",
-    "typecheck": "bun run --cwd packages/tabletop-kernel typecheck"
+    "typecheck": "bun run --cwd packages/tabletop-kernel typecheck",
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@eslint/js": "^9.39.2",
+    "@eslint/json": "^0.14.0",
+    "@eslint/markdown": "^7.5.1",
+    "@types/bun": "latest",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "3.7.4",
+    "typescript-eslint": "^8.51.0"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx,mts,cts,json,jsonc,json5,md,css}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   }
 }
