@@ -12,7 +12,7 @@ export interface Command<
 }
 
 export interface ValidationContext<
-  GameState = Record<string, unknown>,
+  GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
   Cmd extends Command = Command,
 > {
@@ -21,18 +21,19 @@ export interface ValidationContext<
 }
 
 export interface ExecuteContext<
-  GameState = Record<string, unknown>,
+  GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
   Cmd extends Command = Command,
 > extends ValidationContext<GameState, Runtime, Cmd> {
   game: GameState;
   runtime: Readonly<Runtime>;
   rng: RNGApi;
+  setCurrentSegmentOwner(ownerId?: string): void;
   emitEvent(event: KernelEvent): void;
 }
 
 export interface CommandDefinition<
-  GameState = Record<string, unknown>,
+  GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
   Cmd extends Command = Command,
 > {

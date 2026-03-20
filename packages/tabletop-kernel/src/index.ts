@@ -4,7 +4,7 @@ export { appendReplayStep, createReplayRecord, replayRecord } from "./replay/his
 export { createSnapshot, restoreSnapshot } from "./snapshot/snapshot";
 export { runScenario } from "./testing/harness";
 
-export type { GameDefinition, GameDefinitionInput } from "./game-definition";
+export type { GameDefinition, GameDefinitionInput, GameSetupContext } from "./game-definition";
 export type {
   Command,
   CommandDefinition,

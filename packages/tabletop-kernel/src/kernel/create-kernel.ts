@@ -8,23 +8,23 @@ import type { CanonicalState, RuntimeState } from "../types/state";
 import type { ProgressionSegmentState } from "../types/progression";
 import { createRNGService } from "../rng/service";
 
-type CommandDefinitions<GameState> = Record<
+type CommandDefinitions<GameState extends object> = Record<
   string,
   CommandDefinition<GameState, RuntimeState, Command>
 >;
 
 export interface Kernel<
-  GameState extends Record<string, unknown>,
+  GameState extends object,
   Commands extends CommandDefinitions<GameState>,
 > {
-  createInitialState(): CanonicalState<GameState>;
+  createInitialState(options?: { playerIds?: readonly string[] }): CanonicalState<GameState>;
   executeCommand(
     state: CanonicalState<GameState>,
     command: Command,
   ): ExecutionResult<CanonicalState<GameState>>;
 }
 
-function createInitialRuntimeState<GameState extends Record<string, unknown>>(
+function createInitialRuntimeState<GameState extends object>(
   game: GameDefinition<GameState, CommandDefinitions<GameState>>,
 ): RuntimeState {
   const segments: Record<string, ProgressionSegmentState> = {};
@@ -36,7 +36,7 @@ function createInitialRuntimeState<GameState extends Record<string, unknown>>(
     };
   }
 
-  return {
+  const runtime: RuntimeState = {
     progression: {
       current: game.progression?.initial ?? null,
       segments,
@@ -52,19 +52,32 @@ function createInitialRuntimeState<GameState extends Record<string, unknown>>(
       choices: [],
     },
   };
+
+  return runtime;
 }
 
 export function createKernel<
-  GameState extends Record<string, unknown>,
+  GameState extends object,
   Commands extends CommandDefinitions<GameState>,
 >(game: GameDefinition<GameState, Commands>): Kernel<GameState, Commands> {
   return {
-    createInitialState() {
+    createInitialState(options) {
+      const gameState = game.initialState();
+      const runtime = createInitialRuntimeState(
+        game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+      );
+      const rng = createRNGService(runtime.rng);
+
+      game.setup?.({
+        game: gameState,
+        runtime,
+        rng,
+        playerIds: options?.playerIds ?? [],
+      });
+
       return {
-        game: game.initialState(),
-        runtime: createInitialRuntimeState(
-          game as GameDefinition<GameState, CommandDefinitions<GameState>>,
-        ),
+        game: gameState,
+        runtime,
       };
     },
 
@@ -104,9 +117,29 @@ export function createKernel<
       const workingState = cloneCanonicalState(state);
       const collector = createEventCollector();
       const rng = createRNGService(workingState.runtime.rng);
+      const setCurrentSegmentOwner = (ownerId?: string) => {
+        const currentSegmentId = workingState.runtime.progression.current;
+
+        if (!currentSegmentId) {
+          return;
+        }
+
+        const currentSegment =
+          workingState.runtime.progression.segments[currentSegmentId];
+
+        if (currentSegment) {
+          currentSegment.ownerId = ownerId;
+        }
+      };
 
       definition.execute(
-        createExecuteContext(workingState, command, rng, collector.emit),
+        createExecuteContext(
+          workingState,
+          command,
+          rng,
+          setCurrentSegmentOwner,
+          collector.emit,
+        ),
       );
 
       const success: ExecutionSuccess<CanonicalState<GameState>> = {

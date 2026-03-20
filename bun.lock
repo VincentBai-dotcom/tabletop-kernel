@@ -11,6 +11,19 @@
         "typescript": "^5",
       },
     },
+    "examples/splendor": {
+      "name": "splendor-example",
+      "version": "0.0.0",
+      "dependencies": {
+        "tabletop-kernel": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "packages/tabletop-kernel": {
       "name": "tabletop-kernel",
       "version": "0.0.0",
@@ -28,6 +41,8 @@
     "@types/node": ["@types/node@25.5.0", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw=="],
 
     "bun-types": ["bun-types@1.3.11", "", { "dependencies": { "@types/node": "*" } }, "sha512-1KGPpoxQWl9f6wcZh57LvrPIInQMn2TQ7jsgxqpRzg+l0QPOFvJVH7HmvHo/AiPgwXy+/Thf6Ov3EdVn1vOabg=="],
+
+    "splendor-example": ["splendor-example@workspace:examples/splendor"],
 
     "tabletop-kernel": ["tabletop-kernel@workspace:packages/tabletop-kernel"],
 

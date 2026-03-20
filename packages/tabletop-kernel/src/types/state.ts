@@ -29,7 +29,7 @@ export interface RuntimeState {
 }
 
 export interface CanonicalState<
-  GameState = Record<string, unknown>,
+  GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
 > {
   game: GameState;

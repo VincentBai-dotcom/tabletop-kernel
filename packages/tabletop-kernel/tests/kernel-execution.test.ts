@@ -97,3 +97,43 @@ test("createKernel returns unchanged state for validation failures", () => {
   expect(failure.metadata).toEqual({ minimum: 1 });
   expect(failure.events).toHaveLength(0);
 });
+
+test("execute context can update current progression owner through controlled API", () => {
+  const game = defineGame({
+    name: "turn-game",
+    initialState: () => ({
+      marker: 0,
+    }),
+    progression: {
+      initial: "turn",
+      segments: {
+        turn: {
+          id: "turn",
+          kind: "turn",
+          name: "Turn",
+        },
+      },
+    },
+    setup: ({ runtime }) => {
+      runtime.progression.segments.turn!.ownerId = "player-1";
+    },
+    commands: {
+      pass_turn: {
+        validate: () => ({ ok: true as const }),
+        execute: ({ setCurrentSegmentOwner }) => {
+          setCurrentSegmentOwner("player-2");
+        },
+      },
+    },
+  });
+
+  const kernel = createKernel(game);
+  const initialState = kernel.createInitialState();
+  const result = kernel.executeCommand(initialState, {
+    type: "pass_turn",
+  });
+
+  expect(initialState.runtime.progression.segments.turn?.ownerId).toBe("player-1");
+  expect(result.ok).toBe(true);
+  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe("player-2");
+});
