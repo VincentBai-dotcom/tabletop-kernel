@@ -181,6 +181,38 @@ The key principle is:
 - progression logic should be centralized and declarative enough that the kernel
   can apply it automatically after command execution
 
+## Completion Policy Versus Lifecycle Hooks
+
+Completion policy should be read-only.
+
+That means:
+
+- completion checks decide whether a segment is complete
+- completion checks should not mutate `game`
+- completion checks should not directly emit effects
+
+Reason:
+
+- a completion check should remain safe to evaluate without side effects
+- nested progression becomes much easier to reason about if completion logic is
+  pure
+- mixing mutation into completion checks would make lifecycle resolution harder
+  to inspect and debug
+
+State mutation that happens because a segment starts or ends should instead live
+in lifecycle hooks.
+
+Current direction:
+
+- completion policy: read-only
+- lifecycle hooks such as segment `onExit` and `onEnter`: mutation-capable
+
+Examples:
+
+- draw a card at turn start -> `onEnter(turn)`
+- gain income at turn end -> `onExit(turn)`
+- completion policy only answers whether the segment should complete
+
 ## Splendor-Like Interpretation
 
 For a game like Splendor, the likely progression policy is:
