@@ -147,6 +147,19 @@ So completion policy should be allowed to be:
 - actor-dependent
 - consumer-defined
 
+Current direction:
+
+- support both named built-in completion policies and custom callbacks
+- built-in policies cover common progression patterns
+- callbacks exist as the escape hatch for asymmetric or game-specific behavior
+
+This means the progression layer should not be limited to only one of:
+
+- fixed named strategies
+- fully custom callbacks
+
+It should support both.
+
 ## Consumer Experience Direction
 
 The intended consumer experience is:
