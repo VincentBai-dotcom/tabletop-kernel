@@ -197,6 +197,42 @@ Current direction:
 This means the kernel is free to flatten or index progression internally, but
 the consumer should not have to author it in that normalized shape by default.
 
+## Segment Node Shape
+
+The minimal first segment-node shape should be:
+
+Required:
+
+- `id`
+- `children`
+
+Optional:
+
+- `kind`
+- `completionPolicy`
+- `onEnter`
+- `onExit`
+- `resolveNext`
+
+Meaning:
+
+- `id`: unique identity for that specific segment node
+- `children`: nested child segments
+- `kind`: optional semantic category such as `round`, `turn`, `phase`, or
+  `step`
+- `completionPolicy`: built-in named strategy or custom callback
+- `onEnter`: mutation-capable lifecycle hook for entering the segment
+- `onExit`: mutation-capable lifecycle hook for exiting the segment
+- `resolveNext`: progression-resolution hook that decides where lifecycle moves
+  next
+
+Current direction:
+
+- `id` is required
+- `kind` is optional
+- `resolveNext` should stay a single hook rather than being split into many
+  smaller next-owner and next-segment hooks in the first design
+
 ## Likely Kernel Hooks
 
 Exact API is still open, but the kernel likely needs concepts like:
