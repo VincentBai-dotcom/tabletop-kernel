@@ -176,6 +176,27 @@ That means a consumer should be able to avoid patterns like:
 
 Those behaviors should instead come from progression/lifecycle configuration.
 
+## Consumer-Facing Authoring Shape
+
+The consumer-facing progression definition should be authored as a nested tree.
+
+Reason:
+
+- nested progression is how people naturally think about rounds, turns, phases,
+  and steps
+- a tree-shaped authoring model is easier to read than a flat map with manual
+  parent references everywhere
+- the hierarchy is explicit in consumer code rather than reconstructed from
+  identifiers
+
+Current direction:
+
+- consumer-facing authoring: nested progression tree
+- kernel internal representation: normalized structure if needed
+
+This means the kernel is free to flatten or index progression internally, but
+the consumer should not have to author it in that normalized shape by default.
+
 ## Likely Kernel Hooks
 
 Exact API is still open, but the kernel likely needs concepts like:
