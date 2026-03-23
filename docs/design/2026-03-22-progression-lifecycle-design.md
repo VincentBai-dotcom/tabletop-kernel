@@ -252,6 +252,30 @@ Current direction:
 - emitted lifecycle events use the same event pipeline as other emitted events
 - triggers may react to those events through the normal trigger system
 
+## Reporting Chained Progression Changes
+
+Lifecycle resolution may cause multiple chained progression transitions during a
+single successful command.
+
+Current direction:
+
+- those chained progression changes should be reported through the normal event
+  stream
+- progression/lifecycle changes should be represented as semantic events in
+  order
+- the design should avoid introducing a totally separate progression-reporting
+  channel unless later tooling proves it necessary
+
+Example shape:
+
+- `step_exited`
+- `phase_exited`
+- `turn_exited`
+- `turn_entered`
+
+This keeps execution results and history centered around one main stream of
+meaningful facts rather than multiple parallel reporting systems.
+
 ## Likely Kernel Hooks
 
 Exact API is still open, but the kernel likely needs concepts like:
