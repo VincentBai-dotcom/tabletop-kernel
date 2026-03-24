@@ -589,13 +589,45 @@ Rationale:
 - many discovery questions depend on partially chosen inputs rather than only the raw game state
 - keeps the API flexible enough for target selection, modal option narrowing, and similar progressive input flows
 
+Command-availability discovery direction:
+
+- each command may expose a top-level availability check that answers whether at least one legal concrete input exists for that command family in the current context
+
+Implication:
+
+- the kernel can provide a higher-level `listAvailableCommands()` helper by iterating command definitions and keeping only the commands whose top-level availability check returns true
+- this availability check should be interpreted as existential availability, not as "any arbitrary input would be legal"
+- `validate()` remains the final legality gate for a submitted concrete command even if the command was surfaced as available
+
+Rationale:
+
+- many clients first need to know which command families are currently available before asking for deeper command-local inputs
+- this gives the kernel a clean way to support top-level action lists without inferring legality from raw validation logic alone
+- existential availability better matches real game semantics than phrasing the check in terms of arbitrary input
+
+Discovery-sequencing direction:
+
+- `discover(ctx, partialCommand)` should follow the interaction sequence defined by the command designer rather than a kernel-imposed universal input order
+
+Implication:
+
+- command authors decide what the next meaningful choice is for that command in a given partial-input state
+- for example, a `play_card` command may first return playable cards and then, once a card is chosen, return legal targets for that card
+- different commands may naturally expose different step orderings without needing the kernel to understand domain-specific stages like "select card" or "select target"
+
+Rationale:
+
+- tabletop commands often have a natural player-facing order of choices
+- preserving that order makes UIs, agents, and bots much more intuitive to implement
+- command authors understand the intended interaction sequence better than the generic kernel can
+
 Discovery-output boundary direction:
 
 - discovery output should stay semantic rather than UI-oriented
 
 Implication:
 
-- `discover()` should return the available next inputs or semantic options for the command in the given state
+- `discover()` should return a structured semantic object describing the next available inputs or options for the command in the given state
 - presentation labels, UI grouping, and display wording should remain the responsibility of the consumer layer rather than the kernel
 - if richer output is needed later, it should prefer lightweight semantic classification over UI-facing metadata
 
@@ -603,6 +635,7 @@ Rationale:
 
 - preserves the transport-agnostic kernel boundary
 - lets different hosts and interfaces present the same discovered options differently
+- a structured semantic object lets clients understand what the discovered options represent without forcing UI-specific metadata into the kernel contract
 - keeps discovery aligned with engine semantics rather than presentation concerns
 
 Discovery-computation boundary direction:
