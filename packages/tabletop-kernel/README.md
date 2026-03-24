@@ -9,6 +9,7 @@ This package currently provides a runtime skeleton with:
 - canonical `{ game, runtime }` state types
 - command definitions with `validate` and `execute`
 - transactional command execution
+- nested progression definitions with kernel-managed lifecycle resolution
 - semantic event collection
 - deterministic RNG primitives
 - snapshot and replay helpers
@@ -18,7 +19,6 @@ This package currently provides a runtime skeleton with:
 
 The current package does **not** yet implement:
 
-- the long-lived Splendor example
 - a first-class visibility / hidden-information subsystem
 - a first-class public internal-step abstraction
 - rich trigger resolution beyond the current skeleton
