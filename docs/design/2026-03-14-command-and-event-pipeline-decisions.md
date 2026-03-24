@@ -628,6 +628,8 @@ Discovery-output boundary direction:
 Implication:
 
 - `discover()` should return a structured semantic object describing the next available inputs or options for the command in the given state
+- the structured result should use a small stable shape such as `{ step, options }`
+- lightweight optional fields such as `complete`, `nextPartialCommand`, or semantic metadata may be added where useful, but UI text and presentation wording still stay outside the kernel
 - presentation labels, UI grouping, and display wording should remain the responsibility of the consumer layer rather than the kernel
 - if richer output is needed later, it should prefer lightweight semantic classification over UI-facing metadata
 
@@ -636,6 +638,7 @@ Rationale:
 - preserves the transport-agnostic kernel boundary
 - lets different hosts and interfaces present the same discovered options differently
 - a structured semantic object lets clients understand what the discovered options represent without forcing UI-specific metadata into the kernel contract
+- a stable `{ step, options }` core makes terminal apps, bots, and future graphical clients easier to implement consistently
 - keeps discovery aligned with engine semantics rather than presentation concerns
 
 Discovery-computation boundary direction:
