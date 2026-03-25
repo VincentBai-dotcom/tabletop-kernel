@@ -19,6 +19,9 @@ The current kernel API is too implementation-oriented:
   suggests something more interactive
 - `createKernel(...)` returns an object that is bound to a game definition, but
   the word `kernel` is too vague from the consumer's point of view
+- command definitions are currently authored mainly as object literals that
+  conform to `CommandDefinition`, which is not the most readable style for
+  larger games
 
 The result is that the consumer has to understand internal terminology instead
 of reading an API that clearly describes what each object is for.
@@ -69,6 +72,26 @@ So the public naming should move toward something like:
 The purpose of the new naming is to emphasize the actual usage pattern instead
 of the implementation term `kernel`.
 
+### 3. Command Definitions Should Support A Class-Oriented Authoring Style
+
+The target consumer experience should not force all command definitions to be
+authored as plain object literals.
+
+The kernel should support a more OOP-friendly style where consumers can define
+commands as classes that implement the command-definition contract.
+
+Reason:
+
+- larger games benefit from stronger structure around each command
+- class-based authoring is often easier to read than large inline object
+  literals
+- it gives consumers a clearer place to put command-local helpers and internal
+  organization
+
+This does not require removing object-literal command definitions immediately,
+but the target consumer experience should explicitly support class-based command
+authoring.
+
 ## Current Preferred Direction
 
 The locked direction so far is:
@@ -77,6 +100,8 @@ The locked direction so far is:
   `new GameDefinitionBuilder(...).build()`
 - the runtime object currently named `Kernel` should be renamed toward
   `GameExecutor` or a similarly explicit reducer-style name
+- command definitions should support a class-oriented authoring style instead of
+  only object literals conforming to `CommandDefinition`
 
 ## Follow-Up
 
