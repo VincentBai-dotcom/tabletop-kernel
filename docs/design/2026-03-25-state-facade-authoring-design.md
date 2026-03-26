@@ -34,12 +34,22 @@ consumer-facing authoring layer.
 The kernel should provide a class-oriented state authoring layer built on top
 of the existing plain canonical state tree.
 
+The chosen authoring model is:
+
+- `@State()` class decorators to mark state classes
+- field decorators to mark scalar fields and nested state fields
+- one explicit `rootState(...)` entrypoint on the builder
+
 The consumer experience should look more like:
 
 ```ts
+@State()
 class PlayerState {
-  health: number;
-  hand: HandState;
+  @scalar()
+  health!: number;
+
+  @state(() => HandState)
+  hand!: HandState;
 
   dealDamage(amount: number) {
     this.health -= amount;
@@ -72,6 +82,7 @@ The consumer defines:
 - a root state class
 - nested sub-state classes reachable from that root
 - command definitions that operate on the root state object
+- rule/effect objects that may operate across multiple substates when needed
 
 The builder should take one explicit root state:
 
@@ -90,9 +101,14 @@ That compiled metadata should describe:
 
 - the root state class
 - nested state class relationships
+- field decorator metadata
 - field layout
 - hydration logic
 - how commands are wrapped to run against hydrated facades
+
+The state graph should be traversed from the explicit root state. The design
+does not rely on global scanning of all decorated classes as the primary source
+of truth.
 
 ### Execution Time
 
@@ -115,6 +131,24 @@ So the kernel remains pure-function-shaped externally:
 
 The object layer exists only for consumer ergonomics.
 
+## State Metadata Model
+
+The locked metadata direction is:
+
+- use `@State()` to mark state classes
+- use field decorators like `@scalar()` and `@state(...)`
+- do not rely on TypeScript field types alone
+
+Reason:
+
+- TypeScript interfaces and field types are not reliably available at runtime
+- the kernel needs runtime-visible metadata for hydration and traversal
+- collection and optional fields cannot be inferred safely from `instanceof`
+  checks alone
+
+The decorators provide the runtime metadata the builder needs to compile the
+root state graph into canonical plain-data form.
+
 ## Command Experience
 
 Commands should receive the hydrated root state object in `execute()`.
@@ -135,7 +169,8 @@ Here:
 
 - `game` is a temporary hydrated root state object
 - it is backed by the cloned canonical plain data
-- any state mutation should happen through state methods
+- commands can orchestrate through that root object
+- direct field mutation in commands is still not the intended pattern
 
 ## Mutation Rule
 
@@ -162,6 +197,57 @@ Reason:
 - domain behavior lives with the state object that owns it
 - commands become orchestration layers rather than raw tree mutation scripts
 - this leaves room for future effect-resolution abstractions
+
+This rule is about direct field mutation. It does not mean every piece of game
+logic must become a method on the lowest state object it touches.
+
+## Cross-State Rule Logic
+
+The design should not force all cross-state logic to live on the root state
+class or on the lowest common ancestor in the state tree.
+
+That is especially important for card games, where card effects often touch
+many substates at once.
+
+The locked direction is:
+
+- state classes own state-scoped mutation methods
+- commands and effects may orchestrate across multiple substates through the
+  root game facade
+- cross-cutting rule logic may live in separate effect or utility objects
+
+So for card games:
+
+- card instances remain part of the state tree
+- card definitions and effect logic may live in an external immutable registry
+- the registry is not part of persistent match state
+
+Example direction:
+
+```ts
+class PlayCardCommand implements CommandDefinition<GameState, PlayCardInput> {
+  constructor(private readonly cards: CardDefinitionRegistry) {}
+
+  execute({ game, commandInput }) {
+    const card = game.currentPlayer.hand.getCard(commandInput.payload.cardId);
+    const definition = this.cards.get(card.definitionId);
+
+    definition.effect.resolve(game, {
+      sourceCardId: card.id,
+      targetId: commandInput.payload.targetId,
+    });
+  }
+}
+```
+
+In that model:
+
+- `CardState` is persistent state
+- `CardDefinitionRegistry` is immutable rule-definition data
+- `effect.resolve(...)` is rule logic, not state
+
+This preserves the pure functional executor model as long as the external rule
+registry is immutable and deterministic.
 
 ## Pure Functional Behavior
 
@@ -232,11 +318,9 @@ because:
 - the consumer does not need excessive boilerplate
 - the authoring model stays focused on game-domain objects
 
-## Open Question
+Compared with forcing all game logic into root-state methods, this design is
+better because:
 
-The next unresolved design question is:
-
-- how the builder should determine which fields are nested state objects and
-  which are plain scalar/data fields
-
-That question should be decided before implementation begins.
+- state-local mutations still live close to the state they modify
+- cross-cutting rule logic like card effects can stay outside the root state
+- card games do not need a god-object root class for all effects
