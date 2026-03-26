@@ -273,6 +273,30 @@ This is effectively:
 which matches the current kernel execution model while providing a better
 consumer-facing DSL.
 
+More precisely, the intended execution contract is:
+
+- the executor takes current canonical state plus command input
+- it returns next canonical state plus result/events
+- it does not depend on hidden mutable process state
+- it does not mutate the caller's existing canonical state in place
+
+So the observable execution model remains reducer-shaped:
+
+```ts
+next = execute(currentState, commandInput);
+```
+
+Even if the executor clones a working copy and mutates that copy internally,
+the public execution boundary remains deterministic and state-in/state-out.
+
+That is valuable because it preserves:
+
+- deterministic replay
+- easier testing
+- easier debugging
+- easier persistence and snapshotting
+- easier simulation
+
 ## Validation And Discovery
 
 Recommended direction:
@@ -324,3 +348,44 @@ better because:
 - state-local mutations still live close to the state they modify
 - cross-cutting rule logic like card effects can stay outside the root state
 - card games do not need a god-object root class for all effects
+
+## Performance Tradeoff
+
+This design improves the consumer authoring model, but it also introduces
+facade-construction cost during command execution.
+
+The main cost drivers are:
+
+- cloning the canonical state
+- walking large state graphs
+- hydrating many facade objects
+- eagerly wrapping large arrays or maps of substates
+
+The facade layer should therefore be judged by a strict constraint:
+
+- it is acceptable only if hydration overhead remains a small part of command
+  execution cost
+
+For most turn-based board games, a well-implemented facade layer should be
+acceptable. For heavier games, eager hydration could become a noticeable source
+of command latency.
+
+So the decision boundary is:
+
+- worth it if metadata is compiled once and facades are hydrated lazily
+- not worth it if the design eagerly rebuilds large facade graphs every command
+
+The preferred implementation direction is:
+
+- compile metadata once at build time
+- hydrate only the parts of the facade graph that execution actually touches
+- avoid letting facade construction dominate total command latency
+
+This tradeoff is considered acceptable because the authoring problem is not
+cosmetic. Without a better state-authoring layer, complex games would quickly
+degrade into large nested state interfaces and raw canonical-tree mutation.
+
+So the current conclusion is:
+
+- the facade model is worth pursuing
+- but only under a performance discipline that keeps hydration overhead low
