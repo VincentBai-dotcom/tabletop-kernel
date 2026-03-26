@@ -18,6 +18,7 @@ import {
 } from "./shared.ts";
 
 export const reserveDeckCardCommand: CommandDefinition<SplendorGameState> = {
+  commandId: "reserve_deck_card",
   isAvailable: (context) =>
     guardedAvailability(() => {
       const actorId = assertAvailableActor(context);

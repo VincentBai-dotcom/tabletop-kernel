@@ -62,6 +62,7 @@ export interface CommandDefinition<
   Runtime extends RuntimeState = RuntimeState,
   Cmd extends Command = Command,
 > {
+  commandId: string;
   isAvailable?(
     context: CommandAvailabilityContext<GameState, Runtime>,
   ): boolean;

@@ -22,6 +22,7 @@ import {
 } from "./shared.ts";
 
 export const takeTwoSameGemsCommand: CommandDefinition<SplendorGameState> = {
+  commandId: "take_two_same_gems",
   isAvailable: (context) =>
     guardedAvailability(() => {
       assertAvailableActor(context);

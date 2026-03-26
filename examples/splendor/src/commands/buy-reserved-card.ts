@@ -18,6 +18,7 @@ import {
 } from "./shared.ts";
 
 export const buyReservedCardCommand: CommandDefinition<SplendorGameState> = {
+  commandId: "buy_reserved_card",
   isAvailable: (context) =>
     guardedAvailability(() => {
       const actorId = assertAvailableActor(context);

@@ -18,6 +18,7 @@ import {
 } from "./shared.ts";
 
 export const buyFaceUpCardCommand: CommandDefinition<SplendorGameState> = {
+  commandId: "buy_face_up_card",
   isAvailable: (context) =>
     guardedAvailability(() => {
       const actorId = assertAvailableActor(context);

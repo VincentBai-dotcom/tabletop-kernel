@@ -24,6 +24,7 @@ import {
 
 export const takeThreeDistinctGemsCommand: CommandDefinition<SplendorGameState> =
   {
+    commandId: "take_three_distinct_gems",
     isAvailable: (context) =>
       guardedAvailability(() => {
         assertAvailableActor(context);
