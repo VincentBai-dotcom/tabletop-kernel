@@ -4,24 +4,27 @@ import type { CanonicalState } from "../types/state";
 
 export interface ScenarioResult<
   State extends CanonicalState = CanonicalState,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > {
   initialState: State;
   finalState: State;
-  commands: Cmd[];
+  commands: TCommandInput[];
   results: ExecutionResult<State>[];
 }
 
 export function runScenario<
   State extends CanonicalState = CanonicalState,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 >(
   kernel: {
     createInitialState(): State;
-    executeCommand(state: State, command: Cmd): ExecutionResult<State>;
+    executeCommand(
+      state: State,
+      command: TCommandInput,
+    ): ExecutionResult<State>;
   },
-  commands: Cmd[],
-): ScenarioResult<State, Cmd> {
+  commands: TCommandInput[],
+): ScenarioResult<State, TCommandInput> {
   const initialState = kernel.createInitialState();
   let currentState = initialState;
   const results: ExecutionResult<State>[] = [];

@@ -19,11 +19,11 @@ import type {
 export function createValidationContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
-  commandInput: Cmd,
-): InternalValidationContext<GameState, Runtime, Cmd> {
+  commandInput: TCommandInput,
+): InternalValidationContext<GameState, Runtime, TCommandInput> {
   return {
     state,
     commandInput,
@@ -48,11 +48,11 @@ export function createCommandAvailabilityContext<
 export function createDiscoveryContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  PartialCmd extends CommandInput,
+  TPartialCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
-  partialCommand: PartialCmd,
-): InternalDiscoveryContext<GameState, Runtime, PartialCmd> {
+  partialCommand: TPartialCommandInput,
+): InternalDiscoveryContext<GameState, Runtime, TPartialCommandInput> {
   return {
     ...createCommandAvailabilityContext(
       state,
@@ -66,14 +66,14 @@ export function createDiscoveryContext<
 export function createExecuteContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
-  commandInput: Cmd,
+  commandInput: TCommandInput,
   rng: RNGApi,
   setCurrentSegmentOwner: (ownerId?: string) => void,
   emitEvent: (event: KernelEvent) => void,
-): InternalExecuteContext<GameState, Runtime, Cmd> {
+): InternalExecuteContext<GameState, Runtime, TCommandInput> {
   return {
     state,
     commandInput,
@@ -88,12 +88,12 @@ export function createExecuteContext<
 export function createProgressionCompletionContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
-  commandInput: Cmd,
+  commandInput: TCommandInput,
   segment: ProgressionSegmentState,
-): ProgressionCompletionContext<GameState, Runtime, Cmd> {
+): ProgressionCompletionContext<GameState, Runtime, TCommandInput> {
   return {
     state,
     game: state.game,
@@ -107,14 +107,14 @@ export function createProgressionCompletionContext<
 export function createProgressionLifecycleHookContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
-  commandInput: Cmd,
+  commandInput: TCommandInput,
   segment: ProgressionSegmentState,
   rng: RNGApi,
   emitEvent: (event: KernelEvent) => void,
-): ProgressionLifecycleHookContext<GameState, Runtime, Cmd> {
+): ProgressionLifecycleHookContext<GameState, Runtime, TCommandInput> {
   return {
     ...createProgressionCompletionContext(state, commandInput, segment),
     game: state.game,

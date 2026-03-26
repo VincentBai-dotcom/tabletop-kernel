@@ -12,38 +12,42 @@ import type { CommandInput } from "../types/command";
 export interface NormalizedProgressionSegmentDefinition<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > {
   id: string;
   kind?: string;
   parentId?: string;
   childIds: string[];
-  completionPolicy?: ProgressionCompletionPolicy<GameState, Runtime, Cmd>;
-  onEnter?: ProgressionLifecycleHook<GameState, Runtime, Cmd>;
-  onExit?: ProgressionLifecycleHook<GameState, Runtime, Cmd>;
-  resolveNext?: ProgressionResolveNext<GameState, Runtime, Cmd>;
+  completionPolicy?: ProgressionCompletionPolicy<
+    GameState,
+    Runtime,
+    TCommandInput
+  >;
+  onEnter?: ProgressionLifecycleHook<GameState, Runtime, TCommandInput>;
+  onExit?: ProgressionLifecycleHook<GameState, Runtime, TCommandInput>;
+  resolveNext?: ProgressionResolveNext<GameState, Runtime, TCommandInput>;
 }
 
 export interface NormalizedProgressionDefinition<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > {
   rootId: string | null;
   initialSegmentId: string | null;
   segments: Record<
     string,
-    NormalizedProgressionSegmentDefinition<GameState, Runtime, Cmd>
+    NormalizedProgressionSegmentDefinition<GameState, Runtime, TCommandInput>
   >;
 }
 
 export function normalizeProgressionDefinition<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 >(
-  progression?: ProgressionDefinition<GameState, Runtime, Cmd>,
-): NormalizedProgressionDefinition<GameState, Runtime, Cmd> {
+  progression?: ProgressionDefinition<GameState, Runtime, TCommandInput>,
+): NormalizedProgressionDefinition<GameState, Runtime, TCommandInput> {
   if (!progression) {
     return {
       rootId: null,
@@ -54,7 +58,7 @@ export function normalizeProgressionDefinition<
 
   const segments: Record<
     string,
-    NormalizedProgressionSegmentDefinition<GameState, Runtime, Cmd>
+    NormalizedProgressionSegmentDefinition<GameState, Runtime, TCommandInput>
   > = {};
 
   visitSegment(progression.root, undefined, segments);
@@ -69,9 +73,13 @@ export function normalizeProgressionDefinition<
 export function createProgressionState<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 >(
-  progression: NormalizedProgressionDefinition<GameState, Runtime, Cmd>,
+  progression: NormalizedProgressionDefinition<
+    GameState,
+    Runtime,
+    TCommandInput
+  >,
 ): ProgressionState {
   const activeIds = new Set(
     progression.initialSegmentId
@@ -100,9 +108,13 @@ export function createProgressionState<
 export function getNormalizedSegmentPathIds<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 >(
-  progression: NormalizedProgressionDefinition<GameState, Runtime, Cmd>,
+  progression: NormalizedProgressionDefinition<
+    GameState,
+    Runtime,
+    TCommandInput
+  >,
   segmentId: string,
 ): string[] {
   return getSegmentPathIds(progression.segments, segmentId);
@@ -111,9 +123,13 @@ export function getNormalizedSegmentPathIds<
 export function getDefaultLeafSegmentId<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 >(
-  progression: NormalizedProgressionDefinition<GameState, Runtime, Cmd>,
+  progression: NormalizedProgressionDefinition<
+    GameState,
+    Runtime,
+    TCommandInput
+  >,
   segmentId: string,
 ): string {
   let currentId = segmentId;
@@ -130,13 +146,13 @@ export function getDefaultLeafSegmentId<
 function visitSegment<
   GameState extends object,
   Runtime,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
-  segment: ProgressionSegmentDefinition<GameState, Runtime, Cmd>,
+  segment: ProgressionSegmentDefinition<GameState, Runtime, TCommandInput>,
   parentId: string | undefined,
   result: Record<
     string,
-    NormalizedProgressionSegmentDefinition<GameState, Runtime, Cmd>
+    NormalizedProgressionSegmentDefinition<GameState, Runtime, TCommandInput>
   >,
 ): void {
   if (result[segment.id]) {
@@ -162,8 +178,10 @@ function visitSegment<
 function findInitialSegmentId<
   GameState extends object,
   Runtime,
-  Cmd extends CommandInput,
->(root: ProgressionSegmentDefinition<GameState, Runtime, Cmd>): string {
+  TCommandInput extends CommandInput,
+>(
+  root: ProgressionSegmentDefinition<GameState, Runtime, TCommandInput>,
+): string {
   let current = root;
 
   while (current.children.length > 0) {
@@ -176,11 +194,11 @@ function findInitialSegmentId<
 function getSegmentPathIds<
   GameState extends object,
   Runtime,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
   segments: Record<
     string,
-    NormalizedProgressionSegmentDefinition<GameState, Runtime, Cmd>
+    NormalizedProgressionSegmentDefinition<GameState, Runtime, TCommandInput>
   >,
   segmentId: string,
 ): string[] {

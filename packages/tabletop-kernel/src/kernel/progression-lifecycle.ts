@@ -26,10 +26,12 @@ export type {
 export function evaluateCompletionPolicy<
   GameState extends object,
   Runtime,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
-  policy: ProgressionCompletionPolicy<GameState, Runtime, Cmd> | undefined,
-  context: ProgressionCompletionContext<GameState, Runtime, Cmd>,
+  policy:
+    | ProgressionCompletionPolicy<GameState, Runtime, TCommandInput>
+    | undefined,
+  context: ProgressionCompletionContext<GameState, Runtime, TCommandInput>,
 ): boolean {
   if (!policy) {
     return false;
@@ -45,11 +47,15 @@ export function evaluateCompletionPolicy<
 export function resolveProgressionLifecycle<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
-  commandInput: Cmd,
-  progression: NormalizedProgressionDefinition<GameState, Runtime, Cmd>,
+  commandInput: TCommandInput,
+  progression: NormalizedProgressionDefinition<
+    GameState,
+    Runtime,
+    TCommandInput
+  >,
   rng: RNGApi,
   emitEvent: (event: KernelEvent) => void,
 ): void {
@@ -156,10 +162,10 @@ export function resolveProgressionLifecycle<
 function evaluateBuiltInCompletionPolicy<
   GameState extends object,
   Runtime,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
   policy: BuiltInProgressionCompletionPolicy,
-  context: ProgressionCompletionContext<GameState, Runtime, Cmd>,
+  context: ProgressionCompletionContext<GameState, Runtime, TCommandInput>,
 ): boolean {
   void context;
 
@@ -216,9 +222,13 @@ function applyActivePath(
 function resolveExplicitTargetSegmentId<
   GameState extends object,
   Runtime,
-  Cmd extends CommandInput,
+  TCommandInput extends CommandInput,
 >(
-  progression: NormalizedProgressionDefinition<GameState, Runtime, Cmd>,
+  progression: NormalizedProgressionDefinition<
+    GameState,
+    Runtime,
+    TCommandInput
+  >,
   segmentId: string | null | undefined,
 ): string | null {
   if (!segmentId) {

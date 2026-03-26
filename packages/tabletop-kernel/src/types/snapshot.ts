@@ -9,11 +9,11 @@ export interface Snapshot<State extends CanonicalState = CanonicalState> {
 
 export interface ReplayRecord<
   State extends CanonicalState = CanonicalState,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
   Ev extends KernelEvent = KernelEvent,
 > {
   initialSnapshot: Snapshot<State>;
-  commands: Cmd[];
+  commands: TCommandInput[];
   events: Ev[];
   checkpoints: Snapshot<State>[];
 }

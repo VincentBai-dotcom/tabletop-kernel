@@ -39,12 +39,12 @@ interface ProgressionExecutionState<
 export interface ProgressionCompletionContext<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > {
   state: Readonly<ProgressionExecutionState<GameState, Runtime>>;
   game: Readonly<GameState>;
   runtime: Readonly<Runtime>;
-  commandInput: Cmd;
+  commandInput: TCommandInput;
   segment: Readonly<ProgressionSegmentState>;
   progression: ProgressionNavigation;
 }
@@ -52,8 +52,8 @@ export interface ProgressionCompletionContext<
 export interface ProgressionLifecycleHookContext<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
-> extends ProgressionCompletionContext<GameState, Runtime, Cmd> {
+  TCommandInput extends CommandInput = CommandInput,
+> extends ProgressionCompletionContext<GameState, Runtime, TCommandInput> {
   game: GameState;
   rng: RNGApi;
   emitEvent(event: KernelEvent): void;
@@ -62,16 +62,18 @@ export interface ProgressionLifecycleHookContext<
 export type ProgressionCompletionCallback<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
-> = (context: ProgressionCompletionContext<GameState, Runtime, Cmd>) => boolean;
+  TCommandInput extends CommandInput = CommandInput,
+> = (
+  context: ProgressionCompletionContext<GameState, Runtime, TCommandInput>,
+) => boolean;
 
 export type ProgressionCompletionPolicy<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > =
   | BuiltInProgressionCompletionPolicy
-  | ProgressionCompletionCallback<GameState, Runtime, Cmd>;
+  | ProgressionCompletionCallback<GameState, Runtime, TCommandInput>;
 
 export interface ProgressionResolveNextResult {
   nextSegmentId?: string | null;
@@ -81,35 +83,41 @@ export interface ProgressionResolveNextResult {
 export type ProgressionResolveNext<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > = (
-  context: ProgressionLifecycleHookContext<GameState, Runtime, Cmd>,
+  context: ProgressionLifecycleHookContext<GameState, Runtime, TCommandInput>,
 ) => ProgressionResolveNextResult | void;
 
 export type ProgressionLifecycleHook<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
-> = (context: ProgressionLifecycleHookContext<GameState, Runtime, Cmd>) => void;
+  TCommandInput extends CommandInput = CommandInput,
+> = (
+  context: ProgressionLifecycleHookContext<GameState, Runtime, TCommandInput>,
+) => void;
 
 export interface ProgressionSegmentDefinition<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > {
   id: string;
-  children: ProgressionSegmentDefinition<GameState, Runtime, Cmd>[];
+  children: ProgressionSegmentDefinition<GameState, Runtime, TCommandInput>[];
   kind?: string;
-  completionPolicy?: ProgressionCompletionPolicy<GameState, Runtime, Cmd>;
-  onEnter?: ProgressionLifecycleHook<GameState, Runtime, Cmd>;
-  onExit?: ProgressionLifecycleHook<GameState, Runtime, Cmd>;
-  resolveNext?: ProgressionResolveNext<GameState, Runtime, Cmd>;
+  completionPolicy?: ProgressionCompletionPolicy<
+    GameState,
+    Runtime,
+    TCommandInput
+  >;
+  onEnter?: ProgressionLifecycleHook<GameState, Runtime, TCommandInput>;
+  onExit?: ProgressionLifecycleHook<GameState, Runtime, TCommandInput>;
+  resolveNext?: ProgressionResolveNext<GameState, Runtime, TCommandInput>;
 }
 
 export interface ProgressionDefinition<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 > {
-  root: ProgressionSegmentDefinition<GameState, Runtime, Cmd>;
+  root: ProgressionSegmentDefinition<GameState, Runtime, TCommandInput>;
 }

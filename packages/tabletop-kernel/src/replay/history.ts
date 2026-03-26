@@ -7,9 +7,9 @@ import { restoreSnapshot } from "../snapshot/snapshot";
 
 export function createReplayRecord<
   State extends CanonicalState = CanonicalState,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
   Ev extends KernelEvent = KernelEvent,
->(initialSnapshot: Snapshot<State>): ReplayRecord<State, Cmd, Ev> {
+>(initialSnapshot: Snapshot<State>): ReplayRecord<State, TCommandInput, Ev> {
   return {
     initialSnapshot,
     commands: [],
@@ -20,13 +20,13 @@ export function createReplayRecord<
 
 export function appendReplayStep<
   State extends CanonicalState = CanonicalState,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
   Ev extends KernelEvent = KernelEvent,
 >(
-  record: ReplayRecord<State, Cmd, Ev>,
-  command: Cmd,
+  record: ReplayRecord<State, TCommandInput, Ev>,
+  command: TCommandInput,
   result: ExecutionResult<State>,
-): ReplayRecord<State, Cmd, Ev> {
+): ReplayRecord<State, TCommandInput, Ev> {
   return {
     ...record,
     commands: [...record.commands, command],
@@ -36,12 +36,15 @@ export function appendReplayStep<
 
 export function replayRecord<
   State extends CanonicalState = CanonicalState,
-  Cmd extends CommandInput = CommandInput,
+  TCommandInput extends CommandInput = CommandInput,
 >(
   kernel: {
-    executeCommand(state: State, command: Cmd): ExecutionResult<State>;
+    executeCommand(
+      state: State,
+      command: TCommandInput,
+    ): ExecutionResult<State>;
   },
-  record: ReplayRecord<State, Cmd>,
+  record: ReplayRecord<State, TCommandInput>,
 ): State {
   let state = restoreSnapshot(record.initialSnapshot);
 
