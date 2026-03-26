@@ -51,18 +51,6 @@ interface GameDefinitionBuilderState<
   name: string;
 }
 
-export function defineGame<
-  GameState extends object = object,
-  Commands extends Record<string, AnyCommandDefinition<GameState>> = Record<
-    string,
-    AnyCommandDefinition<GameState>
-  >,
->(
-  config: GameDefinitionInput<GameState, Commands>,
-): GameDefinition<GameState, Commands> {
-  return config;
-}
-
 export class GameDefinitionBuilder<
   GameState extends object = object,
   Commands extends Record<string, AnyCommandDefinition<GameState>> = Record<
