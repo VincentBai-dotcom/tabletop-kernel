@@ -30,7 +30,7 @@ type CommandDefinitions<GameState extends object> = Record<
   CommandDefinition<GameState, RuntimeState, Command>
 >;
 
-export interface Kernel<GameState extends object> {
+export interface GameExecutor<GameState extends object> {
   createInitialState(options?: {
     playerIds?: readonly string[];
   }): CanonicalState<GameState>;
@@ -49,6 +49,8 @@ export interface Kernel<GameState extends object> {
     command: Command,
   ): ExecutionResult<CanonicalState<GameState>>;
 }
+
+export type Kernel<GameState extends object> = GameExecutor<GameState>;
 
 function createInitialRuntimeState<GameState extends object>(
   progression: NormalizedProgressionDefinition<
@@ -75,10 +77,10 @@ function createInitialRuntimeState<GameState extends object>(
   return runtime;
 }
 
-export function createKernel<
+export function createGameExecutor<
   GameState extends object,
   Commands extends CommandDefinitions<GameState>,
->(game: GameDefinition<GameState, Commands>): Kernel<GameState> {
+>(game: GameDefinition<GameState, Commands>): GameExecutor<GameState> {
   const progression = normalizeProgressionDefinition(
     game.progression as GameDefinition<
       GameState,
@@ -229,3 +231,5 @@ export function createKernel<
     },
   };
 }
+
+export const createKernel = createGameExecutor;

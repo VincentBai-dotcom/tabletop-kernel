@@ -1,5 +1,5 @@
 export { GameDefinitionBuilder } from "./game-definition";
-export { createKernel } from "./kernel/create-kernel";
+export { createGameExecutor, createKernel } from "./kernel/create-kernel";
 export {
   appendReplayStep,
   createReplayRecord,
@@ -13,6 +13,7 @@ export type {
   GameDefinitionInput,
   GameSetupContext,
 } from "./game-definition";
+export type { GameExecutor, Kernel } from "./kernel/create-kernel";
 export type {
   CommandAvailabilityContext,
   Command,
