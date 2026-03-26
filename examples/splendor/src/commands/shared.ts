@@ -1,6 +1,6 @@
 import type {
-  Command,
   CommandAvailabilityContext,
+  CommandInput,
   DiscoveryContext,
   ExecuteContext,
   ValidationContext,
@@ -26,7 +26,7 @@ export type SplendorValidationContext = ValidationContext<SplendorGameState>;
 
 export type SplendorExecuteContext = ExecuteContext<SplendorGameState>;
 
-export function readPayload<T>(commandInput: Command): T {
+export function readPayload<T>(commandInput: CommandInput): T {
   return (commandInput.payload ?? {}) as T;
 }
 

@@ -9,7 +9,7 @@ import {
   type NormalizedProgressionDefinition,
 } from "./progression-normalize";
 import type { CanonicalState, RuntimeState } from "../types/state";
-import type { Command } from "../types/command";
+import type { CommandInput } from "../types/command";
 import type {
   BuiltInProgressionCompletionPolicy,
   ProgressionCompletionContext,
@@ -26,7 +26,7 @@ export type {
 export function evaluateCompletionPolicy<
   GameState extends object,
   Runtime,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   policy: ProgressionCompletionPolicy<GameState, Runtime, Cmd> | undefined,
   context: ProgressionCompletionContext<GameState, Runtime, Cmd>,
@@ -45,7 +45,7 @@ export function evaluateCompletionPolicy<
 export function resolveProgressionLifecycle<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
   commandInput: Cmd,
@@ -156,7 +156,7 @@ export function resolveProgressionLifecycle<
 function evaluateBuiltInCompletionPolicy<
   GameState extends object,
   Runtime,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   policy: BuiltInProgressionCompletionPolicy,
   context: ProgressionCompletionContext<GameState, Runtime, Cmd>,
@@ -216,7 +216,7 @@ function applyActivePath(
 function resolveExplicitTargetSegmentId<
   GameState extends object,
   Runtime,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   progression: NormalizedProgressionDefinition<GameState, Runtime, Cmd>,
   segmentId: string | null | undefined,

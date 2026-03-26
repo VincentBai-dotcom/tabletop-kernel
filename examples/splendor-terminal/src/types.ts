@@ -1,6 +1,6 @@
 import type {
-  Command,
   CommandDiscoveryResult,
+  CommandInput,
   KernelEvent,
   CanonicalState,
 } from "tabletop-kernel";
@@ -11,7 +11,7 @@ import type {
 
 export type SplendorState = CanonicalState<SplendorGameState>;
 export type SplendorPayload = Record<string, unknown>;
-export type SplendorTerminalCommand = Command<SplendorPayload>;
+export type SplendorTerminalCommand = CommandInput<SplendorPayload>;
 export type SplendorTerminalDiscoveryOption =
   SplendorDiscoveryOption<SplendorPayload>;
 export type SplendorTerminalDiscovery =

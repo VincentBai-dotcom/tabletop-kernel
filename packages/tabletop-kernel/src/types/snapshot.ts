@@ -1,5 +1,5 @@
 import type { KernelEvent } from "./event";
-import type { Command } from "./command";
+import type { CommandInput } from "./command";
 import type { CanonicalState } from "./state";
 
 export interface Snapshot<State extends CanonicalState = CanonicalState> {
@@ -9,7 +9,7 @@ export interface Snapshot<State extends CanonicalState = CanonicalState> {
 
 export interface ReplayRecord<
   State extends CanonicalState = CanonicalState,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
   Ev extends KernelEvent = KernelEvent,
 > {
   initialSnapshot: Snapshot<State>;

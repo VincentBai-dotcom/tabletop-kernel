@@ -15,7 +15,7 @@ import {
   type NormalizedProgressionDefinition,
 } from "./progression-lifecycle";
 import { cloneCanonicalState } from "./transaction";
-import type { Command, CommandDefinition } from "../types/command";
+import type { CommandDefinition, CommandInput } from "../types/command";
 import type { CommandDiscoveryResult } from "../types/command";
 import type {
   ExecutionFailure,
@@ -27,7 +27,7 @@ import { createRNGService } from "../rng/service";
 
 type CommandDefinitions<GameState extends object> = Record<
   string,
-  CommandDefinition<GameState, RuntimeState, Command>
+  CommandDefinition<GameState, RuntimeState, CommandInput>
 >;
 
 export interface GameExecutor<GameState extends object> {
@@ -42,11 +42,11 @@ export interface GameExecutor<GameState extends object> {
   ): string[];
   discoverCommand(
     state: CanonicalState<GameState>,
-    partialCommand: Command,
+    partialCommand: CommandInput,
   ): CommandDiscoveryResult | null;
   executeCommand(
     state: CanonicalState<GameState>,
-    command: Command,
+    commandInput: CommandInput,
   ): ExecutionResult<CanonicalState<GameState>>;
 }
 
@@ -56,7 +56,7 @@ function createInitialRuntimeState<GameState extends object>(
   progression: NormalizedProgressionDefinition<
     GameState,
     RuntimeState,
-    Command
+    CommandInput
   >,
   game: GameDefinition<GameState, CommandDefinitions<GameState>>,
 ): RuntimeState {
@@ -151,15 +151,15 @@ export function createGameExecutor<
       return definition.discover(createDiscoveryContext(state, partialCommand));
     },
 
-    executeCommand(state, command) {
-      const definition = game.commands[command.type];
+    executeCommand(state, commandInput) {
+      const definition = game.commands[commandInput.type];
 
       if (!definition) {
         const failure: ExecutionFailure<CanonicalState<GameState>> = {
           ok: false,
           state,
           reason: "unknown_command",
-          metadata: { commandType: command.type },
+          metadata: { commandType: commandInput.type },
           events: [],
           pendingChoices: state.runtime.pending.choices,
         };
@@ -168,7 +168,7 @@ export function createGameExecutor<
       }
 
       const validation = definition.validate(
-        createValidationContext(state, command),
+        createValidationContext(state, commandInput),
       );
 
       if (!validation.ok) {
@@ -205,7 +205,7 @@ export function createGameExecutor<
       definition.execute(
         createExecuteContext(
           workingState,
-          command,
+          commandInput,
           rng,
           setCurrentSegmentOwner,
           collector.emit,
@@ -214,7 +214,7 @@ export function createGameExecutor<
 
       resolveProgressionLifecycle(
         workingState,
-        command,
+        commandInput,
         progression,
         rng,
         collector.emit,

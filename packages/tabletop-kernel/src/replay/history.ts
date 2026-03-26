@@ -1,4 +1,4 @@
-import type { Command } from "../types/command";
+import type { CommandInput } from "../types/command";
 import type { KernelEvent } from "../types/event";
 import type { ExecutionResult } from "../types/result";
 import type { CanonicalState } from "../types/state";
@@ -7,7 +7,7 @@ import { restoreSnapshot } from "../snapshot/snapshot";
 
 export function createReplayRecord<
   State extends CanonicalState = CanonicalState,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
   Ev extends KernelEvent = KernelEvent,
 >(initialSnapshot: Snapshot<State>): ReplayRecord<State, Cmd, Ev> {
   return {
@@ -20,7 +20,7 @@ export function createReplayRecord<
 
 export function appendReplayStep<
   State extends CanonicalState = CanonicalState,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
   Ev extends KernelEvent = KernelEvent,
 >(
   record: ReplayRecord<State, Cmd, Ev>,
@@ -36,7 +36,7 @@ export function appendReplayStep<
 
 export function replayRecord<
   State extends CanonicalState = CanonicalState,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 >(
   kernel: {
     executeCommand(state: State, command: Cmd): ExecutionResult<State>;

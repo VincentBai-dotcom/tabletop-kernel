@@ -1,6 +1,6 @@
 import type {
   CommandAvailabilityContext,
-  Command,
+  CommandInput,
   DiscoveryContext,
   ExecuteContext,
   ValidationContext,
@@ -19,7 +19,7 @@ import type {
 export function createValidationContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
   commandInput: Cmd,
@@ -48,7 +48,7 @@ export function createCommandAvailabilityContext<
 export function createDiscoveryContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  PartialCmd extends Command,
+  PartialCmd extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
   partialCommand: PartialCmd,
@@ -66,7 +66,7 @@ export function createDiscoveryContext<
 export function createExecuteContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
   commandInput: Cmd,
@@ -88,7 +88,7 @@ export function createExecuteContext<
 export function createProgressionCompletionContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
   commandInput: Cmd,
@@ -107,7 +107,7 @@ export function createProgressionCompletionContext<
 export function createProgressionLifecycleHookContext<
   GameState extends object,
   Runtime extends RuntimeState,
-  Cmd extends Command,
+  Cmd extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
   commandInput: Cmd,

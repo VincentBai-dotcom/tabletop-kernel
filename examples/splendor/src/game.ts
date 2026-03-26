@@ -1,4 +1,4 @@
-import { GameDefinitionBuilder, type Command } from "tabletop-kernel";
+import { GameDefinitionBuilder, type CommandInput } from "tabletop-kernel";
 import { createCommands } from "./commands/index.ts";
 import { SplendorGameOps } from "./model/game-ops.ts";
 import { createInitialGameState, setupSplendorGame } from "./setup.ts";
@@ -70,7 +70,7 @@ export function createSplendorGame(options: CreateSplendorGameOptions) {
     .build();
 }
 
-function readChosenNobleId(commandInput: Command): number | undefined {
+function readChosenNobleId(commandInput: CommandInput): number | undefined {
   const payload = commandInput.payload as
     | BuyFaceUpCardPayload
     | BuyReservedCardPayload

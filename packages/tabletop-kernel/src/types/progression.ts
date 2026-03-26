@@ -1,4 +1,4 @@
-import type { Command } from "./command";
+import type { CommandInput } from "./command";
 import type { KernelEvent } from "./event";
 import type { RNGApi } from "./rng";
 
@@ -39,7 +39,7 @@ interface ProgressionExecutionState<
 export interface ProgressionCompletionContext<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > {
   state: Readonly<ProgressionExecutionState<GameState, Runtime>>;
   game: Readonly<GameState>;
@@ -52,7 +52,7 @@ export interface ProgressionCompletionContext<
 export interface ProgressionLifecycleHookContext<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > extends ProgressionCompletionContext<GameState, Runtime, Cmd> {
   game: GameState;
   rng: RNGApi;
@@ -62,13 +62,13 @@ export interface ProgressionLifecycleHookContext<
 export type ProgressionCompletionCallback<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > = (context: ProgressionCompletionContext<GameState, Runtime, Cmd>) => boolean;
 
 export type ProgressionCompletionPolicy<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > =
   | BuiltInProgressionCompletionPolicy
   | ProgressionCompletionCallback<GameState, Runtime, Cmd>;
@@ -81,7 +81,7 @@ export interface ProgressionResolveNextResult {
 export type ProgressionResolveNext<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > = (
   context: ProgressionLifecycleHookContext<GameState, Runtime, Cmd>,
 ) => ProgressionResolveNextResult | void;
@@ -89,13 +89,13 @@ export type ProgressionResolveNext<
 export type ProgressionLifecycleHook<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > = (context: ProgressionLifecycleHookContext<GameState, Runtime, Cmd>) => void;
 
 export interface ProgressionSegmentDefinition<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > {
   id: string;
   children: ProgressionSegmentDefinition<GameState, Runtime, Cmd>[];
@@ -109,7 +109,7 @@ export interface ProgressionSegmentDefinition<
 export interface ProgressionDefinition<
   GameState extends object = object,
   Runtime = unknown,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > {
   root: ProgressionSegmentDefinition<GameState, Runtime, Cmd>;
 }

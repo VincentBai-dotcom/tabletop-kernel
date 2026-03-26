@@ -1,4 +1,4 @@
-import type { Command, CommandDefinition } from "./types/command";
+import type { CommandDefinition, CommandInput } from "./types/command";
 import type { ProgressionDefinition } from "./types/progression";
 import type { RuntimeState } from "./types/state";
 import type { RNGApi } from "./types/rng";
@@ -6,7 +6,7 @@ import type { RNGApi } from "./types/rng";
 type AnyCommandDefinition<GameState extends object> = CommandDefinition<
   GameState,
   RuntimeState,
-  Command
+  CommandInput
 >;
 
 type CommandDefinitionMap<GameState extends object> = Record<
