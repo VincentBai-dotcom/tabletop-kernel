@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createKernel } from "../src/kernel/create-kernel";
+import { createGameExecutor } from "../src/kernel/create-kernel";
 import { GameDefinitionBuilder } from "../src/game-definition";
 import { evaluateCompletionPolicy } from "../src/kernel/progression-lifecycle";
 import {
@@ -9,7 +9,7 @@ import {
 import { createEventCollector } from "../src/kernel/events";
 import { createRNGService } from "../src/rng/service";
 
-test("createKernel creates initial state and commits successful commands", () => {
+test("createGameExecutor creates initial state and commits successful commands", () => {
   const game = new GameDefinitionBuilder<{
     counter: number;
   }>("counter-game")
@@ -49,7 +49,7 @@ test("createKernel creates initial state and commits successful commands", () =>
     .rngSeed("test-seed")
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
   const success = kernel.executeCommand(initialState, {
     type: "increment_counter",
@@ -64,7 +64,7 @@ test("createKernel creates initial state and commits successful commands", () =>
   expect(success.events[0]?.type).toBe("counter_incremented");
 });
 
-test("createKernel returns unchanged state for validation failures", () => {
+test("createGameExecutor returns unchanged state for validation failures", () => {
   const game = new GameDefinitionBuilder<{
     counter: number;
   }>("counter-game")
@@ -88,7 +88,7 @@ test("createKernel returns unchanged state for validation failures", () => {
     })
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
   const failure = kernel.executeCommand(initialState, {
     type: "decrement_counter",
@@ -134,7 +134,7 @@ test("execute context can update current progression owner through controlled AP
     })
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
   const result = kernel.executeCommand(initialState, {
     type: "pass_turn",
@@ -260,7 +260,7 @@ test("successful commands trigger automatic progression lifecycle and emit lifec
     })
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
   const result = kernel.executeCommand(initialState, {
     type: "take_action",
@@ -339,7 +339,7 @@ test("nested progression can cascade through multiple segment transitions", () =
     })
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
   const result = kernel.executeCommand(initialState, {
     type: "resolve_step",
@@ -411,7 +411,7 @@ test("manual progression paths can avoid auto-advancing ordinary commands and st
     })
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
   const actionResult = kernel.executeCommand(initialState, {
     type: "take_action",
@@ -456,7 +456,7 @@ test("manual progression paths can avoid auto-advancing ordinary commands and st
   ).toHaveLength(1);
 });
 
-test("kernel can list available commands through per-command availability hooks", () => {
+test("game executor can list available commands through per-command availability hooks", () => {
   const game = new GameDefinitionBuilder<{
     energy: number;
   }>("availability-game")
@@ -487,7 +487,7 @@ test("kernel can list available commands through per-command availability hooks"
     })
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
 
   expect(
@@ -510,7 +510,7 @@ test("kernel can list available commands through per-command availability hooks"
   ).toEqual(["pass_turn"]);
 });
 
-test("kernel can discover the next semantic options for a command", () => {
+test("game executor can discover the next semantic options for a command", () => {
   const game = new GameDefinitionBuilder<{
     canPlay: boolean;
   }>("discovery-game")
@@ -545,7 +545,7 @@ test("kernel can discover the next semantic options for a command", () => {
     })
     .build();
 
-  const kernel = createKernel(game);
+  const kernel = createGameExecutor(game);
   const initialState = kernel.createInitialState();
   const firstStep = kernel.discoverCommand(initialState, {
     type: "play_card",
