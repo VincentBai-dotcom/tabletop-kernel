@@ -21,6 +21,7 @@ export type {
   CommandDiscoveryResult,
   DiscoveryContext,
   ExecuteContext,
+  TypedCommandDefinition,
   ValidationContext,
 } from "./types/command";
 export type { KernelEvent } from "./types/event";

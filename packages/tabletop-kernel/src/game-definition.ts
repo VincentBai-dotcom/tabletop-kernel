@@ -115,7 +115,7 @@ export class GameDefinitionBuilder<
 
     (
       this.config as unknown as GameDefinitionBuilderState<GameState, Commands>
-    ).commands = commands;
+    ).commands = commands as Commands;
     delete this.config.commandList;
 
     return this;
