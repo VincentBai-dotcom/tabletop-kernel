@@ -19,19 +19,26 @@ import {
   guardedAvailability,
   guardedValidate,
   readPayload,
+  type SplendorAvailabilityContext,
+  type SplendorDiscoveryContext,
+  type SplendorExecuteContext,
+  type SplendorValidationContext,
 } from "./shared.ts";
 
-export const takeTwoSameGemsCommand: CommandDefinition<SplendorGameState> = {
-  commandId: "take_two_same_gems",
-  isAvailable: (context) =>
-    guardedAvailability(() => {
+export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameState> {
+  readonly commandId = "take_two_same_gems";
+
+  isAvailable(context: SplendorAvailabilityContext) {
+    return guardedAvailability(() => {
       assertAvailableActor(context);
 
       return Object.entries(context.state.game.bank).some(
         ([color, count]) => color !== "gold" && count >= 4,
       );
-    }),
-  discover: (context) => {
+    });
+  }
+
+  discover(context: SplendorDiscoveryContext) {
     const actorId = assertAvailableActor(context);
     const payload = readPayload<
       Partial<TakeTwoSameGemsPayload> & {
@@ -71,12 +78,13 @@ export const takeTwoSameGemsCommand: CommandDefinition<SplendorGameState> = {
     );
 
     return returnDiscovery ?? completeDiscovery(payload);
-  },
-  validate: ({ state, command }) =>
-    guardedValidate(() => {
+  }
+
+  validate({ state, commandInput }: SplendorValidationContext) {
+    return guardedValidate(() => {
       assertGameActive(state.game);
-      const actorId = assertActivePlayer(state, command.actorId);
-      const payload = readPayload<TakeTwoSameGemsPayload>(command);
+      const actorId = assertActivePlayer(state, commandInput.actorId);
+      const payload = readPayload<TakeTwoSameGemsPayload>(commandInput);
 
       if (!payload.color) {
         return { ok: false, reason: "color_required" };
@@ -100,10 +108,12 @@ export const takeTwoSameGemsCommand: CommandDefinition<SplendorGameState> = {
       }
 
       return { ok: true };
-    }),
-  execute: ({ game, command, emitEvent }) => {
-    const actorId = command.actorId!;
-    const payload = readPayload<TakeTwoSameGemsPayload>(command);
+    });
+  }
+
+  execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
+    const actorId = commandInput.actorId!;
+    const payload = readPayload<TakeTwoSameGemsPayload>(commandInput);
     const gameOps = new SplendorGameOps(game);
     const player = gameOps.getPlayer(actorId).state;
 
@@ -119,5 +129,7 @@ export const takeTwoSameGemsCommand: CommandDefinition<SplendorGameState> = {
         returnTokens: payload.returnTokens ?? null,
       },
     });
-  },
-};
+  }
+}
+
+export const takeTwoSameGemsCommand = new TakeTwoSameGemsCommand();

@@ -1,4 +1,4 @@
-import { GameDefinitionBuilder, type Command } from "tabletop-kernel";
+import { GameDefinitionBuilder, type CommandInput } from "tabletop-kernel";
 import { createCommands } from "./commands/index.ts";
 import { SplendorGameOps } from "./model/game-ops.ts";
 import { createInitialGameState, setupSplendorGame } from "./setup.ts";
@@ -27,8 +27,8 @@ export function createSplendorGame(options: CreateSplendorGameOptions) {
         id: "turn",
         kind: "turn",
         completionPolicy: "after_successful_command",
-        onExit: ({ command, emitEvent, game }) => {
-          const actorId = command.actorId;
+        onExit: ({ commandInput, emitEvent, game }) => {
+          const actorId = commandInput.actorId;
           const splendorGame = game as SplendorGameState;
 
           if (!actorId) {
@@ -39,11 +39,11 @@ export function createSplendorGame(options: CreateSplendorGameOptions) {
           gameOps.resolveTurnEnd(
             actorId,
             emitEvent,
-            readChosenNobleId(command),
+            readChosenNobleId(commandInput),
           );
         },
-        resolveNext: ({ command, game }) => {
-          const actorId = command.actorId;
+        resolveNext: ({ commandInput, game }) => {
+          const actorId = commandInput.actorId;
           const splendorGame = game as SplendorGameState;
 
           if (!actorId || splendorGame.winnerIds) {
@@ -70,8 +70,8 @@ export function createSplendorGame(options: CreateSplendorGameOptions) {
     .build();
 }
 
-function readChosenNobleId(command: Command): number | undefined {
-  const payload = command.payload as
+function readChosenNobleId(commandInput: CommandInput): number | undefined {
+  const payload = commandInput.payload as
     | BuyFaceUpCardPayload
     | BuyReservedCardPayload
     | undefined;

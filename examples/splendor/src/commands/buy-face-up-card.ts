@@ -15,12 +15,17 @@ import {
   guardedAvailability,
   guardedValidate,
   readPayload,
+  type SplendorAvailabilityContext,
+  type SplendorDiscoveryContext,
+  type SplendorExecuteContext,
+  type SplendorValidationContext,
 } from "./shared.ts";
 
-export const buyFaceUpCardCommand: CommandDefinition<SplendorGameState> = {
-  commandId: "buy_face_up_card",
-  isAvailable: (context) =>
-    guardedAvailability(() => {
+export class BuyFaceUpCardCommand implements CommandDefinition<SplendorGameState> {
+  readonly commandId = "buy_face_up_card";
+
+  isAvailable(context: SplendorAvailabilityContext) {
+    return guardedAvailability(() => {
       const actorId = assertAvailableActor(context);
       const gameOps = new SplendorGameOps(context.state.game);
       const player = gameOps.getPlayer(actorId);
@@ -36,8 +41,10 @@ export const buyFaceUpCardCommand: CommandDefinition<SplendorGameState> = {
             );
           }),
       );
-    }),
-  discover: (context) => {
+    });
+  }
+
+  discover(context: SplendorDiscoveryContext) {
     const actorId = assertAvailableActor(context);
     const payload = readPayload<Partial<BuyFaceUpCardPayload>>(
       context.partialCommand,
@@ -79,12 +86,13 @@ export const buyFaceUpCardCommand: CommandDefinition<SplendorGameState> = {
     const nobleDiscovery = createNobleDiscovery(payload, eligibleNobles);
 
     return nobleDiscovery ?? completeDiscovery(payload);
-  },
-  validate: ({ state, command }) =>
-    guardedValidate(() => {
+  }
+
+  validate({ state, commandInput }: SplendorValidationContext) {
+    return guardedValidate(() => {
       assertGameActive(state.game);
-      const actorId = assertActivePlayer(state, command.actorId);
-      const payload = readPayload<BuyFaceUpCardPayload>(command);
+      const actorId = assertActivePlayer(state, commandInput.actorId);
+      const payload = readPayload<BuyFaceUpCardPayload>(commandInput);
       const gameOps = new SplendorGameOps(state.game);
 
       if (!payload.cardId || !payload.level) {
@@ -121,10 +129,12 @@ export const buyFaceUpCardCommand: CommandDefinition<SplendorGameState> = {
       }
 
       return { ok: true };
-    }),
-  execute: ({ game, command, emitEvent }) => {
-    const actorId = command.actorId!;
-    const payload = readPayload<BuyFaceUpCardPayload>(command);
+    });
+  }
+
+  execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
+    const actorId = commandInput.actorId!;
+    const payload = readPayload<BuyFaceUpCardPayload>(commandInput);
     const gameOps = new SplendorGameOps(game);
     const player = gameOps.getPlayer(actorId);
     const card = gameOps.getCard(payload.cardId);
@@ -150,5 +160,7 @@ export const buyFaceUpCardCommand: CommandDefinition<SplendorGameState> = {
         payment,
       },
     });
-  },
-};
+  }
+}
+
+export const buyFaceUpCardCommand = new BuyFaceUpCardCommand();

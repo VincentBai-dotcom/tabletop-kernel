@@ -3,7 +3,7 @@ import type { ValidationOutcome } from "./result";
 import type { CanonicalState, RuntimeState } from "./state";
 import type { RNGApi } from "./rng";
 
-export interface Command<
+export interface CommandInput<
   Payload extends Record<string, unknown> = Record<string, unknown>,
 > {
   type: string;
@@ -14,10 +14,10 @@ export interface Command<
 export interface ValidationContext<
   GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > {
   state: CanonicalState<GameState, Runtime>;
-  command: Cmd;
+  commandInput: Cmd;
 }
 
 export interface CommandAvailabilityContext<
@@ -32,7 +32,7 @@ export interface CommandAvailabilityContext<
 export interface DiscoveryContext<
   GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
-  PartialCmd extends Command = Command,
+  PartialCmd extends CommandInput = CommandInput,
 > extends CommandAvailabilityContext<GameState, Runtime> {
   partialCommand: PartialCmd;
 }
@@ -41,14 +41,14 @@ export interface CommandDiscoveryResult<Option = unknown> {
   step: string;
   options: Option[];
   complete?: boolean;
-  nextPartialCommand?: Command;
+  nextPartialCommand?: CommandInput;
   metadata?: Record<string, unknown>;
 }
 
 export interface ExecuteContext<
   GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > extends ValidationContext<GameState, Runtime, Cmd> {
   game: GameState;
   runtime: Readonly<Runtime>;
@@ -60,7 +60,7 @@ export interface ExecuteContext<
 export interface CommandDefinition<
   GameState extends object = object,
   Runtime extends RuntimeState = RuntimeState,
-  Cmd extends Command = Command,
+  Cmd extends CommandInput = CommandInput,
 > {
   commandId: string;
   isAvailable?(

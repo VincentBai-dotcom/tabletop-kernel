@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type {
   CommandAvailabilityContext,
   CanonicalState,
-  Command,
+  CommandInput,
   CommandDiscoveryResult,
   DiscoveryContext,
   ExecutionResult,
@@ -42,7 +42,7 @@ test("foundational runtime types compose", () => {
     },
   };
 
-  const command: Command = {
+  const command: CommandInput = {
     type: "draw_card",
     actorId: "p1",
     payload: { count: 1 },
@@ -73,7 +73,7 @@ test("progression lifecycle types support nested segment authoring", () => {
   const completionContext: ProgressionCompletionContext<
     { score: number },
     { progression: { current: string | null } },
-    Command<{ amount: number }>
+    CommandInput<{ amount: number }>
   > = {
     state: {
       game: { score: 0 },
@@ -89,7 +89,7 @@ test("progression lifecycle types support nested segment authoring", () => {
         current: "turn",
       },
     },
-    command: {
+    commandInput: {
       type: "gain_score",
       payload: { amount: 1 },
     },
@@ -109,7 +109,7 @@ test("progression lifecycle types support nested segment authoring", () => {
   const lifecycleContext: ProgressionLifecycleHookContext<
     { score: number },
     { progression: { current: string | null } },
-    Command<{ amount: number }>
+    CommandInput<{ amount: number }>
   > = {
     ...completionContext,
     rng: {
@@ -128,7 +128,7 @@ test("progression lifecycle types support nested segment authoring", () => {
   const progression: ProgressionDefinition<
     { score: number },
     { progression: { current: string | null } },
-    Command<{ amount: number }>
+    CommandInput<{ amount: number }>
   > = {
     root: {
       id: "round",

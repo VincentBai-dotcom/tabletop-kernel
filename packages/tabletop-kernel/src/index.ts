@@ -16,9 +16,9 @@ export type {
 export type { GameExecutor, Kernel } from "./kernel/create-kernel";
 export type {
   CommandAvailabilityContext,
-  Command,
   CommandDefinition,
   CommandDiscoveryResult,
+  CommandInput,
   DiscoveryContext,
   ExecuteContext,
   ValidationContext,
