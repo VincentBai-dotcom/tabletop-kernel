@@ -92,6 +92,70 @@ This does not require removing object-literal command definitions immediately,
 but the target consumer experience should explicitly support class-based command
 authoring.
 
+### 4. Game Definition Should Take A Root State
+
+The builder should take one explicit root state, not require the consumer to
+manually wire many nested state pieces together one by one.
+
+Example direction:
+
+```ts
+new GameDefinitionBuilder("splendor")
+  .rootState(GameState)
+  .commands(SplendorCommands)
+  .progression(...)
+  .build();
+```
+
+The target authoring model is:
+
+- the consumer defines state through classes
+- the builder starts from the explicit root state
+- the builder converts those classes into the canonical plain state tree that
+  the executor uses internally
+
+Reason:
+
+- explicit root state keeps the overall game shape understandable
+- the consumer should not need to register every sub-state manually
+- the kernel can preserve the current canonical plain-data runtime model without
+  forcing the consumer to author state as a giant nested interface file
+
+### 5. The Builder Should Take Commands As A Group
+
+The builder should not force long chains like:
+
+```ts
+.command(new TakeThreeDistinctGemsCommand())
+.command(new BuyFaceUpCardCommand())
+.command(new ReserveCardCommand())
+```
+
+Instead, the consumer should define commands as a grouped object and pass that
+group into the builder.
+
+Example direction:
+
+```ts
+const SplendorCommands = {
+  takeThreeDistinctGems: new TakeThreeDistinctGemsCommand(),
+  buyFaceUpCard: new BuyFaceUpCardCommand(),
+};
+
+new GameDefinitionBuilder("splendor")
+  .rootState(GameState)
+  .commands(SplendorCommands)
+  .progression(...)
+  .build();
+```
+
+Reason:
+
+- a single game can have many commands
+- passing commands as a group is more ergonomic than long chained registration
+- it gives the consumer one explicit command surface for the game
+- it fits naturally with class-based command authoring
+
 ## Current Preferred Direction
 
 The locked direction so far is:
@@ -102,6 +166,10 @@ The locked direction so far is:
   `GameExecutor` or a similarly explicit reducer-style name
 - command definitions should support a class-oriented authoring style instead of
   only object literals conforming to `CommandDefinition`
+- the builder should take one explicit root state and convert authored state
+  classes into the canonical plain state tree used internally
+- the builder should take commands as a grouped object instead of forcing long
+  chains of individual `.command(...)` calls
 
 ## Follow-Up
 
