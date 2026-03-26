@@ -85,7 +85,7 @@ export class GameDefinitionBuilder<
     Record<string, AnyCommandDefinition<NextGameState>>
   > {
     (
-      this.config as GameDefinitionBuilderState<
+      this.config as unknown as GameDefinitionBuilderState<
         NextGameState,
         Record<string, AnyCommandDefinition<NextGameState>>
       >
@@ -101,7 +101,10 @@ export class GameDefinitionBuilder<
     NextCommands extends Record<string, AnyCommandDefinition<GameState>>,
   >(commands: NextCommands): GameDefinitionBuilder<GameState, NextCommands> {
     (
-      this.config as GameDefinitionBuilderState<GameState, NextCommands>
+      this.config as unknown as GameDefinitionBuilderState<
+        GameState,
+        NextCommands
+      >
     ).commands = commands;
 
     return this as unknown as GameDefinitionBuilder<GameState, NextCommands>;
@@ -112,7 +115,7 @@ export class GameDefinitionBuilder<
     return this;
   }
 
-  rngSeed(rngSeed: string | number): this {
+  rngSeed(rngSeed: string | number | undefined): this {
     this.config.rngSeed = rngSeed;
     return this;
   }
