@@ -102,7 +102,7 @@ Example direction:
 ```ts
 new GameDefinitionBuilder("splendor")
   .rootState(GameState)
-  .commands(SplendorCommands)
+  .commands(SplendorCommandList)
   .progression(...)
   .build();
 ```
@@ -121,7 +121,7 @@ Reason:
 - the kernel can preserve the current canonical plain-data runtime model without
   forcing the consumer to author state as a giant nested interface file
 
-### 5. The Builder Should Take Commands As A Group
+### 5. The Builder Should Take Commands As A List
 
 The builder should not force long chains like:
 
@@ -131,20 +131,20 @@ The builder should not force long chains like:
 .command(new ReserveCardCommand())
 ```
 
-Instead, the consumer should define commands as a grouped object and pass that
-group into the builder.
+Instead, the consumer should define commands as a list and pass that list into
+the builder.
 
 Example direction:
 
 ```ts
-const SplendorCommands = {
-  takeThreeDistinctGems: new TakeThreeDistinctGemsCommand(),
-  buyFaceUpCard: new BuyFaceUpCardCommand(),
-};
+const SplendorCommandList = [
+  new TakeThreeDistinctGemsCommand(),
+  new BuyFaceUpCardCommand(),
+];
 
 new GameDefinitionBuilder("splendor")
   .rootState(GameState)
-  .commands(SplendorCommands)
+  .commands(SplendorCommandList)
   .progression(...)
   .build();
 ```
@@ -152,8 +152,10 @@ new GameDefinitionBuilder("splendor")
 Reason:
 
 - a single game can have many commands
-- passing commands as a group is more ergonomic than long chained registration
-- it gives the consumer one explicit command surface for the game
+- passing commands as a list is more ergonomic than long chained registration
+- command identity should come from the command definition itself rather than an
+  external object key
+- this avoids ambiguity between a registration key and the command's real name
 - it fits naturally with class-based command authoring
 
 ## Current Preferred Direction
@@ -168,8 +170,8 @@ The locked direction so far is:
   only object literals conforming to `CommandDefinition`
 - the builder should take one explicit root state and convert authored state
   classes into the canonical plain state tree used internally
-- the builder should take commands as a grouped object instead of forcing long
-  chains of individual `.command(...)` calls
+- the builder should take commands as a list instead of forcing long chains of
+  individual `.command(...)` calls
 
 ## Follow-Up
 
