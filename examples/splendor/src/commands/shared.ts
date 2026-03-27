@@ -12,14 +12,12 @@ import {
   type SplendorGameStateFacade,
 } from "../state.ts";
 
-interface ProgressionAwareState {
-  runtime: {
-    progression: {
-      current: string | null;
-      segments: Record<string, { ownerId?: string }>;
-    };
+type ProgressionRuntime = {
+  progression: {
+    current: string | null;
+    segments: Record<string, { ownerId?: string }>;
   };
-}
+};
 
 export type SplendorAvailabilityContext =
   CommandAvailabilityContext<SplendorGameState>;
@@ -68,21 +66,21 @@ export function assertGameActive(game: SplendorGameState): void {
 }
 
 export function assertActivePlayer(
-  state: ProgressionAwareState,
+  runtime: ProgressionRuntime,
   actorId: string | undefined,
 ): string {
   if (!actorId) {
     throw new Error("actor_id_required");
   }
 
-  const currentSegmentId = state.runtime.progression.current;
+  const currentSegmentId = runtime.progression.current;
 
   if (!currentSegmentId) {
     throw new Error("no_active_segment");
   }
 
   const currentOwnerId =
-    state.runtime.progression.segments[currentSegmentId]?.ownerId;
+    runtime.progression.segments[currentSegmentId]?.ownerId;
 
   if (!currentOwnerId || actorId !== currentOwnerId) {
     throw new Error("not_active_player");
@@ -95,5 +93,5 @@ export function assertAvailableActor(
   context: CommandAvailabilityContext<SplendorGameState>,
 ): string {
   assertGameActive(context.game);
-  return assertActivePlayer(context.state, context.actorId);
+  return assertActivePlayer(context.runtime, context.actorId);
 }

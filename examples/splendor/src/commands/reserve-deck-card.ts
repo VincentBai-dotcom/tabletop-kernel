@@ -85,11 +85,11 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
     return returnDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ state, game, commandInput }: SplendorValidationContext) {
+  validate({ runtime, game, commandInput }: SplendorValidationContext) {
     return guardedValidate(() => {
       const splendorGame = getSplendorGameFacade(game);
       assertGameActive(splendorGame);
-      const actorId = assertActivePlayer(state, commandInput.actorId);
+      const actorId = assertActivePlayer(runtime, commandInput.actorId);
       const payload = readPayload<ReserveDeckCardPayload>(commandInput);
       const player = PlayerOps.clone(splendorGame.players[actorId]!);
 

@@ -200,8 +200,8 @@ test("createGameExecutor creates initial state and commits successful commands",
       },
       decrement_counter: {
         commandId: "decrement_counter",
-        validate: ({ state }) =>
-          state.game.counter > 0
+        validate: ({ game }) =>
+          game.counter > 0
             ? { ok: true as const }
             : {
                 ok: false as const,
@@ -240,8 +240,8 @@ test("createGameExecutor returns unchanged state for validation failures", () =>
     .commands({
       decrement_counter: {
         commandId: "decrement_counter",
-        validate: ({ state }) =>
-          state.game.counter > 0
+        validate: ({ game }) =>
+          game.counter > 0
             ? { ok: true as const }
             : {
                 ok: false as const,
@@ -710,9 +710,9 @@ test("game executor can list available commands through per-command availability
       },
       spend_energy: {
         commandId: "spend_energy",
-        isAvailable: ({ state }) => state.game.energy > 0,
-        validate: ({ state }) =>
-          state.game.energy > 0
+        isAvailable: ({ game }) => game.energy > 0,
+        validate: ({ game }) =>
+          game.energy > 0
             ? { ok: true as const }
             : { ok: false as const, reason: "no_energy" },
         execute: ({ game }) => {
@@ -761,7 +761,7 @@ test("game executor can discover the next semantic options for a command", () =>
     .commands({
       play_card: {
         commandId: "play_card",
-        isAvailable: ({ state }) => state.game.canPlay,
+        isAvailable: ({ game }) => game.canPlay,
         discover: ({ partialCommand }) => {
           const cardId = partialCommand.payload?.cardId;
 

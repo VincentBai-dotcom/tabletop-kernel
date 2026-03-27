@@ -82,11 +82,11 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameSta
     return returnDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ state, game, commandInput }: SplendorValidationContext) {
+  validate({ runtime, game, commandInput }: SplendorValidationContext) {
     return guardedValidate(() => {
       const splendorGame = getSplendorGameFacade(game);
       assertGameActive(splendorGame);
-      const actorId = assertActivePlayer(state, commandInput.actorId);
+      const actorId = assertActivePlayer(runtime, commandInput.actorId);
       const payload = readPayload<TakeTwoSameGemsPayload>(commandInput);
 
       if (!payload.color) {

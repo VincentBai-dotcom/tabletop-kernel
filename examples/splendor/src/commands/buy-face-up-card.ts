@@ -87,11 +87,11 @@ export class BuyFaceUpCardCommand implements CommandDefinition<SplendorGameState
     return nobleDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ state, game, commandInput }: SplendorValidationContext) {
+  validate({ runtime, game, commandInput }: SplendorValidationContext) {
     return guardedValidate(() => {
       const splendorGame = getSplendorGameFacade(game);
       assertGameActive(splendorGame);
-      const actorId = assertActivePlayer(state, commandInput.actorId);
+      const actorId = assertActivePlayer(runtime, commandInput.actorId);
       const payload = readPayload<BuyFaceUpCardPayload>(commandInput);
 
       if (!payload.cardId || !payload.level) {

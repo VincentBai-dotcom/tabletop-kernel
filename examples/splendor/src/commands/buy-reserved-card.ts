@@ -78,11 +78,11 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
     return nobleDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ state, game, commandInput }: SplendorValidationContext) {
+  validate({ runtime, game, commandInput }: SplendorValidationContext) {
     return guardedValidate(() => {
       const splendorGame = getSplendorGameFacade(game);
       assertGameActive(splendorGame);
-      const actorId = assertActivePlayer(state, commandInput.actorId);
+      const actorId = assertActivePlayer(runtime, commandInput.actorId);
       const payload = readPayload<BuyReservedCardPayload>(commandInput);
       const player = splendorGame.getPlayer(actorId);
 

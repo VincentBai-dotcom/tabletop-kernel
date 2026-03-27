@@ -17,47 +17,66 @@ import type {
 } from "../types/progression";
 
 export function createValidationContext<
-  GameState extends object,
+  CanonicalGameState extends object,
+  FacadeGameState extends object,
   Runtime extends RuntimeState,
   TCommandInput extends CommandInput,
 >(
-  state: CanonicalState<GameState, Runtime>,
-  game: Readonly<GameState>,
+  state: CanonicalState<CanonicalGameState, Runtime>,
+  game: Readonly<FacadeGameState>,
   commandInput: TCommandInput,
-): InternalValidationContext<GameState, Runtime, TCommandInput> {
+): InternalValidationContext<
+  CanonicalGameState,
+  FacadeGameState,
+  Runtime,
+  TCommandInput
+> {
   return {
     state,
     game,
+    runtime: state.runtime,
     commandInput,
   };
 }
 
 export function createCommandAvailabilityContext<
-  GameState extends object,
+  CanonicalGameState extends object,
+  FacadeGameState extends object,
   Runtime extends RuntimeState,
 >(
-  state: CanonicalState<GameState, Runtime>,
-  game: Readonly<GameState>,
+  state: CanonicalState<CanonicalGameState, Runtime>,
+  game: Readonly<FacadeGameState>,
   commandType: string,
   actorId?: string,
-): InternalCommandAvailabilityContext<GameState, Runtime> {
+): InternalCommandAvailabilityContext<
+  CanonicalGameState,
+  FacadeGameState,
+  Runtime
+> {
   return {
     state,
     game,
+    runtime: state.runtime,
     commandType,
     actorId,
   };
 }
 
 export function createDiscoveryContext<
-  GameState extends object,
+  CanonicalGameState extends object,
+  FacadeGameState extends object,
   Runtime extends RuntimeState,
   TPartialCommandInput extends CommandInput,
 >(
-  state: CanonicalState<GameState, Runtime>,
-  game: Readonly<GameState>,
+  state: CanonicalState<CanonicalGameState, Runtime>,
+  game: Readonly<FacadeGameState>,
   partialCommand: TPartialCommandInput,
-): InternalDiscoveryContext<GameState, Runtime, TPartialCommandInput> {
+): InternalDiscoveryContext<
+  CanonicalGameState,
+  FacadeGameState,
+  Runtime,
+  TPartialCommandInput
+> {
   return {
     ...createCommandAvailabilityContext(
       state,
@@ -70,17 +89,23 @@ export function createDiscoveryContext<
 }
 
 export function createExecuteContext<
-  GameState extends object,
+  CanonicalGameState extends object,
+  FacadeGameState extends object,
   Runtime extends RuntimeState,
   TCommandInput extends CommandInput,
 >(
-  state: CanonicalState<GameState, Runtime>,
-  game: GameState,
+  state: CanonicalState<CanonicalGameState, Runtime>,
+  game: FacadeGameState,
   commandInput: TCommandInput,
   rng: RNGApi,
   setCurrentSegmentOwner: (ownerId?: string) => void,
   emitEvent: (event: KernelEvent) => void,
-): InternalExecuteContext<GameState, Runtime, TCommandInput> {
+): InternalExecuteContext<
+  CanonicalGameState,
+  FacadeGameState,
+  Runtime,
+  TCommandInput
+> {
   return {
     state,
     commandInput,

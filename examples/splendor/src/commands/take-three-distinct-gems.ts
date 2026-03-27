@@ -108,11 +108,11 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
     );
   }
 
-  validate({ state, game, commandInput }: SplendorValidationContext) {
+  validate({ runtime, game, commandInput }: SplendorValidationContext) {
     return guardedValidate(() => {
       const splendorGame = getSplendorGameFacade(game);
       assertGameActive(splendorGame);
-      const actorId = assertActivePlayer(state, commandInput.actorId);
+      const actorId = assertActivePlayer(runtime, commandInput.actorId);
       const payload = readPayload<TakeThreeDistinctGemsPayload>(commandInput);
 
       if (!payload.colors || payload.colors.length !== 3) {

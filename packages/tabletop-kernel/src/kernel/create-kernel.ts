@@ -15,7 +15,11 @@ import {
   type NormalizedProgressionDefinition,
 } from "./progression-lifecycle";
 import { cloneCanonicalState } from "./transaction";
-import type { CommandInput, InternalCommandDefinition } from "../types/command";
+import type {
+  CommandDefinition,
+  CommandInput,
+  InternalCommandDefinition,
+} from "../types/command";
 import type { CommandDiscoveryResult } from "../types/command";
 import type {
   ExecutionFailure,
@@ -26,9 +30,17 @@ import type { CanonicalState, RuntimeState } from "../types/state";
 import { createRNGService } from "../rng/service";
 import { hydrateStateFacade } from "../state-facade/hydrate";
 
-type CommandDefinitions<GameState extends object> = Record<
+type CommandDefinitions<
+  CanonicalGameState extends object,
+  FacadeGameState extends object = CanonicalGameState,
+> = Record<
   string,
-  InternalCommandDefinition<GameState, RuntimeState, CommandInput>
+  InternalCommandDefinition<
+    CanonicalGameState,
+    FacadeGameState,
+    RuntimeState,
+    CommandInput
+  >
 >;
 
 export interface GameExecutor<GameState extends object> {
@@ -53,15 +65,22 @@ export interface GameExecutor<GameState extends object> {
 
 export type Kernel<GameState extends object> = GameExecutor<GameState>;
 
-function createCommandGameView<GameState extends object>(
-  game: GameDefinition<GameState, CommandDefinitions<GameState>>,
-  state: CanonicalState<GameState>,
+function createCommandGameView<
+  CanonicalGameState extends object,
+  FacadeGameState extends object = CanonicalGameState,
+>(
+  game: GameDefinition<
+    CanonicalGameState,
+    FacadeGameState,
+    CommandDefinitions<CanonicalGameState, FacadeGameState>
+  >,
+  state: CanonicalState<CanonicalGameState>,
   options?: {
     readonly?: boolean;
   },
-): GameState {
+): FacadeGameState {
   if (!game.stateFacade) {
-    return state.game;
+    return state.game as unknown as FacadeGameState;
   }
 
   return hydrateStateFacade(game.stateFacade, state.game, {
@@ -69,13 +88,20 @@ function createCommandGameView<GameState extends object>(
   });
 }
 
-function createInitialRuntimeState<GameState extends object>(
+function createInitialRuntimeState<
+  CanonicalGameState extends object,
+  FacadeGameState extends object = CanonicalGameState,
+>(
   progression: NormalizedProgressionDefinition<
-    GameState,
+    FacadeGameState,
     RuntimeState,
     CommandInput
   >,
-  game: GameDefinition<GameState, CommandDefinitions<GameState>>,
+  game: GameDefinition<
+    CanonicalGameState,
+    FacadeGameState,
+    CommandDefinitions<CanonicalGameState, FacadeGameState>
+  >,
 ): RuntimeState {
   const runtime: RuntimeState = {
     progression: createProgressionState(progression),
@@ -95,13 +121,20 @@ function createInitialRuntimeState<GameState extends object>(
 }
 
 export function createGameExecutor<
-  GameState extends object,
-  Commands extends CommandDefinitions<GameState>,
->(game: GameDefinition<GameState, Commands>): GameExecutor<GameState> {
+  CanonicalGameState extends object,
+  FacadeGameState extends object = CanonicalGameState,
+  Commands extends Record<
+    string,
+    CommandDefinition<FacadeGameState, CommandInput>
+  > = Record<string, CommandDefinition<FacadeGameState, CommandInput>>,
+>(
+  game: GameDefinition<CanonicalGameState, FacadeGameState, Commands>,
+): GameExecutor<CanonicalGameState> {
   const progression = normalizeProgressionDefinition(
     game.progression as GameDefinition<
-      GameState,
-      CommandDefinitions<GameState>
+      CanonicalGameState,
+      FacadeGameState,
+      Commands
     >["progression"],
   );
 
@@ -110,7 +143,11 @@ export function createGameExecutor<
       const gameState = game.initialState();
       const runtime = createInitialRuntimeState(
         progression,
-        game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+        game as GameDefinition<
+          CanonicalGameState,
+          FacadeGameState,
+          CommandDefinitions<CanonicalGameState, FacadeGameState>
+        >,
       );
       const rng = createRNGService(runtime.rng);
 
@@ -139,8 +176,9 @@ export function createGameExecutor<
               state,
               createCommandGameView(
                 game as GameDefinition<
-                  GameState,
-                  CommandDefinitions<GameState>
+                  CanonicalGameState,
+                  FacadeGameState,
+                  CommandDefinitions<CanonicalGameState, FacadeGameState>
                 >,
                 state,
                 { readonly: true },
@@ -166,7 +204,11 @@ export function createGameExecutor<
           createCommandAvailabilityContext(
             state,
             createCommandGameView(
-              game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+              game as GameDefinition<
+                CanonicalGameState,
+                FacadeGameState,
+                CommandDefinitions<CanonicalGameState, FacadeGameState>
+              >,
               state,
               { readonly: true },
             ),
@@ -182,7 +224,11 @@ export function createGameExecutor<
         createDiscoveryContext(
           state,
           createCommandGameView(
-            game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+            game as GameDefinition<
+              CanonicalGameState,
+              FacadeGameState,
+              CommandDefinitions<CanonicalGameState, FacadeGameState>
+            >,
             state,
             { readonly: true },
           ),
@@ -195,7 +241,7 @@ export function createGameExecutor<
       const definition = game.commands[commandInput.type];
 
       if (!definition) {
-        const failure: ExecutionFailure<CanonicalState<GameState>> = {
+        const failure: ExecutionFailure<CanonicalState<CanonicalGameState>> = {
           ok: false,
           state,
           reason: "unknown_command",
@@ -211,7 +257,11 @@ export function createGameExecutor<
         createValidationContext(
           state,
           createCommandGameView(
-            game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+            game as GameDefinition<
+              CanonicalGameState,
+              FacadeGameState,
+              CommandDefinitions<CanonicalGameState, FacadeGameState>
+            >,
             state,
             { readonly: true },
           ),
@@ -220,7 +270,7 @@ export function createGameExecutor<
       );
 
       if (!validation.ok) {
-        const failure: ExecutionFailure<CanonicalState<GameState>> = {
+        const failure: ExecutionFailure<CanonicalState<CanonicalGameState>> = {
           ok: false,
           state,
           reason: validation.reason,
@@ -254,7 +304,11 @@ export function createGameExecutor<
         createExecuteContext(
           workingState,
           createCommandGameView(
-            game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+            game as GameDefinition<
+              CanonicalGameState,
+              FacadeGameState,
+              CommandDefinitions<CanonicalGameState, FacadeGameState>
+            >,
             workingState,
           ),
           commandInput,
@@ -265,14 +319,22 @@ export function createGameExecutor<
       );
 
       resolveProgressionLifecycle(
-        workingState,
+        workingState as unknown as CanonicalState<FacadeGameState>,
         createCommandGameView(
-          game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+          game as GameDefinition<
+            CanonicalGameState,
+            FacadeGameState,
+            CommandDefinitions<CanonicalGameState, FacadeGameState>
+          >,
           workingState,
           { readonly: true },
         ),
         createCommandGameView(
-          game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+          game as GameDefinition<
+            CanonicalGameState,
+            FacadeGameState,
+            CommandDefinitions<CanonicalGameState, FacadeGameState>
+          >,
           workingState,
         ),
         commandInput,
@@ -281,7 +343,7 @@ export function createGameExecutor<
         collector.emit,
       );
 
-      const success: ExecutionSuccess<CanonicalState<GameState>> = {
+      const success: ExecutionSuccess<CanonicalState<CanonicalGameState>> = {
         ok: true,
         state: workingState,
         events: collector.list(),
