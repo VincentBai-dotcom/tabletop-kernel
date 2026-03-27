@@ -50,6 +50,8 @@ export function resolveProgressionLifecycle<
   TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
+  readonlyGame: Readonly<GameState>,
+  mutableGame: GameState,
   commandInput: TCommandInput,
   progression: NormalizedProgressionDefinition<
     GameState,
@@ -71,6 +73,7 @@ export function resolveProgressionLifecycle<
 
     const completionContext = createProgressionCompletionContext(
       state,
+      readonlyGame,
       commandInput,
       segment,
     );
@@ -83,6 +86,7 @@ export function resolveProgressionLifecycle<
 
     const lifecycleContext = createProgressionLifecycleHookContext(
       state,
+      mutableGame,
       commandInput,
       segment,
       rng,
@@ -146,6 +150,7 @@ export function resolveProgressionLifecycle<
 
       const enteredContext = createProgressionLifecycleHookContext(
         state,
+        mutableGame,
         commandInput,
         enteredSegment,
         rng,

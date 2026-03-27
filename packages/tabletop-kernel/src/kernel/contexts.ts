@@ -98,12 +98,13 @@ export function createProgressionCompletionContext<
   TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
+  game: Readonly<GameState>,
   commandInput: TCommandInput,
   segment: ProgressionSegmentState,
 ): ProgressionCompletionContext<GameState, Runtime, TCommandInput> {
   return {
     state,
-    game: state.game,
+    game,
     runtime: state.runtime,
     commandInput,
     segment,
@@ -117,14 +118,15 @@ export function createProgressionLifecycleHookContext<
   TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
+  game: GameState,
   commandInput: TCommandInput,
   segment: ProgressionSegmentState,
   rng: RNGApi,
   emitEvent: (event: KernelEvent) => void,
 ): ProgressionLifecycleHookContext<GameState, Runtime, TCommandInput> {
   return {
-    ...createProgressionCompletionContext(state, commandInput, segment),
-    game: state.game,
+    ...createProgressionCompletionContext(state, game, commandInput, segment),
+    game,
     rng,
     emitEvent,
   };

@@ -266,6 +266,15 @@ export function createGameExecutor<
 
       resolveProgressionLifecycle(
         workingState,
+        createCommandGameView(
+          game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+          workingState,
+          { readonly: true },
+        ),
+        createCommandGameView(
+          game as GameDefinition<GameState, CommandDefinitions<GameState>>,
+          workingState,
+        ),
         commandInput,
         progression,
         rng,

@@ -4,14 +4,16 @@ import {
   type GameDefinition,
 } from "tabletop-kernel";
 import { createCommands } from "./commands/index.ts";
-import { SplendorGameOps } from "./model/game-ops.ts";
 import { createInitialGameState, setupSplendorGame } from "./setup.ts";
 import type {
   BuyFaceUpCardPayload,
   BuyReservedCardPayload,
   SplendorGameState,
 } from "./state.ts";
-import { SplendorGameStateFacade as SplendorRootState } from "./state.ts";
+import {
+  asSplendorGameFacade,
+  SplendorGameStateFacade as SplendorRootState,
+} from "./state.ts";
 
 export interface CreateSplendorGameOptions {
   playerIds: string[];
@@ -37,14 +39,13 @@ export function createSplendorGame(
         completionPolicy: "after_successful_command",
         onExit: ({ commandInput, emitEvent, game }) => {
           const actorId = commandInput.actorId;
-          const splendorGame = game as SplendorGameState;
+          const splendorGame = asSplendorGameFacade(game as SplendorGameState);
 
           if (!actorId) {
             throw new Error("actor_id_required");
           }
 
-          const gameOps = new SplendorGameOps(splendorGame);
-          gameOps.resolveTurnEnd(
+          splendorGame.resolveTurnEnd(
             actorId,
             emitEvent,
             readChosenNobleId(commandInput),
@@ -52,7 +53,7 @@ export function createSplendorGame(
         },
         resolveNext: ({ commandInput, game }) => {
           const actorId = commandInput.actorId;
-          const splendorGame = game as SplendorGameState;
+          const splendorGame = asSplendorGameFacade(game as SplendorGameState);
 
           if (!actorId || splendorGame.winnerIds) {
             return {
@@ -60,11 +61,9 @@ export function createSplendorGame(
             };
           }
 
-          const gameOps = new SplendorGameOps(splendorGame);
-
           return {
             nextSegmentId: "turn",
-            ownerId: gameOps.getNextPlayerId(actorId),
+            ownerId: splendorGame.getNextPlayerId(actorId),
           };
         },
         children: [],

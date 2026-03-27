@@ -353,12 +353,14 @@ test("built-in progression completion policies evaluate through lifecycle contex
   };
   const completionContext = createProgressionCompletionContext(
     state,
+    state.game,
     commandInput,
     state.runtime.progression.segments.turn!,
   );
   const collector = createEventCollector();
   const lifecycleContext = createProgressionLifecycleHookContext(
     state,
+    state.game,
     commandInput,
     state.runtime.progression.segments.turn!,
     createRNGService(state.runtime.rng),
@@ -461,6 +463,68 @@ test("successful commands trigger automatic progression lifecycle and emit lifec
       ownerId: "player-2",
     },
   });
+});
+
+test("progression lifecycle hooks hydrate decorated state facades", () => {
+  const game = new GameDefinitionBuilder<{
+    counter: {
+      value: number;
+    };
+  }>("facade-progression-game")
+    .rootState(RootCounterStateFacade)
+    .initialState(() => ({
+      counter: {
+        value: 0,
+      },
+    }))
+    .progression({
+      root: {
+        id: "turn",
+        kind: "turn",
+        completionPolicy: "after_successful_command",
+        onExit: ({ game }) => {
+          (game as RootCounterStateFacade).incrementCounter(2);
+        },
+        resolveNext: ({ game }) => ({
+          nextSegmentId: "turn",
+          ownerId: (game as RootCounterStateFacade).hasCounterValueAtLeast(3)
+            ? "player-2"
+            : "player-1",
+        }),
+        children: [],
+      },
+    })
+    .setup(({ runtime }) => {
+      runtime.progression.segments.turn!.ownerId = "player-1";
+    })
+    .commands({
+      increment_counter: {
+        commandId: "increment_counter",
+        validate: () => ({ ok: true as const }),
+        execute: ({ game }) => {
+          (game as RootCounterStateFacade).incrementCounter(1);
+        },
+      },
+    })
+    .build();
+
+  const executor = createGameExecutor(game);
+  const initialState = executor.createInitialState();
+  const result = executor.executeCommand(initialState, {
+    type: "increment_counter",
+    actorId: "player-1",
+  });
+
+  expect(result.ok).toBe(true);
+
+  if (!result.ok) {
+    throw new Error("expected lifecycle progression to succeed");
+  }
+
+  expect(result.state.game.counter.value).toBe(3);
+  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe(
+    "player-2",
+  );
 });
 
 test("nested progression can cascade through multiple segment transitions", () => {

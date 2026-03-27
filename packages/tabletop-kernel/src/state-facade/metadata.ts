@@ -1,4 +1,6 @@
-export type StateClass = new (...args: unknown[]) => object;
+export type StateClass<TState extends object = object> = new (
+  ...args: unknown[]
+) => TState;
 
 export type StateFieldTargetFactory = () => StateClass;
 
