@@ -1,9 +1,11 @@
 import { expect, test } from "bun:test";
 import {
+  field,
   getStateMetadata,
   scalar,
   state,
   State,
+  t,
 } from "../src/state-facade/metadata";
 import { compileStateFacadeDefinition } from "../src/state-facade/compile";
 import { hydrateStateFacade } from "../src/state-facade/hydrate";
@@ -27,6 +29,24 @@ class PlayerState {
   }
 }
 
+@State()
+class TypedHandState {
+  @field(t.number())
+  size!: number;
+}
+
+@State()
+class TypedPlayerState {
+  @field(t.number())
+  health!: number;
+
+  @field(t.state(() => TypedHandState))
+  hand!: TypedHandState;
+
+  @field(t.array(t.string()))
+  tags!: string[];
+}
+
 test("state decorators capture scalar and nested state metadata", () => {
   const handMetadata = getStateMetadata(HandState);
   const playerMetadata = getStateMetadata(PlayerState);
@@ -43,6 +63,30 @@ test("state decorators capture scalar and nested state metadata", () => {
   }
 
   expect(handField.target()).toBe(HandState);
+});
+
+test("field decorator captures composable runtime field type metadata", () => {
+  const playerMetadata = getStateMetadata(TypedPlayerState);
+  const handMetadata = getStateMetadata(TypedHandState);
+  const handField = playerMetadata.fields.hand;
+  const tagsField = playerMetadata.fields.tags;
+
+  expect(playerMetadata.type).toBe("state");
+  expect(playerMetadata.fields.health?.kind).toBe("number");
+  expect(handMetadata.fields.size?.kind).toBe("number");
+  expect(handField?.kind).toBe("state");
+
+  if (!handField || handField.kind !== "state") {
+    throw new Error("expected nested state runtime field type");
+  }
+
+  expect(handField.target()).toBe(TypedHandState);
+  expect(tagsField).toEqual({
+    kind: "array",
+    item: {
+      kind: "string",
+    },
+  });
 });
 
 test("mutable state facades allow mutation through state methods but reject direct field writes", () => {

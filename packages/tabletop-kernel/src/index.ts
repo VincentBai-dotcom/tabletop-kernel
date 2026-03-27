@@ -1,10 +1,12 @@
 export { GameDefinitionBuilder } from "./game-definition";
 export { createGameExecutor, createKernel } from "./kernel/create-kernel";
 export {
+  field,
   getStateMetadata,
   scalar,
   state,
   State,
+  t,
 } from "./state-facade/metadata";
 export {
   appendReplayStep,

@@ -4,16 +4,50 @@ export type StateClass<TState extends object = object> = new (
 
 export type StateFieldTargetFactory = () => StateClass;
 
-export interface ScalarFieldMetadata {
-  kind: "scalar";
+export interface NumberFieldType {
+  kind: "number";
 }
 
-export interface NestedStateFieldMetadata {
+export interface StringFieldType {
+  kind: "string";
+}
+
+export interface BooleanFieldType {
+  kind: "boolean";
+}
+
+export interface NestedStateFieldType {
   kind: "state";
   target: StateFieldTargetFactory;
 }
 
-export type StateFieldMetadata = ScalarFieldMetadata | NestedStateFieldMetadata;
+export interface ArrayFieldType {
+  kind: "array";
+  item: FieldType;
+}
+
+export interface RecordFieldType {
+  kind: "record";
+  key: PrimitiveFieldType;
+  value: FieldType;
+}
+
+export type PrimitiveFieldType =
+  | NumberFieldType
+  | StringFieldType
+  | BooleanFieldType;
+
+export type FieldType =
+  | PrimitiveFieldType
+  | NestedStateFieldType
+  | ArrayFieldType
+  | RecordFieldType;
+
+export interface LegacyScalarFieldMetadata {
+  kind: "scalar";
+}
+
+export type StateFieldMetadata = LegacyScalarFieldMetadata | FieldType;
 
 export interface StateMetadata {
   type: "state";
@@ -67,6 +101,55 @@ export function state(target: StateFieldTargetFactory): PropertyDecorator {
     };
   };
 }
+
+export function field(fieldType: FieldType): PropertyDecorator {
+  return (target, propertyKey) => {
+    const metadata = ensureStateMetadata(resolveDecoratorTarget(target));
+    metadata.fields[String(propertyKey)] = fieldType;
+  };
+}
+
+export const t = {
+  number(): NumberFieldType {
+    return {
+      kind: "number",
+    };
+  },
+
+  string(): StringFieldType {
+    return {
+      kind: "string",
+    };
+  },
+
+  boolean(): BooleanFieldType {
+    return {
+      kind: "boolean",
+    };
+  },
+
+  state(target: StateFieldTargetFactory): NestedStateFieldType {
+    return {
+      kind: "state",
+      target,
+    };
+  },
+
+  array(item: FieldType): ArrayFieldType {
+    return {
+      kind: "array",
+      item,
+    };
+  },
+
+  record(key: PrimitiveFieldType, value: FieldType): RecordFieldType {
+    return {
+      kind: "record",
+      key,
+      value,
+    };
+  },
+};
 
 export function getStateMetadata(target: StateClass): StateMetadata {
   const metadata = STATE_METADATA.get(target);
