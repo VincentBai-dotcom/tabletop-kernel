@@ -1,5 +1,6 @@
 import {
   getStateMetadata,
+  type FieldType,
   type StateClass,
   type StateFieldMetadata,
 } from "./metadata";
@@ -47,20 +48,66 @@ function visitState(
   };
 
   for (const field of Object.values(metadata.fields)) {
-    if (field.kind !== "state") {
-      continue;
-    }
-
-    const nestedTarget = field.target();
-
-    try {
-      getStateMetadata(nestedTarget);
-    } catch {
-      throw new Error(
-        `state_field_target_must_be_decorated:${nestedTarget.name || "anonymous"}`,
-      );
-    }
-
-    visitState(nestedTarget, states, visited);
+    visitNestedStateTargets(field, states, visited);
   }
+}
+
+function visitNestedStateTargets(
+  field: StateFieldMetadata,
+  states: Record<string, CompiledStateDefinition>,
+  visited: Set<StateClass>,
+): void {
+  if (field.kind === "scalar") {
+    return;
+  }
+
+  if (field.kind === "state") {
+    visitNestedStateTarget(field.target(), states, visited);
+    return;
+  }
+
+  if (field.kind === "array") {
+    visitNestedFieldTypeTargets(field.item, states, visited);
+    return;
+  }
+
+  if (field.kind === "record") {
+    visitNestedFieldTypeTargets(field.value, states, visited);
+  }
+}
+
+function visitNestedFieldTypeTargets(
+  field: FieldType,
+  states: Record<string, CompiledStateDefinition>,
+  visited: Set<StateClass>,
+): void {
+  if (field.kind === "state") {
+    visitNestedStateTarget(field.target(), states, visited);
+    return;
+  }
+
+  if (field.kind === "array") {
+    visitNestedFieldTypeTargets(field.item, states, visited);
+    return;
+  }
+
+  if (field.kind === "record") {
+    visitNestedFieldTypeTargets(field.value, states, visited);
+  }
+}
+
+function visitNestedStateTarget(
+  nestedTarget: StateClass,
+  states: Record<string, CompiledStateDefinition>,
+  visited: Set<StateClass>,
+): void {
+  try {
+    getStateMetadata(nestedTarget);
+  } catch {
+    throw new Error(
+      `state_field_target_must_be_decorated:${nestedTarget.name || "anonymous"}`,
+    );
+  }
+
+  visitState(nestedTarget, states, visited);
 }

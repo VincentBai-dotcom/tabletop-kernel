@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { createGameExecutor } from "../src/kernel/create-kernel";
 import { GameDefinitionBuilder } from "../src/game-definition";
 import type { CommandDefinition } from "../src/types/command";
-import { scalar, state, State } from "../src/state-facade/metadata";
+import { field, scalar, state, State, t } from "../src/state-facade/metadata";
 
 class IncrementScoreCommand implements CommandDefinition<{ score: number }> {
   readonly commandId = "increment_score";
@@ -51,6 +51,18 @@ class UndecoratedChildState {
 class BrokenRootState {
   @state(() => UndecoratedChildState)
   child!: UndecoratedChildState;
+}
+
+@State()
+class TestCardState {
+  @field(t.string())
+  id!: string;
+}
+
+@State()
+class TestCollectionRootState {
+  @field(t.array(t.state(() => TestCardState)))
+  cards!: TestCardState[];
 }
 
 test("GameDefinitionBuilder preserves the supplied configuration", () => {
@@ -236,4 +248,32 @@ test("GameDefinitionBuilder rejects undecorated nested state targets", () => {
       .commands({})
       .build(),
   ).toThrow("state_field_target_must_be_decorated:UndecoratedChildState");
+});
+
+test("GameDefinitionBuilder compiles nested state references inside array field types", () => {
+  const game = new GameDefinitionBuilder<{
+    cards: {
+      id: string;
+    }[];
+  }>("collection-root-state-game")
+    .rootState(TestCollectionRootState)
+    .initialState(() => ({
+      cards: [],
+    }))
+    .commands({})
+    .build();
+
+  expect(game.stateFacade?.root).toBe(TestCollectionRootState);
+  expect(
+    game.stateFacade?.states[TestCollectionRootState.name]?.fields.cards,
+  ).toEqual({
+    kind: "array",
+    item: {
+      kind: "state",
+      target: expect.any(Function),
+    },
+  });
+  expect(game.stateFacade?.states[TestCardState.name]?.fields.id?.kind).toBe(
+    "string",
+  );
 });
