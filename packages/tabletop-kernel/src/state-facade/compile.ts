@@ -57,10 +57,6 @@ function visitNestedStateTargets(
   states: Record<string, CompiledStateDefinition>,
   visited: Set<StateClass>,
 ): void {
-  if (field.kind === "scalar") {
-    return;
-  }
-
   if (field.kind === "state") {
     visitNestedStateTarget(field.target(), states, visited);
     return;

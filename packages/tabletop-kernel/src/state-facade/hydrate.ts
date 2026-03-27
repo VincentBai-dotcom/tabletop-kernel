@@ -249,7 +249,6 @@ interface MutationContext {
 
 function isScalarLikeField(field: StateFieldMetadata): boolean {
   return (
-    field.kind === "scalar" ||
     field.kind === "number" ||
     field.kind === "string" ||
     field.kind === "boolean" ||

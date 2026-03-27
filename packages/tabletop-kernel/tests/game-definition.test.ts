@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { createGameExecutor } from "../src/kernel/create-kernel";
 import { GameDefinitionBuilder } from "../src/game-definition";
 import type { CommandDefinition } from "../src/types/command";
-import { field, scalar, state, State, t } from "../src/state-facade/metadata";
+import { field, State, t } from "../src/state-facade/metadata";
 
 class IncrementScoreCommand implements CommandDefinition<{ score: number }> {
   readonly commandId = "increment_score";
@@ -30,16 +30,16 @@ class DecrementScoreCommand implements CommandDefinition<{ score: number }> {
 
 @State()
 class TestHandState {
-  @scalar()
+  @field(t.number())
   size!: number;
 }
 
 @State()
 class TestRootState {
-  @scalar()
+  @field(t.number())
   score!: number;
 
-  @state(() => TestHandState)
+  @field(t.state(() => TestHandState))
   hand!: TestHandState;
 }
 
@@ -49,7 +49,7 @@ class UndecoratedChildState {
 
 @State()
 class BrokenRootState {
-  @state(() => UndecoratedChildState)
+  @field(t.state(() => UndecoratedChildState))
   child!: UndecoratedChildState;
 }
 
@@ -222,13 +222,13 @@ test("GameDefinitionBuilder compiles reachable root state metadata", () => {
 
   expect(game.stateFacade?.root).toBe(TestRootState);
   expect(game.stateFacade?.states[TestRootState.name]?.fields.score?.kind).toBe(
-    "scalar",
+    "number",
   );
   expect(game.stateFacade?.states[TestRootState.name]?.fields.hand?.kind).toBe(
     "state",
   );
   expect(game.stateFacade?.states[TestHandState.name]?.fields.size?.kind).toBe(
-    "scalar",
+    "number",
   );
 });
 

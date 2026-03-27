@@ -8,11 +8,11 @@ import {
 } from "../src/kernel/contexts";
 import { createEventCollector } from "../src/kernel/events";
 import { createRNGService } from "../src/rng/service";
-import { scalar, state, State } from "../src/state-facade/metadata";
+import { field, State, t } from "../src/state-facade/metadata";
 
 @State()
 class CounterStateFacade {
-  @scalar()
+  @field(t.number())
   value!: number;
 
   increment(amount: number) {
@@ -22,7 +22,7 @@ class CounterStateFacade {
 
 @State()
 class RootCounterStateFacade {
-  @state(() => CounterStateFacade)
+  @field(t.state(() => CounterStateFacade))
   counter!: CounterStateFacade;
 
   incrementCounter(amount: number) {

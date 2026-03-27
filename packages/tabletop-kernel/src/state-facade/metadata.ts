@@ -47,12 +47,7 @@ export type FieldType =
   | NestedStateFieldType
   | ArrayFieldType
   | RecordFieldType;
-
-export interface LegacyScalarFieldMetadata {
-  kind: "scalar";
-}
-
-export type StateFieldMetadata = LegacyScalarFieldMetadata | FieldType;
+export type StateFieldMetadata = FieldType;
 
 export interface StateMetadata {
   type: "state";
@@ -83,27 +78,6 @@ function resolveDecoratorTarget(target: object): StateClass {
 export function State(): ClassDecorator {
   return (target) => {
     ensureStateMetadata(target as unknown as StateClass);
-  };
-}
-
-export function scalar(): PropertyDecorator {
-  return (target, propertyKey) => {
-    const metadata = ensureStateMetadata(resolveDecoratorTarget(target));
-    metadata.fields[String(propertyKey)] = {
-      kind: "scalar",
-    };
-  };
-}
-
-export function state(target: StateFieldTargetFactory): PropertyDecorator {
-  return (decoratorTarget, propertyKey) => {
-    const metadata = ensureStateMetadata(
-      resolveDecoratorTarget(decoratorTarget),
-    );
-    metadata.fields[String(propertyKey)] = {
-      kind: "state",
-      target,
-    };
   };
 }
 

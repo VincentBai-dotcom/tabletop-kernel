@@ -2,8 +2,6 @@ import { expect, test } from "bun:test";
 import {
   field,
   getStateMetadata,
-  scalar,
-  state,
   State,
   t,
 } from "../src/state-facade/metadata";
@@ -12,16 +10,16 @@ import { hydrateStateFacade } from "../src/state-facade/hydrate";
 
 @State()
 class HandState {
-  @scalar()
+  @field(t.number())
   size!: number;
 }
 
 @State()
 class PlayerState {
-  @scalar()
+  @field(t.number())
   health!: number;
 
-  @state(() => HandState)
+  @field(t.state(() => HandState))
   hand!: HandState;
 
   dealDamage(amount: number) {
@@ -69,9 +67,9 @@ test("state decorators capture scalar and nested state metadata", () => {
   const handField = playerMetadata.fields.hand;
 
   expect(handMetadata.type).toBe("state");
-  expect(handMetadata.fields.size?.kind).toBe("scalar");
+  expect(handMetadata.fields.size?.kind).toBe("number");
   expect(playerMetadata.type).toBe("state");
-  expect(playerMetadata.fields.health?.kind).toBe("scalar");
+  expect(playerMetadata.fields.health?.kind).toBe("number");
   expect(handField?.kind).toBe("state");
 
   if (!handField || handField.kind !== "state") {
