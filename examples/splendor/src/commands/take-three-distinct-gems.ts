@@ -11,7 +11,6 @@ import type {
   TakeThreeDistinctGemsPayload,
 } from "../state.ts";
 import { PlayerOps } from "../model/player-ops.ts";
-import { SplendorGameOps } from "../model/game-ops.ts";
 import { applyReturnTokens, validateReturnTokens } from "../model/token-ops.ts";
 import {
   assertAvailableActor,
@@ -19,6 +18,7 @@ import {
   assertGameActive,
   guardedAvailability,
   guardedValidate,
+  getSplendorGameFacade,
   readPayload,
   type SplendorAvailabilityContext,
   type SplendorDiscoveryContext,
@@ -32,9 +32,10 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
       assertAvailableActor(context);
+      const game = getSplendorGameFacade(context.game);
 
       return (
-        Object.entries(context.state.game.bank).filter(
+        Object.entries(game.bank).filter(
           ([color, count]) => color !== "gold" && count > 0,
         ).length >= 3
       );
@@ -43,6 +44,7 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
 
   discover(context: SplendorDiscoveryContext) {
     const actorId = assertAvailableActor(context);
+    const game = getSplendorGameFacade(context.game);
     const payload = readPayload<
       Partial<TakeThreeDistinctGemsPayload> & {
         colors?: GemTokenColor[];
@@ -56,7 +58,7 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
     if (selectedColors.length < 3) {
       return {
         step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
-        options: Object.entries(context.state.game.bank)
+        options: Object.entries(game.bank)
           .filter(
             ([color, count]) =>
               color !== "gold" &&
@@ -78,7 +80,7 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
       };
     }
 
-    const player = PlayerOps.clone(context.state.game.players[actorId]!);
+    const player = PlayerOps.clone(game.players[actorId]!);
 
     for (const color of selectedColors) {
       player.tokens[color] += 1;
@@ -106,9 +108,10 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
     );
   }
 
-  validate({ state, commandInput }: SplendorValidationContext) {
+  validate({ state, game, commandInput }: SplendorValidationContext) {
     return guardedValidate(() => {
-      assertGameActive(state.game);
+      const splendorGame = getSplendorGameFacade(game);
+      assertGameActive(splendorGame);
       const actorId = assertActivePlayer(state, commandInput.actorId);
       const payload = readPayload<TakeThreeDistinctGemsPayload>(commandInput);
 
@@ -122,10 +125,10 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
         return { ok: false, reason: "colors_must_be_distinct" };
       }
 
-      const player = PlayerOps.clone(state.game.players[actorId]!);
+      const player = PlayerOps.clone(splendorGame.players[actorId]!);
 
       for (const color of payload.colors) {
-        if (state.game.bank[color] <= 0) {
+        if (splendorGame.bank[color] <= 0) {
           return { ok: false, reason: "token_color_unavailable" };
         }
 
@@ -150,15 +153,15 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
   execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<TakeThreeDistinctGemsPayload>(commandInput);
-    const gameOps = new SplendorGameOps(game);
-    const player = gameOps.getPlayer(actorId).state;
+    const splendorGame = getSplendorGameFacade(game);
+    const player = splendorGame.getPlayer(actorId).state;
 
     for (const color of payload.colors) {
-      game.bank[color] -= 1;
+      splendorGame.bank.adjustColor(color, -1);
       player.tokens[color] += 1;
     }
 
-    applyReturnTokens(player, game.bank, payload.returnTokens);
+    applyReturnTokens(player, splendorGame.bank, payload.returnTokens);
     emitEvent({
       category: "domain",
       type: "gems_taken",

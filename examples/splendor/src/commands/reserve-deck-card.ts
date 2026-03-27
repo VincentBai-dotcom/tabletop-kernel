@@ -6,7 +6,6 @@ import {
 } from "../discovery.ts";
 import type { ReserveDeckCardPayload, SplendorGameState } from "../state.ts";
 import { PlayerOps } from "../model/player-ops.ts";
-import { SplendorGameOps } from "../model/game-ops.ts";
 import { applyReturnTokens, validateReturnTokens } from "../model/token-ops.ts";
 import {
   assertAvailableActor,
@@ -14,6 +13,7 @@ import {
   assertGameActive,
   guardedAvailability,
   guardedValidate,
+  getSplendorGameFacade,
   readPayload,
   type SplendorAvailabilityContext,
   type SplendorDiscoveryContext,
@@ -27,13 +27,14 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
       const actorId = assertAvailableActor(context);
-      const player = context.state.game.players[actorId]!;
+      const game = getSplendorGameFacade(context.game);
+      const player = game.players[actorId]!;
 
       if (player.reservedCardIds.length >= 3) {
         return false;
       }
 
-      return Object.values(context.state.game.board.deckByLevel).some(
+      return Object.values(game.board.deckByLevel).some(
         (cards) => cards.length > 0,
       );
     });
@@ -41,6 +42,7 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
 
   discover(context: SplendorDiscoveryContext) {
     const actorId = assertAvailableActor(context);
+    const game = getSplendorGameFacade(context.game);
     const payload = readPayload<Partial<ReserveDeckCardPayload>>(
       context.partialCommand,
     );
@@ -48,7 +50,7 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
     if (!payload.level) {
       return {
         step: SPLENDOR_DISCOVERY_STEPS.selectDeckLevel,
-        options: Object.entries(context.state.game.board.deckByLevel)
+        options: Object.entries(game.board.deckByLevel)
           .filter(([, cardIds]) => cardIds.length > 0)
           .map(([level]) => ({
             id: level,
@@ -64,9 +66,9 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
       };
     }
 
-    const player = PlayerOps.clone(context.state.game.players[actorId]!);
+    const player = PlayerOps.clone(game.players[actorId]!);
 
-    if (context.state.game.bank.gold > 0) {
+    if (game.bank.gold > 0) {
       player.tokens.gold += 1;
     }
 
@@ -83,12 +85,13 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
     return returnDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ state, commandInput }: SplendorValidationContext) {
+  validate({ state, game, commandInput }: SplendorValidationContext) {
     return guardedValidate(() => {
-      assertGameActive(state.game);
+      const splendorGame = getSplendorGameFacade(game);
+      assertGameActive(splendorGame);
       const actorId = assertActivePlayer(state, commandInput.actorId);
       const payload = readPayload<ReserveDeckCardPayload>(commandInput);
-      const player = PlayerOps.clone(state.game.players[actorId]!);
+      const player = PlayerOps.clone(splendorGame.players[actorId]!);
 
       if (player.reservedCardIds.length >= 3) {
         return { ok: false, reason: "reserved_limit_reached" };
@@ -98,11 +101,11 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
         return { ok: false, reason: "level_required" };
       }
 
-      if (state.game.board.deckByLevel[payload.level].length === 0) {
+      if (splendorGame.board.deckByLevel[payload.level].length === 0) {
         return { ok: false, reason: "deck_empty" };
       }
 
-      if (state.game.bank.gold > 0) {
+      if (splendorGame.bank.gold > 0) {
         player.tokens.gold += 1;
       }
 
@@ -124,20 +127,20 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
   execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<ReserveDeckCardPayload>(commandInput);
-    const gameOps = new SplendorGameOps(game);
-    const player = gameOps.getPlayer(actorId).state;
-    const reservedCardId = gameOps.reserveDeckCard(payload.level);
+    const splendorGame = getSplendorGameFacade(game);
+    const player = splendorGame.getPlayer(actorId).state;
+    const reservedCardId = splendorGame.board.reserveDeckCard(payload.level);
 
     player.reservedCardIds.push(reservedCardId);
 
-    const receivedGold = game.bank.gold > 0;
+    const receivedGold = splendorGame.bank.gold > 0;
 
     if (receivedGold) {
-      game.bank.gold -= 1;
+      splendorGame.bank.adjustColor("gold", -1);
       player.tokens.gold += 1;
     }
 
-    applyReturnTokens(player, game.bank, payload.returnTokens);
+    applyReturnTokens(player, splendorGame.bank, payload.returnTokens);
     emitEvent({
       category: "domain",
       type: "card_reserved",

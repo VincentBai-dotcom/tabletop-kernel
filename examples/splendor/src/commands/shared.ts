@@ -6,7 +6,11 @@ import type {
   ValidationContext,
   ValidationOutcome,
 } from "tabletop-kernel";
-import type { SplendorGameState } from "../state.ts";
+import {
+  asSplendorGameFacade,
+  type SplendorGameState,
+  type SplendorGameStateFacade,
+} from "../state.ts";
 
 interface ProgressionAwareState {
   runtime: {
@@ -25,6 +29,12 @@ export type SplendorDiscoveryContext = DiscoveryContext<SplendorGameState>;
 export type SplendorValidationContext = ValidationContext<SplendorGameState>;
 
 export type SplendorExecuteContext = ExecuteContext<SplendorGameState>;
+
+export function getSplendorGameFacade(
+  game: SplendorGameState,
+): SplendorGameStateFacade {
+  return asSplendorGameFacade(game);
+}
 
 export function readPayload<T>(commandInput: CommandInput): T {
   return (commandInput.payload ?? {}) as T;
@@ -84,6 +94,6 @@ export function assertActivePlayer(
 export function assertAvailableActor(
   context: CommandAvailabilityContext<SplendorGameState>,
 ): string {
-  assertGameActive(context.state.game);
+  assertGameActive(context.game);
   return assertActivePlayer(context.state, context.actorId);
 }

@@ -29,6 +29,15 @@ test("splendor setup follows official 2-player rules", () => {
   expect(state.runtime.progression.segments.turn?.ownerId).toBe("p1");
 });
 
+test("splendor game definition compiles a root state facade", () => {
+  const game = createSplendorGame({
+    playerIds: ["p1", "p2"],
+    seed: "splendor-seed",
+  });
+
+  expect(game.stateFacade?.root.name).toBe("SplendorGameStateFacade");
+});
+
 test("splendor setup follows official 4-player rules", () => {
   const kernel = createTestGameExecutor(["p1", "p2", "p3", "p4"]);
   const state = kernel.createInitialState();

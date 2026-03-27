@@ -11,6 +11,7 @@ import type {
   BuyReservedCardPayload,
   SplendorGameState,
 } from "./state.ts";
+import { SplendorGameStateFacade as SplendorRootState } from "./state.ts";
 
 export interface CreateSplendorGameOptions {
   playerIds: string[];
@@ -27,6 +28,7 @@ export function createSplendorGame(
   }
 
   return new GameDefinitionBuilder<SplendorGameState>("splendor")
+    .rootState(SplendorRootState)
     .rngSeed(seed)
     .progression({
       root: {
