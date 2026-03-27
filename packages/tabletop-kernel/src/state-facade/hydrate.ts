@@ -2,7 +2,7 @@ import type {
   CompiledStateDefinition,
   CompiledStateFacadeDefinition,
 } from "./compile";
-import type { StateClass } from "./metadata";
+import type { FieldType, StateClass, StateFieldMetadata } from "./metadata";
 
 export function hydrateStateFacade<TState extends object>(
   compiled: CompiledStateFacadeDefinition,
@@ -35,7 +35,7 @@ function hydrateStateInstance(
   const nestedCache = new Map<string, object>();
 
   for (const [fieldName, field] of Object.entries(definition.fields)) {
-    if (field.kind === "scalar") {
+    if (isScalarLikeField(field)) {
       Object.defineProperty(instance, fieldName, {
         enumerable: true,
         configurable: true,
@@ -66,17 +66,9 @@ function hydrateStateInstance(
 
         const nestedBacking = (backing as Record<string, unknown>)[fieldName];
 
-        if (
-          nestedBacking === null ||
-          nestedBacking === undefined ||
-          typeof nestedBacking !== "object"
-        ) {
-          return nestedBacking;
-        }
-
-        const nestedFacade = hydrateStateInstance(
+        const nestedFacade = hydrateFieldValue(
           compiled,
-          field.target(),
+          field,
           nestedBacking,
           mutationContext,
         );
@@ -101,6 +93,142 @@ function hydrateStateInstance(
   return instance;
 }
 
+function hydrateFieldValue(
+  compiled: CompiledStateFacadeDefinition,
+  field: FieldType,
+  backing: unknown,
+  mutationContext: MutationContext,
+): unknown {
+  if (
+    backing === null ||
+    backing === undefined ||
+    typeof backing !== "object"
+  ) {
+    return backing;
+  }
+
+  if (field.kind === "state") {
+    return hydrateStateInstance(
+      compiled,
+      field.target(),
+      backing,
+      mutationContext,
+    );
+  }
+
+  if (field.kind === "array" && Array.isArray(backing)) {
+    return createArrayFacade(compiled, backing, field.item, mutationContext);
+  }
+
+  if (field.kind === "record" && !Array.isArray(backing)) {
+    return createRecordFacade(compiled, backing, field.value, mutationContext);
+  }
+
+  return backing;
+}
+
+function createArrayFacade(
+  compiled: CompiledStateFacadeDefinition,
+  backing: unknown[],
+  itemType: FieldType,
+  mutationContext: MutationContext,
+): unknown[] {
+  const cache = new Map<string, unknown>();
+
+  return new Proxy(backing, {
+    get(target, property, receiver) {
+      if (typeof property === "string" && isArrayIndex(property)) {
+        if (cache.has(property)) {
+          return cache.get(property);
+        }
+
+        const value = hydrateFieldValue(
+          compiled,
+          itemType,
+          target[Number(property)],
+          mutationContext,
+        );
+        cache.set(property, value);
+        return value;
+      }
+
+      const value = Reflect.get(target, property, receiver);
+
+      if (typeof value === "function") {
+        return value.bind(receiver);
+      }
+
+      return value;
+    },
+
+    set(target, property, value, receiver) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.set(target, property, value, receiver);
+    },
+
+    deleteProperty(target, property) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.deleteProperty(target, property);
+    },
+
+    defineProperty(target, property, descriptor) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.defineProperty(target, property, descriptor);
+    },
+  });
+}
+
+function createRecordFacade(
+  compiled: CompiledStateFacadeDefinition,
+  backing: object,
+  valueType: FieldType,
+  mutationContext: MutationContext,
+): object {
+  const cache = new Map<string, unknown>();
+
+  return new Proxy(backing, {
+    get(target, property, receiver) {
+      if (typeof property !== "string") {
+        return Reflect.get(target, property, receiver);
+      }
+
+      if (cache.has(property)) {
+        return cache.get(property);
+      }
+
+      const value = hydrateFieldValue(
+        compiled,
+        valueType,
+        (target as Record<string, unknown>)[property],
+        mutationContext,
+      );
+      cache.set(property, value);
+      return value;
+    },
+
+    set(target, property, value, receiver) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.set(target, property, value, receiver);
+    },
+
+    deleteProperty(target, property) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.deleteProperty(target, property);
+    },
+
+    defineProperty(target, property, descriptor) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.defineProperty(target, property, descriptor);
+    },
+  });
+}
+
 function getCompiledStateDefinition(
   compiled: CompiledStateFacadeDefinition,
   target: StateClass,
@@ -117,6 +245,32 @@ function getCompiledStateDefinition(
 interface MutationContext {
   readonlyMode: boolean;
   mutationDepth: number;
+}
+
+function isScalarLikeField(field: StateFieldMetadata): boolean {
+  return (
+    field.kind === "scalar" ||
+    field.kind === "number" ||
+    field.kind === "string" ||
+    field.kind === "boolean"
+  );
+}
+
+function isArrayIndex(property: string): boolean {
+  return String(Number(property)) === property;
+}
+
+function assertCollectionMutationAllowed(
+  mutationContext: MutationContext,
+  fieldName: string,
+) {
+  if (mutationContext.readonlyMode) {
+    throw new Error(`readonly_state_facade_mutation:${fieldName}`);
+  }
+
+  if (mutationContext.mutationDepth === 0) {
+    throw new Error(`direct_state_mutation_not_allowed:${fieldName}`);
+  }
 }
 
 function wrapStateMethods(instance: object, mutationContext: MutationContext) {

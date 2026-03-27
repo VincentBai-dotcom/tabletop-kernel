@@ -47,6 +47,22 @@ class TypedPlayerState {
   tags!: string[];
 }
 
+@State()
+class CardStateFacade {
+  @field(t.string())
+  id!: string;
+
+  rename(nextId: string) {
+    this.id = nextId;
+  }
+}
+
+@State()
+class CardCollectionStateFacade {
+  @field(t.array(t.state(() => CardStateFacade)))
+  cards!: CardStateFacade[];
+}
+
 test("state decorators capture scalar and nested state metadata", () => {
   const handMetadata = getStateMetadata(HandState);
   const playerMetadata = getStateMetadata(PlayerState);
@@ -106,4 +122,21 @@ test("mutable state facades allow mutation through state methods but reject dire
     facade.health = 1;
   }).toThrow("direct_state_mutation_not_allowed:health");
   expect(backing.health).toBe(8);
+});
+
+test("state facades lazily hydrate nested state arrays", () => {
+  const compiled = compileStateFacadeDefinition(CardCollectionStateFacade);
+  const backing = {
+    cards: [{ id: "starter-card" }],
+  };
+  const facade = hydrateStateFacade<CardCollectionStateFacade>(
+    compiled,
+    backing,
+  );
+
+  expect(facade.cards[0]).toBeInstanceOf(CardStateFacade);
+
+  facade.cards[0]?.rename("renamed-card");
+
+  expect(backing.cards[0]?.id).toBe("renamed-card");
 });
