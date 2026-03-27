@@ -24,6 +24,7 @@ import type {
 } from "../types/result";
 import type { CanonicalState, RuntimeState } from "../types/state";
 import { createRNGService } from "../rng/service";
+import { hydrateStateFacade } from "../state-facade/hydrate";
 
 type CommandDefinitions<GameState extends object> = Record<
   string,
@@ -205,6 +206,9 @@ export function createGameExecutor<
       definition.execute(
         createExecuteContext(
           workingState,
+          game.stateFacade
+            ? hydrateStateFacade(game.stateFacade, workingState.game)
+            : workingState.game,
           commandInput,
           rng,
           setCurrentSegmentOwner,

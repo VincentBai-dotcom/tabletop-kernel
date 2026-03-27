@@ -8,6 +8,69 @@ import {
 } from "../src/kernel/contexts";
 import { createEventCollector } from "../src/kernel/events";
 import { createRNGService } from "../src/rng/service";
+import { scalar, state, State } from "../src/state-facade/metadata";
+
+@State()
+class CounterStateFacade {
+  @scalar()
+  value!: number;
+
+  increment(amount: number) {
+    this.value += amount;
+  }
+}
+
+@State()
+class RootCounterStateFacade {
+  @state(() => CounterStateFacade)
+  counter!: CounterStateFacade;
+
+  incrementCounter(amount: number) {
+    this.counter.increment(amount);
+  }
+}
+
+test("createGameExecutor hydrates decorated state facades for execution", () => {
+  const game = new GameDefinitionBuilder<{
+    counter: {
+      value: number;
+    };
+  }>("facade-counter-game")
+    .rootState(RootCounterStateFacade)
+    .initialState(() => ({
+      counter: {
+        value: 0,
+      },
+    }))
+    .commands({
+      increment_counter: {
+        commandId: "increment_counter",
+        validate: () => ({ ok: true as const }),
+        execute: ({ game, commandInput }) => {
+          const amount =
+            typeof commandInput.payload?.amount === "number"
+              ? commandInput.payload.amount
+              : 1;
+
+          (game as RootCounterStateFacade).incrementCounter(amount);
+        },
+      },
+    })
+    .build();
+
+  const executor = createGameExecutor(game);
+  const initialState = executor.createInitialState();
+  const result = executor.executeCommand(initialState, {
+    type: "increment_counter",
+    payload: {
+      amount: 3,
+    },
+  });
+
+  expect(initialState.game.counter.value).toBe(0);
+  expect(result.ok).toBe(true);
+  expect(result.state.game.counter.value).toBe(3);
+});
 
 test("createGameExecutor creates initial state and commits successful commands", () => {
   const game = new GameDefinitionBuilder<{

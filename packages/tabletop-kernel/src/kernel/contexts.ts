@@ -69,6 +69,7 @@ export function createExecuteContext<
   TCommandInput extends CommandInput,
 >(
   state: CanonicalState<GameState, Runtime>,
+  game: GameState,
   commandInput: TCommandInput,
   rng: RNGApi,
   setCurrentSegmentOwner: (ownerId?: string) => void,
@@ -77,7 +78,7 @@ export function createExecuteContext<
   return {
     state,
     commandInput,
-    game: state.game,
+    game,
     runtime: state.runtime,
     rng,
     setCurrentSegmentOwner,

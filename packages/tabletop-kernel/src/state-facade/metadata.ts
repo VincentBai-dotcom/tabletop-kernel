@@ -1,4 +1,4 @@
-export type StateClass = abstract new (...args: unknown[]) => object;
+export type StateClass = new (...args: unknown[]) => object;
 
 export type StateFieldTargetFactory = () => StateClass;
 
