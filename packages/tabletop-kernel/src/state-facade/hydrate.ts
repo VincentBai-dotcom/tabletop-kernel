@@ -32,7 +32,7 @@ function hydrateStateInstance(
 ): object {
   const definition = getCompiledStateDefinition(compiled, target);
   const instance = new target();
-  const nestedCache = new Map<string, object>();
+  const nestedCache = new Map<string, unknown>();
 
   for (const [fieldName, field] of Object.entries(definition.fields)) {
     if (isScalarLikeField(field)) {

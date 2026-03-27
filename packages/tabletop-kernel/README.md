@@ -8,7 +8,7 @@ This package currently provides a runtime skeleton with:
 
 - canonical `{ game, runtime }` state types
 - command definitions with `validate` and `execute`
-- decorator-driven state facade metadata via `@State()`, `@scalar()`, and `@state(...)`
+- decorator-driven state facade metadata via `@State()`, `@field(...)`, and `t`
 - `rootState(...)` authoring on `GameDefinitionBuilder`
 - hydrated state facades for command execution, validation, availability, and discovery
 - transactional command execution
@@ -42,7 +42,7 @@ authoring against a decorated root facade class.
 ```ts
 @State()
 class CounterState {
-  @scalar()
+  @field(t.number())
   value!: number;
 
   increment() {

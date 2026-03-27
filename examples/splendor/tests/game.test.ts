@@ -36,12 +36,10 @@ test("splendor game definition compiles a root state facade", () => {
   });
 
   expect(game.stateFacade?.root.name).toBe("SplendorGameStateFacade");
-  expect(
-    game.stateFacade?.states.SplendorGameStateFacade.fields.playerOrder?.kind,
-  ).toBe("array");
-  expect(
-    game.stateFacade?.states.SplendorGameStateFacade.fields.bank?.kind,
-  ).toBe("state");
+  const rootFields = game.stateFacade?.states.SplendorGameStateFacade?.fields;
+
+  expect(rootFields?.playerOrder?.kind).toBe("array");
+  expect(rootFields?.bank?.kind).toBe("state");
 });
 
 test("splendor setup follows official 4-player rules", () => {
