@@ -35,7 +35,7 @@ function hydrateStateInstance(
   const nestedCache = new Map<string, unknown>();
 
   for (const [fieldName, field] of Object.entries(definition.fields)) {
-    if (isScalarLikeField(field)) {
+    if (isPrimitiveDataField(field)) {
       Object.defineProperty(instance, fieldName, {
         enumerable: true,
         configurable: true,
@@ -247,12 +247,11 @@ interface MutationContext {
   mutationDepth: number;
 }
 
-function isScalarLikeField(field: StateFieldMetadata): boolean {
+function isPrimitiveDataField(field: StateFieldMetadata): boolean {
   return (
     field.kind === "number" ||
     field.kind === "string" ||
-    field.kind === "boolean" ||
-    field.kind === "data"
+    field.kind === "boolean"
   );
 }
 
