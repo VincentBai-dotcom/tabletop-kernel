@@ -51,7 +51,7 @@ function projectStateNode(
   }
 
   const nextOwnerPlayerId = definition.ownedByPlayer
-    ? readOwnerPlayerId(backing)
+    ? readOwnerPlayerId(target, backing)
     : ownerPlayerId;
   const projected: Record<string, unknown> = {};
 
@@ -166,15 +166,22 @@ function shouldHideField(
   return !(viewer.kind === "player" && viewer.playerId === ownerPlayerId);
 }
 
-function readOwnerPlayerId(backing: unknown): string | undefined {
+function readOwnerPlayerId(
+  target: StateClass,
+  backing: unknown,
+): string | undefined {
   const ownerPlayerId =
     backing && typeof backing === "object"
       ? (backing as Record<string, unknown>).id
       : undefined;
 
-  return typeof ownerPlayerId === "string" && ownerPlayerId.length > 0
-    ? ownerPlayerId
-    : undefined;
+  if (typeof ownerPlayerId === "string" && ownerPlayerId.length > 0) {
+    return ownerPlayerId;
+  }
+
+  throw new Error(
+    `owned_player_requires_non_empty_id_value:${target.name || "anonymous"}`,
+  );
 }
 
 function createHiddenValue(): HiddenValue {

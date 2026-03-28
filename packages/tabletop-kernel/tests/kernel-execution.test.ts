@@ -365,6 +365,47 @@ test("createGameExecutor lets a state override its visible projection shape", ()
   });
 });
 
+test("createGameExecutor rejects owned player projection when id is empty", () => {
+  const game = new GameDefinitionBuilder<{
+    players: Record<
+      string,
+      {
+        id: string;
+        hand: string[];
+        score: number;
+      }
+    >;
+  }>("invalid-player-owner-game")
+    .rootState(VisibleRootState)
+    .initialState(() => ({
+      players: {
+        p1: {
+          id: "",
+          hand: ["a", "b"],
+          score: 3,
+        },
+      },
+    }))
+    .commands({})
+    .progression({
+      root: {
+        id: "turn",
+        kind: "turn",
+        children: [],
+      },
+    })
+    .build();
+
+  const executor = createGameExecutor(game);
+  const state = executor.createInitialState();
+
+  expect(() =>
+    executor.projectStateForViewer(state, {
+      kind: "spectator",
+    }),
+  ).toThrow("owned_player_requires_non_empty_id_value:VisiblePlayerState");
+});
+
 test("availability and discovery contexts hydrate readonly decorated state facades", () => {
   const game = new GameDefinitionBuilder<{
     counter: {
