@@ -4,12 +4,7 @@ import {
   createNobleDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type {
-  BuyReservedCardPayload,
-  SplendorGameStateFacade,
-} from "../state.ts";
-import { PlayerOps } from "../model/player-ops.ts";
-import { applyTokenDelta } from "../model/token-ops.ts";
+import type { BuyReservedCardPayload, SplendorGameState } from "../state.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -23,7 +18,7 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-export class BuyReservedCardCommand implements CommandDefinition<SplendorGameStateFacade> {
+export class BuyReservedCardCommand implements CommandDefinition<SplendorGameState> {
   readonly commandId = "buy_reserved_card";
 
   isAvailable(context: SplendorAvailabilityContext) {
@@ -32,7 +27,7 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
       const game = context.game;
       const player = game.getPlayer(actorId);
 
-      return player.state.reservedCardIds.some((cardId: number) => {
+      return player.reservedCardIds.some((cardId: number) => {
         const card = game.getCard(cardId);
 
         return player.getAffordablePayment(card) !== null;
@@ -51,7 +46,7 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
     if (!payload.cardId) {
       return {
         step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
-        options: player.state.reservedCardIds
+        options: player.reservedCardIds
           .filter((cardId: number) => {
             const card = game.getCard(cardId);
 
@@ -71,7 +66,7 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
       };
     }
 
-    const hypotheticalPlayer = new PlayerOps(PlayerOps.clone(player.state));
+    const hypotheticalPlayer = player.clone();
     hypotheticalPlayer.removeReservedCard(payload.cardId);
     hypotheticalPlayer.buyCard(payload.cardId);
     const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
@@ -91,7 +86,7 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
         return { ok: false, reason: "card_required" };
       }
 
-      if (!player.state.reservedCardIds.includes(payload.cardId)) {
+      if (!player.reservedCardIds.includes(payload.cardId)) {
         return { ok: false, reason: "card_not_reserved" };
       }
 
@@ -101,7 +96,7 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
         return { ok: false, reason: "card_not_affordable" };
       }
 
-      const hypotheticalPlayer = new PlayerOps(PlayerOps.clone(player.state));
+      const hypotheticalPlayer = player.clone();
       hypotheticalPlayer.removeReservedCard(payload.cardId);
       hypotheticalPlayer.buyCard(payload.cardId);
 
@@ -135,8 +130,7 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
       throw new Error("card_not_affordable");
     }
 
-    applyTokenDelta(player.state.tokens, payment, -1);
-    applyTokenDelta(game.bank, payment, 1);
+    player.tokens.transferTo(game.bank, payment);
     player.removeReservedCard(card.id);
     player.buyCard(card.id);
     emitEvent({

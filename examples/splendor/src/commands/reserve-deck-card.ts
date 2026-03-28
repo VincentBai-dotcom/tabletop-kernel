@@ -4,12 +4,7 @@ import {
   createReturnTokenDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type {
-  ReserveDeckCardPayload,
-  SplendorGameStateFacade,
-} from "../state.ts";
-import { PlayerOps } from "../model/player-ops.ts";
-import { applyReturnTokens, validateReturnTokens } from "../model/token-ops.ts";
+import type { ReserveDeckCardPayload, SplendorGameState } from "../state.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -23,17 +18,17 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameStateFacade> {
+export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameState> {
   readonly commandId = "reserve_deck_card";
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
       const actorId = assertAvailableActor(context);
       const game = context.game;
-      const player = game.players[actorId]!;
+      const player = game.getPlayer(actorId);
       const decks = Object.values(game.board.deckByLevel) as number[][];
 
-      if (player.reservedCardIds.length >= 3) {
+      if (!player.canReserveMoreCards()) {
         return false;
       }
 
@@ -70,16 +65,13 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
       };
     }
 
-    const player = PlayerOps.clone(game.players[actorId]!);
+    const player = game.getPlayer(actorId).clone();
 
     if (game.bank.gold > 0) {
-      player.tokens.gold += 1;
+      player.tokens.adjustColor("gold", 1);
     }
 
-    const requiredReturnCount = Math.max(
-      new PlayerOps(player).getTokenCount() - 10,
-      0,
-    );
+    const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
       payload,
       player.tokens,
@@ -94,9 +86,9 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
       const payload = readPayload<ReserveDeckCardPayload>(commandInput);
-      const player = PlayerOps.clone(game.players[actorId]!);
+      const player = game.getPlayer(actorId).clone();
 
-      if (player.reservedCardIds.length >= 3) {
+      if (!player.canReserveMoreCards()) {
         return { ok: false, reason: "reserved_limit_reached" };
       }
 
@@ -109,16 +101,14 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
       }
 
       if (game.bank.gold > 0) {
-        player.tokens.gold += 1;
+        player.tokens.adjustColor("gold", 1);
       }
 
-      const requiredReturnCount = Math.max(
-        new PlayerOps(player).getTokenCount() - 10,
-        0,
-      );
-
       if (
-        !validateReturnTokens(player, payload.returnTokens, requiredReturnCount)
+        !player.canReturnTokens(
+          payload.returnTokens,
+          player.getRequiredReturnCount(),
+        )
       ) {
         return { ok: false, reason: "invalid_return_tokens" };
       }
@@ -130,19 +120,12 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
   execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<ReserveDeckCardPayload>(commandInput);
-    const player = game.getPlayer(actorId).state;
+    const player = game.getPlayer(actorId);
     const reservedCardId = game.board.reserveDeckCard(payload.level);
 
-    player.reservedCardIds.push(reservedCardId);
-
-    const receivedGold = game.bank.gold > 0;
-
-    if (receivedGold) {
-      game.bank.adjustColor("gold", -1);
-      player.tokens.gold += 1;
-    }
-
-    applyReturnTokens(player, game.bank, payload.returnTokens);
+    player.reserveCard(reservedCardId);
+    const receivedGold = player.gainGoldFrom(game.bank);
+    player.returnTokensTo(game.bank, payload.returnTokens);
     emitEvent({
       category: "domain",
       type: "card_reserved",

@@ -6,11 +6,9 @@ import {
 } from "../discovery.ts";
 import type {
   ReturnTokensPayload,
-  SplendorGameStateFacade,
+  SplendorGameState,
   TakeTwoSameGemsPayload,
 } from "../state.ts";
-import { PlayerOps } from "../model/player-ops.ts";
-import { applyReturnTokens, validateReturnTokens } from "../model/token-ops.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -24,7 +22,7 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameStateFacade> {
+export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameState> {
   readonly commandId = "take_two_same_gems";
 
   isAvailable(context: SplendorAvailabilityContext) {
@@ -69,12 +67,9 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameSta
       };
     }
 
-    const player = PlayerOps.clone(game.players[actorId]!);
-    player.tokens[payload.color] += 2;
-    const requiredReturnCount = Math.max(
-      new PlayerOps(player).getTokenCount() - 10,
-      0,
-    );
+    const player = game.getPlayer(actorId).clone();
+    player.tokens.adjustColor(payload.color, 2);
+    const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
       payload,
       player.tokens,
@@ -98,15 +93,14 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameSta
         return { ok: false, reason: "not_enough_tokens_for_double_take" };
       }
 
-      const player = PlayerOps.clone(game.players[actorId]!);
-      player.tokens[payload.color] += 2;
-      const requiredReturnCount = Math.max(
-        new PlayerOps(player).getTokenCount() - 10,
-        0,
-      );
+      const player = game.getPlayer(actorId).clone();
+      player.tokens.adjustColor(payload.color, 2);
 
       if (
-        !validateReturnTokens(player, payload.returnTokens, requiredReturnCount)
+        !player.canReturnTokens(
+          payload.returnTokens,
+          player.getRequiredReturnCount(),
+        )
       ) {
         return { ok: false, reason: "invalid_return_tokens" };
       }
@@ -118,11 +112,11 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameSta
   execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<TakeTwoSameGemsPayload>(commandInput);
-    const player = game.getPlayer(actorId).state;
+    const player = game.getPlayer(actorId);
 
     game.bank.adjustColor(payload.color, -2);
-    player.tokens[payload.color] += 2;
-    applyReturnTokens(player, game.bank, payload.returnTokens);
+    player.tokens.adjustColor(payload.color, 2);
+    player.returnTokensTo(game.bank, payload.returnTokens);
     emitEvent({
       category: "domain",
       type: "double_gem_taken",

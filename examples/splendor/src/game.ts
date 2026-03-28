@@ -9,9 +9,8 @@ import type {
   BuyFaceUpCardPayload,
   BuyReservedCardPayload,
   SplendorGameState,
-  SplendorGameStateFacade,
 } from "./state.ts";
-import { SplendorGameStateFacade as SplendorRootState } from "./state.ts";
+import { SplendorGameState as SplendorRootState } from "./state.ts";
 
 export interface CreateSplendorGameOptions {
   playerIds: string[];
@@ -20,7 +19,7 @@ export interface CreateSplendorGameOptions {
 
 export function createSplendorGame(
   options: CreateSplendorGameOptions,
-): GameDefinition<SplendorGameState, SplendorGameStateFacade> {
+): GameDefinition<SplendorGameState, SplendorGameState> {
   const { playerIds, seed } = options;
 
   if (playerIds.length < 2 || playerIds.length > 4) {

@@ -7,11 +7,9 @@ import {
 import type {
   GemTokenColor,
   ReturnTokensPayload,
-  SplendorGameStateFacade,
+  SplendorGameState,
   TakeThreeDistinctGemsPayload,
 } from "../state.ts";
-import { PlayerOps } from "../model/player-ops.ts";
-import { applyReturnTokens, validateReturnTokens } from "../model/token-ops.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -25,7 +23,7 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorGameStateFacade> {
+export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorGameState> {
   readonly commandId = "take_three_distinct_gems";
 
   isAvailable(context: SplendorAvailabilityContext) {
@@ -81,16 +79,13 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
       };
     }
 
-    const player = PlayerOps.clone(game.players[actorId]!);
+    const player = game.getPlayer(actorId).clone();
 
     for (const color of selectedColors) {
-      player.tokens[color] += 1;
+      player.tokens.adjustColor(color, 1);
     }
 
-    const requiredReturnCount = Math.max(
-      new PlayerOps(player).getTokenCount() - 10,
-      0,
-    );
+    const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
       {
         ...payload,
@@ -125,23 +120,21 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
         return { ok: false, reason: "colors_must_be_distinct" };
       }
 
-      const player = PlayerOps.clone(game.players[actorId]!);
+      const player = game.getPlayer(actorId).clone();
 
       for (const color of payload.colors) {
         if (game.bank[color] <= 0) {
           return { ok: false, reason: "token_color_unavailable" };
         }
 
-        player.tokens[color] += 1;
+        player.tokens.adjustColor(color, 1);
       }
 
-      const requiredReturnCount = Math.max(
-        new PlayerOps(player).getTokenCount() - 10,
-        0,
-      );
-
       if (
-        !validateReturnTokens(player, payload.returnTokens, requiredReturnCount)
+        !player.canReturnTokens(
+          payload.returnTokens,
+          player.getRequiredReturnCount(),
+        )
       ) {
         return { ok: false, reason: "invalid_return_tokens" };
       }
@@ -153,14 +146,14 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<SplendorG
   execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<TakeThreeDistinctGemsPayload>(commandInput);
-    const player = game.getPlayer(actorId).state;
+    const player = game.getPlayer(actorId);
 
     for (const color of payload.colors) {
       game.bank.adjustColor(color, -1);
-      player.tokens[color] += 1;
+      player.tokens.adjustColor(color, 1);
     }
 
-    applyReturnTokens(player, game.bank, payload.returnTokens);
+    player.returnTokensTo(game.bank, payload.returnTokens);
     emitEvent({
       category: "domain",
       type: "gems_taken",

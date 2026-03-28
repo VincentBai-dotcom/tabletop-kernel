@@ -6,7 +6,7 @@ import type {
   ValidationContext,
   ValidationOutcome,
 } from "tabletop-kernel";
-import type { SplendorGameStateFacade } from "../state.ts";
+import type { SplendorGameState } from "../state.ts";
 
 type ProgressionRuntime = {
   progression: {
@@ -16,15 +16,13 @@ type ProgressionRuntime = {
 };
 
 export type SplendorAvailabilityContext =
-  CommandAvailabilityContext<SplendorGameStateFacade>;
+  CommandAvailabilityContext<SplendorGameState>;
 
-export type SplendorDiscoveryContext =
-  DiscoveryContext<SplendorGameStateFacade>;
+export type SplendorDiscoveryContext = DiscoveryContext<SplendorGameState>;
 
-export type SplendorValidationContext =
-  ValidationContext<SplendorGameStateFacade>;
+export type SplendorValidationContext = ValidationContext<SplendorGameState>;
 
-export type SplendorExecuteContext = ExecuteContext<SplendorGameStateFacade>;
+export type SplendorExecuteContext = ExecuteContext<SplendorGameState>;
 
 export function readPayload<T>(commandInput: CommandInput): T {
   return (commandInput.payload ?? {}) as T;
@@ -51,9 +49,7 @@ export function guardedAvailability(run: () => boolean): boolean {
   }
 }
 
-export function assertGameActive(
-  game: Readonly<SplendorGameStateFacade>,
-): void {
+export function assertGameActive(game: Readonly<SplendorGameState>): void {
   if (game.winnerIds) {
     throw new Error("game_finished");
   }
@@ -84,7 +80,7 @@ export function assertActivePlayer(
 }
 
 export function assertAvailableActor(
-  context: CommandAvailabilityContext<SplendorGameStateFacade>,
+  context: CommandAvailabilityContext<SplendorGameState>,
 ): string {
   assertGameActive(context.game);
   return assertActivePlayer(context.runtime, context.actorId);

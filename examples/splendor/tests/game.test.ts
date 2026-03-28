@@ -35,11 +35,17 @@ test("splendor game definition compiles a root state facade", () => {
     seed: "splendor-seed",
   });
 
-  expect(game.stateFacade?.root.name).toBe("SplendorGameStateFacade");
-  const rootFields = game.stateFacade?.states.SplendorGameStateFacade?.fields;
+  expect(game.stateFacade?.root.name).toBe("SplendorGameState");
+  const rootFields = game.stateFacade?.states.SplendorGameState?.fields;
 
   expect(rootFields?.playerOrder?.kind).toBe("array");
   expect(rootFields?.bank?.kind).toBe("state");
+  expect(rootFields?.players?.kind).toBe("record");
+  if (rootFields?.players?.kind !== "record") {
+    throw new Error("expected players to compile as a state record");
+  }
+  expect(rootFields.players.value.kind).toBe("state");
+  expect(game.stateFacade?.states.SplendorPlayerState).toBeDefined();
 });
 
 test("splendor setup follows official 4-player rules", () => {
@@ -120,20 +126,17 @@ test("splendor discovers noble selection when a purchase leaves multiple nobles 
   const state = kernel.createInitialState();
 
   state.game.board.nobleIds = [6, 7];
-  state.game.players.p1 = {
-    ...state.game.players.p1!,
-    tokens: {
-      white: 0,
-      blue: 0,
-      green: 0,
-      red: 0,
-      black: 0,
-      gold: 20,
-    },
-    reservedCardIds: [45],
-    purchasedCardIds: [17, 18, 19, 20, 33, 34, 35, 36, 1, 2, 3],
-    nobleIds: [],
-  };
+  state.game.players.p1!.tokens.white = 0;
+  state.game.players.p1!.tokens.blue = 0;
+  state.game.players.p1!.tokens.green = 0;
+  state.game.players.p1!.tokens.red = 0;
+  state.game.players.p1!.tokens.black = 0;
+  state.game.players.p1!.tokens.gold = 20;
+  state.game.players.p1!.reservedCardIds = [45];
+  state.game.players.p1!.purchasedCardIds = [
+    17, 18, 19, 20, 33, 34, 35, 36, 1, 2, 3,
+  ];
+  state.game.players.p1!.nobleIds = [];
 
   const discovery = kernel.discoverCommand(state, {
     type: "buy_reserved_card",
@@ -254,20 +257,15 @@ test("buying a reserved card uses discounts and can claim a noble automatically"
   const state = kernel.createInitialState();
 
   state.game.board.nobleIds = [1];
-  state.game.players.p1 = {
-    ...state.game.players.p1!,
-    tokens: {
-      white: 0,
-      blue: 0,
-      green: 4,
-      red: 0,
-      black: 0,
-      gold: 0,
-    },
-    reservedCardIds: [24],
-    purchasedCardIds: [17, 18, 9, 10, 11, 25, 26, 27],
-    nobleIds: [],
-  };
+  state.game.players.p1!.tokens.white = 0;
+  state.game.players.p1!.tokens.blue = 0;
+  state.game.players.p1!.tokens.green = 4;
+  state.game.players.p1!.tokens.red = 0;
+  state.game.players.p1!.tokens.black = 0;
+  state.game.players.p1!.tokens.gold = 0;
+  state.game.players.p1!.reservedCardIds = [24];
+  state.game.players.p1!.purchasedCardIds = [17, 18, 9, 10, 11, 25, 26, 27];
+  state.game.players.p1!.nobleIds = [];
 
   const result = kernel.executeCommand(state, {
     type: "buy_reserved_card",
@@ -295,34 +293,24 @@ test("endgame finishes after the final player in turn order and breaks ties by f
   const kernel = createTestGameExecutor(["p1", "p2"]);
   const state = kernel.createInitialState();
 
-  state.game.players.p1 = {
-    ...state.game.players.p1!,
-    tokens: {
-      white: 0,
-      blue: 0,
-      green: 0,
-      red: 0,
-      black: 0,
-      gold: 7,
-    },
-    reservedCardIds: [43],
-    purchasedCardIds: [74, 72, 46, 8],
-    nobleIds: [],
-  };
-  state.game.players.p2 = {
-    ...state.game.players.p2!,
-    tokens: {
-      white: 0,
-      blue: 6,
-      green: 0,
-      red: 0,
-      black: 0,
-      gold: 0,
-    },
-    reservedCardIds: [52],
-    purchasedCardIds: [78, 80, 46],
-    nobleIds: [],
-  };
+  state.game.players.p1!.tokens.white = 0;
+  state.game.players.p1!.tokens.blue = 0;
+  state.game.players.p1!.tokens.green = 0;
+  state.game.players.p1!.tokens.red = 0;
+  state.game.players.p1!.tokens.black = 0;
+  state.game.players.p1!.tokens.gold = 7;
+  state.game.players.p1!.reservedCardIds = [43];
+  state.game.players.p1!.purchasedCardIds = [74, 72, 46, 8];
+  state.game.players.p1!.nobleIds = [];
+  state.game.players.p2!.tokens.white = 0;
+  state.game.players.p2!.tokens.blue = 6;
+  state.game.players.p2!.tokens.green = 0;
+  state.game.players.p2!.tokens.red = 0;
+  state.game.players.p2!.tokens.black = 0;
+  state.game.players.p2!.tokens.gold = 0;
+  state.game.players.p2!.reservedCardIds = [52];
+  state.game.players.p2!.purchasedCardIds = [78, 80, 46];
+  state.game.players.p2!.nobleIds = [];
 
   const firstResult = kernel.executeCommand(state, {
     type: "buy_reserved_card",

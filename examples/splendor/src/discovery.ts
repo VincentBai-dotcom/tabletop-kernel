@@ -2,7 +2,7 @@ import type { CommandDiscoveryResult } from "tabletop-kernel";
 import {
   TOKEN_COLORS,
   type ReturnTokensPayload,
-  type TokenCounts,
+  type TokenCountsState,
 } from "./state.ts";
 import type { NobleTile } from "./data/types.ts";
 
@@ -48,7 +48,7 @@ export function createReturnTokenDiscovery<
   } & Record<string, unknown>,
 >(
   payload: TPayload,
-  availableTokens: TokenCounts,
+  availableTokens: TokenCountsState,
   requiredReturnCount: number,
 ): SplendorDiscoveryResult<TPayload> | null {
   const currentReturnTokens = payload.returnTokens ?? {};

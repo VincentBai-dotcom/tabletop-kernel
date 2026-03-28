@@ -4,12 +4,7 @@ import {
   createReturnTokenDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type {
-  ReserveFaceUpCardPayload,
-  SplendorGameStateFacade,
-} from "../state.ts";
-import { PlayerOps } from "../model/player-ops.ts";
-import { applyReturnTokens, validateReturnTokens } from "../model/token-ops.ts";
+import type { ReserveFaceUpCardPayload, SplendorGameState } from "../state.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -23,17 +18,17 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameStateFacade> {
+export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameState> {
   readonly commandId = "reserve_face_up_card";
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
       const actorId = assertAvailableActor(context);
       const game = context.game;
-      const player = game.players[actorId]!;
+      const player = game.getPlayer(actorId);
       const faceUpPiles = Object.values(game.board.faceUpByLevel) as number[][];
 
-      if (player.reservedCardIds.length >= 3) {
+      if (!player.canReserveMoreCards()) {
         return false;
       }
 
@@ -72,16 +67,13 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameS
       };
     }
 
-    const player = PlayerOps.clone(game.players[actorId]!);
+    const player = game.getPlayer(actorId).clone();
 
     if (game.bank.gold > 0) {
-      player.tokens.gold += 1;
+      player.tokens.adjustColor("gold", 1);
     }
 
-    const requiredReturnCount = Math.max(
-      new PlayerOps(player).getTokenCount() - 10,
-      0,
-    );
+    const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
       payload,
       player.tokens,
@@ -96,9 +88,9 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameS
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
       const payload = readPayload<ReserveFaceUpCardPayload>(commandInput);
-      const player = PlayerOps.clone(game.players[actorId]!);
+      const player = game.getPlayer(actorId).clone();
 
-      if (player.reservedCardIds.length >= 3) {
+      if (!player.canReserveMoreCards()) {
         return { ok: false, reason: "reserved_limit_reached" };
       }
 
@@ -111,16 +103,14 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameS
       }
 
       if (game.bank.gold > 0) {
-        player.tokens.gold += 1;
+        player.tokens.adjustColor("gold", 1);
       }
 
-      const requiredReturnCount = Math.max(
-        new PlayerOps(player).getTokenCount() - 10,
-        0,
-      );
-
       if (
-        !validateReturnTokens(player, payload.returnTokens, requiredReturnCount)
+        !player.canReturnTokens(
+          payload.returnTokens,
+          player.getRequiredReturnCount(),
+        )
       ) {
         return { ok: false, reason: "invalid_return_tokens" };
       }
@@ -132,20 +122,14 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameS
   execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<ReserveFaceUpCardPayload>(commandInput);
-    const player = game.getPlayer(actorId).state;
+    const player = game.getPlayer(actorId);
 
-    player.reservedCardIds.push(payload.cardId);
+    player.reserveCard(payload.cardId);
     game.board.removeFaceUpCard(payload.level, payload.cardId);
     game.board.replenishFaceUpCard(payload.level);
 
-    const receivedGold = game.bank.gold > 0;
-
-    if (receivedGold) {
-      game.bank.adjustColor("gold", -1);
-      player.tokens.gold += 1;
-    }
-
-    applyReturnTokens(player, game.bank, payload.returnTokens);
+    const receivedGold = player.gainGoldFrom(game.bank);
+    player.returnTokensTo(game.bank, payload.returnTokens);
     emitEvent({
       category: "domain",
       type: "card_reserved",

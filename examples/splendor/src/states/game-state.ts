@@ -1,14 +1,13 @@
 import type { KernelEvent } from "tabletop-kernel";
+import { field, State, t } from "tabletop-kernel";
 import { developmentCardsById } from "../data/cards.ts";
 import { nobleTilesById } from "../data/nobles.ts";
-import type {
-  CardCost,
-  DevelopmentCard,
-  DevelopmentLevel,
-  NobleTile,
-} from "../data/types.ts";
-import type { SplendorGameState } from "../state.ts";
-import { PlayerOps } from "./player-ops.ts";
+import type { CardCost, DevelopmentCard, NobleTile } from "../data/types.ts";
+import { type GemTokenColor } from "./constants.ts";
+import { SplendorBoardState } from "./board-state.ts";
+import { SplendorEndGameState } from "./end-game-state.ts";
+import { SplendorPlayerState } from "./player-state.ts";
+import { TokenCountsState } from "./token-counts-state.ts";
 
 const TOKEN_COLOR_MAP = {
   White: "white",
@@ -16,23 +15,57 @@ const TOKEN_COLOR_MAP = {
   Green: "green",
   Red: "red",
   Black: "black",
-} as const satisfies Record<keyof CardCost, string>;
+} as const satisfies Record<keyof CardCost, GemTokenColor>;
 
-export class SplendorGameOps {
-  constructor(private readonly game: SplendorGameState) {}
+@State()
+export class SplendorGameState {
+  @field(t.array(t.string()))
+  playerOrder!: string[];
 
-  get state(): SplendorGameState {
-    return this.game;
+  @field(
+    t.record(
+      t.string(),
+      t.state(() => SplendorPlayerState),
+    ),
+  )
+  players!: Record<string, SplendorPlayerState>;
+
+  @field(t.state(() => TokenCountsState))
+  bank!: TokenCountsState;
+
+  @field(t.state(() => SplendorBoardState))
+  board!: SplendorBoardState;
+
+  @field(t.state(() => SplendorEndGameState))
+  endGame!: SplendorEndGameState | null;
+
+  @field(t.array(t.string()))
+  winnerIds!: string[] | null;
+
+  static createInitial(playerIds: readonly string[]): SplendorGameState {
+    const game = new SplendorGameState();
+    game.playerOrder = [...playerIds];
+    game.players = Object.fromEntries(
+      playerIds.map((playerId) => [
+        playerId,
+        SplendorPlayerState.create(playerId),
+      ]),
+    ) as Record<string, SplendorPlayerState>;
+    game.bank = TokenCountsState.empty();
+    game.board = SplendorBoardState.createEmpty();
+    game.endGame = null;
+    game.winnerIds = null;
+    return game;
   }
 
-  getPlayer(playerId: string): PlayerOps {
-    const player = this.game.players[playerId];
+  getPlayer(playerId: string): SplendorPlayerState {
+    const player = this.players[playerId];
 
     if (!player) {
       throw new Error(`unknown_player:${playerId}`);
     }
 
-    return new PlayerOps(player);
+    return player;
   }
 
   getCard(cardId: number): DevelopmentCard {
@@ -46,18 +79,17 @@ export class SplendorGameOps {
   }
 
   getNextPlayerId(playerId: string): string {
-    const index = this.game.playerOrder.indexOf(playerId);
+    const index = this.playerOrder.indexOf(playerId);
 
     if (index === -1) {
       throw new Error(`unknown_player:${playerId}`);
     }
 
-    return this.game.playerOrder[(index + 1) % this.game.playerOrder.length]!;
+    return this.playerOrder[(index + 1) % this.playerOrder.length]!;
   }
 
   getLastPlayerId(): string {
-    const lastPlayerId =
-      this.game.playerOrder[this.game.playerOrder.length - 1];
+    const lastPlayerId = this.playerOrder[this.playerOrder.length - 1];
 
     if (!lastPlayerId) {
       throw new Error("player_order_empty");
@@ -66,34 +98,10 @@ export class SplendorGameOps {
     return lastPlayerId;
   }
 
-  removeFaceUpCard(level: DevelopmentLevel, cardId: number): void {
-    this.game.board.faceUpByLevel[level] = this.game.board.faceUpByLevel[
-      level
-    ].filter((faceUpCardId) => faceUpCardId !== cardId);
-  }
-
-  replenishFaceUpCard(level: DevelopmentLevel): void {
-    const nextCardId = this.game.board.deckByLevel[level].shift();
-
-    if (nextCardId !== undefined) {
-      this.game.board.faceUpByLevel[level].push(nextCardId);
-    }
-  }
-
-  reserveDeckCard(level: DevelopmentLevel): number {
-    const cardId = this.game.board.deckByLevel[level].shift();
-
-    if (cardId === undefined) {
-      throw new Error("deck_empty");
-    }
-
-    return cardId;
-  }
-
-  getEligibleNobles(player: PlayerOps): NobleTile[] {
+  getEligibleNobles(player: SplendorPlayerState): NobleTile[] {
     const discounts = player.getDiscounts();
 
-    return this.game.board.nobleIds
+    return this.board.nobleIds
       .map((nobleId) => nobleTilesById[nobleId])
       .filter((noble): noble is NobleTile => noble !== undefined)
       .filter((noble) =>
@@ -104,7 +112,10 @@ export class SplendorGameOps {
       );
   }
 
-  resolveNobleVisit(player: PlayerOps, chosenNobleId?: number): number | null {
+  resolveNobleVisit(
+    player: SplendorPlayerState,
+    chosenNobleId?: number,
+  ): number | null {
     const eligibleNobles = this.getEligibleNobles(player);
 
     if (eligibleNobles.length === 0) {
@@ -114,7 +125,7 @@ export class SplendorGameOps {
     if (eligibleNobles.length === 1) {
       const noble = eligibleNobles[0]!;
       player.claimNoble(noble.id);
-      this.removeNoble(noble.id);
+      this.board.removeNoble(noble.id);
       return noble.id;
     }
 
@@ -131,7 +142,7 @@ export class SplendorGameOps {
     }
 
     player.claimNoble(chosenNoble.id);
-    this.removeNoble(chosenNoble.id);
+    this.board.removeNoble(chosenNoble.id);
     return chosenNoble.id;
   }
 
@@ -154,44 +165,36 @@ export class SplendorGameOps {
       });
     }
 
-    if (!this.game.endGame && player.getScore() >= 15) {
-      this.game.endGame = {
-        triggeredByPlayerId: actorId,
-        endsAfterPlayerId: this.getLastPlayerId(),
-      };
+    if (!this.endGame && player.getScore() >= 15) {
+      this.endGame = SplendorEndGameState.create(
+        actorId,
+        this.getLastPlayerId(),
+      );
 
       emitEvent({
         category: "runtime",
         type: "end_game_triggered",
         payload: {
           actorId,
-          endsAfterPlayerId: this.game.endGame.endsAfterPlayerId,
+          endsAfterPlayerId: this.endGame.endsAfterPlayerId,
         },
       });
     }
 
-    if (this.game.endGame && actorId === this.game.endGame.endsAfterPlayerId) {
+    if (this.endGame && actorId === this.endGame.endsAfterPlayerId) {
       this.finalizeWinners();
       emitEvent({
         category: "runtime",
         type: "game_finished",
         payload: {
-          winnerIds: this.game.winnerIds,
+          winnerIds: this.winnerIds,
         },
       });
     }
   }
 
-  private removeNoble(nobleId: number): void {
-    this.game.board.nobleIds = this.game.board.nobleIds.filter(
-      (currentNobleId) => currentNobleId !== nobleId,
-    );
-  }
-
   private finalizeWinners(): void {
-    const players = Object.values(this.game.players).map(
-      (player) => new PlayerOps(player),
-    );
+    const players = Object.values(this.players);
     const highestScore = Math.max(
       ...players.map((player) => player.getScore()),
     );
@@ -199,14 +202,13 @@ export class SplendorGameOps {
       (player) => player.getScore() === highestScore,
     );
     const fewestPurchasedCards = Math.min(
-      ...highestScorers.map((player) => player.state.purchasedCardIds.length),
+      ...highestScorers.map((player) => player.purchasedCardIds.length),
     );
 
-    this.game.winnerIds = highestScorers
+    this.winnerIds = highestScorers
       .filter(
-        (player) =>
-          player.state.purchasedCardIds.length === fewestPurchasedCards,
+        (player) => player.purchasedCardIds.length === fewestPurchasedCards,
       )
-      .map((player) => player.state.id);
+      .map((player) => player.id);
   }
 }

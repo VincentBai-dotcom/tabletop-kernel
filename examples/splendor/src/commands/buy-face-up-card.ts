@@ -4,12 +4,7 @@ import {
   createNobleDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type {
-  BuyFaceUpCardPayload,
-  SplendorGameStateFacade,
-} from "../state.ts";
-import { PlayerOps } from "../model/player-ops.ts";
-import { applyTokenDelta } from "../model/token-ops.ts";
+import type { BuyFaceUpCardPayload, SplendorGameState } from "../state.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -23,7 +18,7 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-export class BuyFaceUpCardCommand implements CommandDefinition<SplendorGameStateFacade> {
+export class BuyFaceUpCardCommand implements CommandDefinition<SplendorGameState> {
   readonly commandId = "buy_face_up_card";
 
   isAvailable(context: SplendorAvailabilityContext) {
@@ -86,7 +81,7 @@ export class BuyFaceUpCardCommand implements CommandDefinition<SplendorGameState
       };
     }
 
-    const hypotheticalPlayer = new PlayerOps(PlayerOps.clone(player.state));
+    const hypotheticalPlayer = player.clone();
     hypotheticalPlayer.buyCard(payload.cardId);
     const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
     const nobleDiscovery = createNobleDiscovery(payload, eligibleNobles);
@@ -115,7 +110,7 @@ export class BuyFaceUpCardCommand implements CommandDefinition<SplendorGameState
         return { ok: false, reason: "card_not_affordable" };
       }
 
-      const hypotheticalPlayer = new PlayerOps(PlayerOps.clone(player.state));
+      const hypotheticalPlayer = player.clone();
       hypotheticalPlayer.buyCard(payload.cardId);
 
       const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
@@ -148,8 +143,7 @@ export class BuyFaceUpCardCommand implements CommandDefinition<SplendorGameState
       throw new Error("card_not_affordable");
     }
 
-    applyTokenDelta(player.state.tokens, payment, -1);
-    applyTokenDelta(game.bank, payment, 1);
+    player.tokens.transferTo(game.bank, payment);
     player.buyCard(card.id);
     game.board.removeFaceUpCard(payload.level, card.id);
     game.board.replenishFaceUpCard(payload.level);
