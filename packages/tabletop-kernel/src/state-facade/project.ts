@@ -17,7 +17,12 @@ export function projectStateForViewer<TGameState extends object>(
   }
 
   return {
-    game: projectStateNode(compiled, compiled.root, state.game, viewer),
+    game: projectStateNode(
+      compiled,
+      compiled.root,
+      state.game,
+      viewer,
+    ) as object,
     progression: structuredClone(state.runtime.progression),
   };
 }
@@ -28,7 +33,7 @@ function projectStateNode(
   backing: unknown,
   viewer: Viewer,
   ownerPlayerId?: string,
-): object {
+): unknown {
   if (!backing || typeof backing !== "object" || Array.isArray(backing)) {
     return {};
   }
