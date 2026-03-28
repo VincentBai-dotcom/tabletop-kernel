@@ -1,94 +1,315 @@
-# Visibility Model Decisions
+# Visibility Projection Design
 
-This is a living design document for the visibility and hidden-information topic.
+This document records the current implementation-scope design for visibility and
+hidden information in `tabletop-kernel`.
 
-Update this file whenever a visibility-model design decision is agreed during discussion so future work can rely on persisted repo context instead of session memory.
+The goal is to support viewer-specific state projection for frontend rendering
+without changing the canonical authoritative state model.
 
-## Agreed So Far
+## Goal
 
-### Topic status
+The kernel should support:
 
-Dedicated visibility and hidden-information modeling is deferred for now.
+- one canonical authoritative state
+- viewer-specific visible projections derived from that canonical state
+- plain serializable visible output suitable for transport and frontend
+  rendering
+- strong consumer ergonomics for common hidden-information cases
 
-Current high-level direction:
+The kernel should not require separate per-player state stores.
 
-- the kernel should not yet force a first-class visibility subsystem in the first implementation pass
-- consumers may still handle visibility in higher-level code until concrete consistency problems show that a kernel-level model is worth standardizing
-- the notes below should be treated as provisional design direction rather than immediate implementation commitments
+## Scope
 
-Rationale:
+The first visibility implementation covers only state projection.
 
-- current value is too low relative to the added subsystem complexity
-- a stronger design can be made later once real implementation pressure exposes the important consistency problems
+In scope:
 
-### Hidden-information model
+- viewer-specific projection of canonical state
+- public vs hidden fields
+- owner-relative field visibility
+- automatic projection traversal
+- custom state-level projection override hook
 
-Hidden information should be modeled primarily as viewer-specific filtered projections of one canonical state.
+Out of scope for this first implementation:
 
-Current high-level direction:
+- command discovery visibility
+- event/log visibility
+- replay-specific visibility
+- pending-choice visibility
 
-- the game has one authoritative canonical state
-- viewer-specific or actor-specific views are derived projections of that state
-- the kernel should provide the mechanism for visibility filtering, while the consumer defines the actual visibility policy for a game
+## Core Model
 
-Implication:
+Visibility should be modeled as:
 
-- hidden information does not require separate per-player state stores as the primary model
-- replay, determinism, and save/load stay aligned with the earlier single-canonical-state decision
-- different viewers may legitimately receive different filtered projections of the same underlying state
+- canonical state in
+- plain visible state out
 
-Rationale:
+The authoritative state remains:
 
-- keeps one source of truth
-- avoids consistency problems across multiple parallel player-specific stores
-- matches the earlier command-discovery decision that discovery may vary by viewer without changing canonical truth
+```ts
+{
+  game: CanonicalGameState,
+  runtime: RuntimeState
+}
+```
 
-### Visibility-policy shape
+The visible projection should return:
 
-The consumer should define visibility primarily through smaller per-object or per-node visibility rules rather than one giant whole-state projection function.
+```ts
+{
+  game: VisibleGameState,
+  progression: ProgressionState
+}
+```
 
-Current high-level direction:
+For the first implementation:
 
-- the kernel should support composable visibility rules over canonical state
-- consumers should be able to express visibility at a smaller-grained level such as objects, entities, zones, or other meaningful substructures
-- canonical state should still remain plain data, even if consumers use helper classes or facades around that data during rule authoring
+- include projected `game`
+- include `progression` as-is
+- exclude `rng`
+- exclude `history`
 
-Implication:
+## Viewer Identity
 
-- visibility logic can stay modular and local instead of forcing one monolithic projection function
-- this remains compatible with the earlier single-canonical-state decision
-- consumer ergonomics can still use helper abstractions without turning the persisted state itself into class instances
+Visibility should use game-level viewer identity, not app-level user identity.
 
-Rationale:
+Illustrative shape:
 
-- whole-state projection logic would become unwieldy for larger games
-- smaller-grained rules are easier to evolve and reason about
-- this preserves consistency with the earlier decision that canonical state remains plain serializable data
+```ts
+type Viewer = { kind: "player"; playerId: string } | { kind: "spectator" };
+```
 
-### Visibility scope
+The engine should reason in terms of:
 
-The visibility model should cover all viewer-facing outputs rather than only projected game state.
+- player
+- spectator
 
-Current high-level direction:
+It should not reason directly in terms of backend user ids.
 
-- visibility filtering should apply to projected state, discovery results, events, logs, and similar viewer-facing outputs
-- the same underlying visibility policy should govern what a given viewer is allowed to know across those surfaces
+## Default Projection Rules
 
-Implication:
+The default projection path should be automatic.
 
-- hidden information handling stays consistent across state views and other outputs
-- the kernel does not treat state filtering and output filtering as unrelated separate concerns
+The consumer should not need to write a root `projectForViewer(...)` function
+just to activate visibility.
 
-Rationale:
+Automatic traversal should preserve the same structural shape by default:
 
-- a game can leak hidden information through discovery, logs, or events even if state projection is filtered correctly
-- keeping visibility policy broader than state projection matches earlier decisions around viewer-specific discovery
-- this gives the kernel a more coherent hidden-information boundary
+- objects stay objects
+- arrays stay arrays
+- records stay records
+- only hidden/private fields are transformed
 
-## Current discussion
+So the default visible output remains structurally close to canonical state.
 
-We are discussing the near-term design goals in strict order.
+## Consumer Ergonomics
 
-Current topic:
+The intended consumer experience is:
 
-5. visibility / hidden-information model
+- fields are public by default
+- decorators are used only for non-public cases
+- common hidden-information rules should require minimal code
+- complex exceptions should use a state-level custom visibility hook
+
+There should be no `@public` decorator.
+
+## Decorators
+
+### `@hidden`
+
+Marks a field as hidden from all viewers.
+
+### `@OwnedByPlayer()`
+
+Marks a state class as establishing player ownership context.
+
+Current rule:
+
+- `@OwnedByPlayer()` uses `id` by convention as the owning player id
+- the state must have a suitable non-empty `id` value
+
+### `@visibleToSelf`
+
+Marks a field as visible only to the owner player of the nearest owning
+`@OwnedByPlayer()` ancestor.
+
+Current rule:
+
+- nearest `@OwnedByPlayer()` ancestor defines ownership
+- if `@visibleToSelf` appears with no owning player ancestor, game-definition
+  build should fail
+
+## Hidden Envelope
+
+When a field is hidden, the kernel should project it using a standard hidden
+envelope.
+
+Default hidden output:
+
+```ts
+{
+  __hidden: true;
+}
+```
+
+If a hidden field or self-visible field has a custom hidden summary payload, the
+kernel should wrap it as:
+
+```ts
+{ __hidden: true, value: consumerPayload }
+```
+
+This keeps the frontend contract stable.
+
+The consumer should not be responsible for adding the hidden marker manually.
+
+## `@visibleToSelf` Hidden Behavior
+
+For non-owners, `@visibleToSelf` should use the same hidden-envelope behavior as
+`@hidden`.
+
+That means:
+
+- owner sees the real visible field
+- non-owner sees:
+  - `{ __hidden: true }`
+  - or `{ __hidden: true, value: consumerPayload }`
+
+## Complex Visibility Cases
+
+Complicated visibility rules should not be solved by adding many special field
+decorators.
+
+Instead, the first implementation should support a custom visibility hook on a
+state class.
+
+That hook should:
+
+- receive only `viewer`
+- return the full visible replacement shape for that state
+- fully replace the automatic projected shape for that state
+
+It should not receive auto-projected child output in the first version.
+
+## Consumer Example
+
+### Simple owner-relative hidden information
+
+```ts
+@OwnedByPlayer()
+@State()
+class PlayerState {
+  @field(t.string())
+  id!: string;
+
+  @field(t.number())
+  score!: number;
+
+  @visibleToSelf()
+  @field(t.array(t.number()))
+  hand!: number[];
+}
+
+@State()
+class GameState {
+  @field(
+    t.record(
+      t.string(),
+      t.state(() => PlayerState),
+    ),
+  )
+  players!: Record<string, PlayerState>;
+}
+```
+
+Canonical state:
+
+```ts
+{
+  game: {
+    players: {
+      p1: { id: "p1", score: 3, hand: [11, 12] },
+      p2: { id: "p2", score: 2, hand: [21] }
+    }
+  },
+  runtime: ...
+}
+```
+
+Visible projection for viewer `p1`:
+
+```ts
+{
+  game: {
+    players: {
+      p1: { id: "p1", score: 3, hand: [11, 12] },
+      p2: { id: "p2", score: 2, hand: { __hidden: true } }
+    }
+  },
+  progression: ...
+}
+```
+
+### Complex case using a custom state visibility hook
+
+Decks are a good example. The actual cards should remain hidden, but the
+frontend often still wants to know how many cards remain.
+
+Instead of storing a duplicated `deckSize` field in canonical state, the state
+class should define a custom visibility hook.
+
+```ts
+@State()
+class DeckState {
+  @hidden()
+  @field(t.array(t.number()))
+  cards!: number[];
+
+  projectForViewer(viewer: Viewer) {
+    void viewer;
+
+    return {
+      cards: {
+        __hidden: true,
+        value: {
+          count: this.cards.length,
+        },
+      },
+    };
+  }
+}
+```
+
+This avoids:
+
+- denormalized canonical state
+- duplicated deck-size bookkeeping
+
+while still giving the frontend useful visible information.
+
+## Server Flow
+
+The intended hosted flow is:
+
+1. server loads canonical state
+2. server executes command through the pure executor
+3. server persists canonical next state
+4. server calls visibility projection for each viewer
+5. server sends projected visible state to each client
+
+The server performs the filtering operation, but the filtering logic itself
+belongs to the engine/kernel visibility system.
+
+## Summary
+
+The first visibility implementation should provide:
+
+- one canonical state model
+- automatic metadata-driven visibility projection
+- plain visible output
+- default-public fields
+- `@hidden`
+- `@OwnedByPlayer()`
+- `@visibleToSelf`
+- standard hidden envelopes
+- state-level custom visibility hook for complex exceptions
