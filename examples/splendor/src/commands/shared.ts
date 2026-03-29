@@ -1,8 +1,10 @@
 import type {
   CommandAvailabilityContext,
   CommandInput,
+  CommandInputFromSchema,
   DiscoveryContext,
   ExecuteContext,
+  ObjectFieldType,
   ValidationContext,
   ValidationOutcome,
 } from "tabletop-kernel";
@@ -18,11 +20,20 @@ type ProgressionRuntime = {
 export type SplendorAvailabilityContext =
   CommandAvailabilityContext<SplendorGameState>;
 
-export type SplendorDiscoveryContext = DiscoveryContext<SplendorGameState>;
+export type SplendorDiscoveryContext<
+  TPayloadSchema extends ObjectFieldType | never = never,
+> = DiscoveryContext<SplendorGameState, CommandInputFromSchema<TPayloadSchema>>;
 
-export type SplendorValidationContext = ValidationContext<SplendorGameState>;
+export type SplendorValidationContext<
+  TPayloadSchema extends ObjectFieldType | never = never,
+> = ValidationContext<
+  SplendorGameState,
+  CommandInputFromSchema<TPayloadSchema>
+>;
 
-export type SplendorExecuteContext = ExecuteContext<SplendorGameState>;
+export type SplendorExecuteContext<
+  TPayloadSchema extends ObjectFieldType | never = never,
+> = ExecuteContext<SplendorGameState, CommandInputFromSchema<TPayloadSchema>>;
 
 export function readPayload<T>(commandInput: CommandInput): T {
   return (commandInput.payload ?? {}) as T;

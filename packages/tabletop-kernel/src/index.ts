@@ -30,17 +30,23 @@ export type {
   ProtocolCommandDescriptor,
 } from "./protocol/describe";
 export type {
+  ArrayFieldType,
   FieldType,
   InferSchema,
+  NumberFieldType,
   ObjectFieldType,
+  OptionalFieldType,
+  RecordFieldType,
   SerializableSchema,
   StateFieldMetadata,
+  StringFieldType,
 } from "./schema";
 export type {
   CommandAvailabilityContext,
   CommandDefinition,
   CommandDiscoveryResult,
   CommandInput,
+  CommandInputFromSchema,
   DiscoveryContext,
   ExecuteContext,
   ValidationContext,

@@ -1,4 +1,12 @@
-import { t, type CommandDefinition } from "tabletop-kernel";
+import {
+  t,
+  type CommandDefinition,
+  type NumberFieldType,
+  type ObjectFieldType,
+  type OptionalFieldType,
+  type RecordFieldType,
+  type StringFieldType,
+} from "tabletop-kernel";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,
@@ -18,14 +26,25 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-const reserveDeckCardPayloadSchema = t.object({
+type ReserveDeckCardPayloadSchema = ObjectFieldType<{
+  level: OptionalFieldType<NumberFieldType>;
+  returnTokens: OptionalFieldType<
+    RecordFieldType<StringFieldType, NumberFieldType>
+  >;
+}>;
+
+const reserveDeckCardPayloadSchema: ReserveDeckCardPayloadSchema = t.object({
   level: t.optional(t.number()),
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
-export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameState> {
+export class ReserveDeckCardCommand implements CommandDefinition<
+  SplendorGameState,
+  ReserveDeckCardPayloadSchema
+> {
   readonly commandId = "reserve_deck_card";
-  readonly payloadSchema = reserveDeckCardPayloadSchema;
+  readonly payloadSchema: ReserveDeckCardPayloadSchema =
+    reserveDeckCardPayloadSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -42,7 +61,7 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
     });
   }
 
-  discover(context: SplendorDiscoveryContext) {
+  discover(context: SplendorDiscoveryContext<ReserveDeckCardPayloadSchema>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
     const payload = readPayload<Partial<ReserveDeckCardPayload>>(
@@ -87,7 +106,11 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
     return returnDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ runtime, game, commandInput }: SplendorValidationContext) {
+  validate({
+    runtime,
+    game,
+    commandInput,
+  }: SplendorValidationContext<ReserveDeckCardPayloadSchema>) {
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
@@ -123,7 +146,11 @@ export class ReserveDeckCardCommand implements CommandDefinition<SplendorGameSta
     });
   }
 
-  execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
+  execute({
+    game,
+    commandInput,
+    emitEvent,
+  }: SplendorExecuteContext<ReserveDeckCardPayloadSchema>) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<ReserveDeckCardPayload>(commandInput);
     const player = game.getPlayer(actorId);

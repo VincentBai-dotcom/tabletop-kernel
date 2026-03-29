@@ -1,4 +1,12 @@
-import { t, type CommandDefinition } from "tabletop-kernel";
+import {
+  t,
+  type CommandDefinition,
+  type NumberFieldType,
+  type ObjectFieldType,
+  type OptionalFieldType,
+  type RecordFieldType,
+  type StringFieldType,
+} from "tabletop-kernel";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,
@@ -22,14 +30,25 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-const takeTwoSameGemsPayloadSchema = t.object({
+type TakeTwoSameGemsPayloadSchema = ObjectFieldType<{
+  color: OptionalFieldType<StringFieldType>;
+  returnTokens: OptionalFieldType<
+    RecordFieldType<StringFieldType, NumberFieldType>
+  >;
+}>;
+
+const takeTwoSameGemsPayloadSchema: TakeTwoSameGemsPayloadSchema = t.object({
   color: t.optional(t.string()),
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
-export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameState> {
+export class TakeTwoSameGemsCommand implements CommandDefinition<
+  SplendorGameState,
+  TakeTwoSameGemsPayloadSchema
+> {
   readonly commandId = "take_two_same_gems";
-  readonly payloadSchema = takeTwoSameGemsPayloadSchema;
+  readonly payloadSchema: TakeTwoSameGemsPayloadSchema =
+    takeTwoSameGemsPayloadSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -43,7 +62,7 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameSta
     });
   }
 
-  discover(context: SplendorDiscoveryContext) {
+  discover(context: SplendorDiscoveryContext<TakeTwoSameGemsPayloadSchema>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
     const payload = readPayload<
@@ -85,7 +104,11 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameSta
     return returnDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ runtime, game, commandInput }: SplendorValidationContext) {
+  validate({
+    runtime,
+    game,
+    commandInput,
+  }: SplendorValidationContext<TakeTwoSameGemsPayloadSchema>) {
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
@@ -115,7 +138,11 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<SplendorGameSta
     });
   }
 
-  execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
+  execute({
+    game,
+    commandInput,
+    emitEvent,
+  }: SplendorExecuteContext<TakeTwoSameGemsPayloadSchema>) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<TakeTwoSameGemsPayload>(commandInput);
     const player = game.getPlayer(actorId);

@@ -1,4 +1,10 @@
-import { t, type CommandDefinition } from "tabletop-kernel";
+import {
+  t,
+  type CommandDefinition,
+  type NumberFieldType,
+  type ObjectFieldType,
+  type OptionalFieldType,
+} from "tabletop-kernel";
 import {
   completeDiscovery,
   createNobleDiscovery,
@@ -18,14 +24,23 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-const buyReservedCardPayloadSchema = t.object({
+type BuyReservedCardPayloadSchema = ObjectFieldType<{
+  cardId: OptionalFieldType<NumberFieldType>;
+  chosenNobleId: OptionalFieldType<NumberFieldType>;
+}>;
+
+const buyReservedCardPayloadSchema: BuyReservedCardPayloadSchema = t.object({
   cardId: t.optional(t.number()),
   chosenNobleId: t.optional(t.number()),
 });
 
-export class BuyReservedCardCommand implements CommandDefinition<SplendorGameState> {
+export class BuyReservedCardCommand implements CommandDefinition<
+  SplendorGameState,
+  BuyReservedCardPayloadSchema
+> {
   readonly commandId = "buy_reserved_card";
-  readonly payloadSchema = buyReservedCardPayloadSchema;
+  readonly payloadSchema: BuyReservedCardPayloadSchema =
+    buyReservedCardPayloadSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -41,7 +56,7 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
     });
   }
 
-  discover(context: SplendorDiscoveryContext) {
+  discover(context: SplendorDiscoveryContext<BuyReservedCardPayloadSchema>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
     const payload = readPayload<Partial<BuyReservedCardPayload>>(
@@ -81,7 +96,11 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
     return nobleDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ runtime, game, commandInput }: SplendorValidationContext) {
+  validate({
+    runtime,
+    game,
+    commandInput,
+  }: SplendorValidationContext<BuyReservedCardPayloadSchema>) {
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
@@ -125,7 +144,11 @@ export class BuyReservedCardCommand implements CommandDefinition<SplendorGameSta
     });
   }
 
-  execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
+  execute({
+    game,
+    commandInput,
+    emitEvent,
+  }: SplendorExecuteContext<BuyReservedCardPayloadSchema>) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<BuyReservedCardPayload>(commandInput);
     const player = game.getPlayer(actorId);

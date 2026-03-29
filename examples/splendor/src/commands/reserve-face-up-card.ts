@@ -1,4 +1,12 @@
-import { t, type CommandDefinition } from "tabletop-kernel";
+import {
+  t,
+  type CommandDefinition,
+  type NumberFieldType,
+  type ObjectFieldType,
+  type OptionalFieldType,
+  type RecordFieldType,
+  type StringFieldType,
+} from "tabletop-kernel";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,
@@ -18,15 +26,29 @@ import {
   type SplendorValidationContext,
 } from "./shared.ts";
 
-const reserveFaceUpCardPayloadSchema = t.object({
-  level: t.optional(t.number()),
-  cardId: t.optional(t.number()),
-  returnTokens: t.optional(t.record(t.string(), t.number())),
-});
+type ReserveFaceUpCardPayloadSchema = ObjectFieldType<{
+  level: OptionalFieldType<NumberFieldType>;
+  cardId: OptionalFieldType<NumberFieldType>;
+  returnTokens: OptionalFieldType<
+    RecordFieldType<StringFieldType, NumberFieldType>
+  >;
+}>;
 
-export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameState> {
+const reserveFaceUpCardPayloadSchema: ReserveFaceUpCardPayloadSchema = t.object(
+  {
+    level: t.optional(t.number()),
+    cardId: t.optional(t.number()),
+    returnTokens: t.optional(t.record(t.string(), t.number())),
+  },
+);
+
+export class ReserveFaceUpCardCommand implements CommandDefinition<
+  SplendorGameState,
+  ReserveFaceUpCardPayloadSchema
+> {
   readonly commandId = "reserve_face_up_card";
-  readonly payloadSchema = reserveFaceUpCardPayloadSchema;
+  readonly payloadSchema: ReserveFaceUpCardPayloadSchema =
+    reserveFaceUpCardPayloadSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -43,7 +65,7 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameS
     });
   }
 
-  discover(context: SplendorDiscoveryContext) {
+  discover(context: SplendorDiscoveryContext<ReserveFaceUpCardPayloadSchema>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
     const payload = readPayload<Partial<ReserveFaceUpCardPayload>>(
@@ -90,7 +112,11 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameS
     return returnDiscovery ?? completeDiscovery(payload);
   }
 
-  validate({ runtime, game, commandInput }: SplendorValidationContext) {
+  validate({
+    runtime,
+    game,
+    commandInput,
+  }: SplendorValidationContext<ReserveFaceUpCardPayloadSchema>) {
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
@@ -126,7 +152,11 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<SplendorGameS
     });
   }
 
-  execute({ game, commandInput, emitEvent }: SplendorExecuteContext) {
+  execute({
+    game,
+    commandInput,
+    emitEvent,
+  }: SplendorExecuteContext<ReserveFaceUpCardPayloadSchema>) {
     const actorId = commandInput.actorId!;
     const payload = readPayload<ReserveFaceUpCardPayload>(commandInput);
     const player = game.getPlayer(actorId);
