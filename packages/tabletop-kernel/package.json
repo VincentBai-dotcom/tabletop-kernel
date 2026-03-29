@@ -10,6 +10,9 @@
   "files": [
     "src"
   ],
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.41"
+  },
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit"

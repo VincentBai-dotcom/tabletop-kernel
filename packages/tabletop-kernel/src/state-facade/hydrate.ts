@@ -146,6 +146,19 @@ function hydrateFieldValue(
     return createRecordFacade(compiled, backing, field.value, mutationContext);
   }
 
+  if (field.kind === "object" && !Array.isArray(backing)) {
+    return createObjectFacade(
+      compiled,
+      backing,
+      field.properties,
+      mutationContext,
+    );
+  }
+
+  if (field.kind === "optional") {
+    return hydrateFieldValue(compiled, field.item, backing, mutationContext);
+  }
+
   return backing;
 }
 
@@ -224,6 +237,60 @@ function createRecordFacade(
       const value = hydrateFieldValue(
         compiled,
         valueType,
+        (target as Record<string, unknown>)[property],
+        mutationContext,
+      );
+      cache.set(property, value);
+      return value;
+    },
+
+    set(target, property, value, receiver) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.set(target, property, value, receiver);
+    },
+
+    deleteProperty(target, property) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.deleteProperty(target, property);
+    },
+
+    defineProperty(target, property, descriptor) {
+      assertCollectionMutationAllowed(mutationContext, String(property));
+      cache.delete(String(property));
+      return Reflect.defineProperty(target, property, descriptor);
+    },
+  });
+}
+
+function createObjectFacade(
+  compiled: CompiledStateFacadeDefinition,
+  backing: object,
+  properties: Record<string, FieldType>,
+  mutationContext: MutationContext,
+): object {
+  const cache = new Map<string, unknown>();
+
+  return new Proxy(backing, {
+    get(target, property, receiver) {
+      if (typeof property !== "string") {
+        return Reflect.get(target, property, receiver);
+      }
+
+      const propertyType = properties[property];
+
+      if (!propertyType) {
+        return Reflect.get(target, property, receiver);
+      }
+
+      if (cache.has(property)) {
+        return cache.get(property);
+      }
+
+      const value = hydrateFieldValue(
+        compiled,
+        propertyType,
         (target as Record<string, unknown>)[property],
         mutationContext,
       );

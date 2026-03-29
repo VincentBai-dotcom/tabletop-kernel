@@ -157,6 +157,35 @@ function projectFieldValue(
     );
   }
 
+  if (fieldType.kind === "object") {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return value;
+    }
+
+    return Object.fromEntries(
+      Object.entries(fieldType.properties).map(([key, propertyType]) => [
+        key,
+        projectFieldValue(
+          compiled,
+          propertyType,
+          (value as Record<string, unknown>)[key],
+          viewer,
+          ownerPlayerId,
+        ),
+      ]),
+    );
+  }
+
+  if (fieldType.kind === "optional") {
+    return projectFieldValue(
+      compiled,
+      fieldType.item,
+      value,
+      viewer,
+      ownerPlayerId,
+    );
+  }
+
   return value;
 }
 

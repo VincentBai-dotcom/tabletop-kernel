@@ -102,6 +102,28 @@ function visitNestedStateTargets(
       visited,
       hasOwningPlayerAncestor,
     );
+    return;
+  }
+
+  if (field.kind === "object") {
+    for (const nestedField of Object.values(field.properties)) {
+      visitNestedFieldTypeTargets(
+        nestedField,
+        states,
+        visited,
+        hasOwningPlayerAncestor,
+      );
+    }
+    return;
+  }
+
+  if (field.kind === "optional") {
+    visitNestedFieldTypeTargets(
+      field.item,
+      states,
+      visited,
+      hasOwningPlayerAncestor,
+    );
   }
 }
 
@@ -134,6 +156,28 @@ function visitNestedFieldTypeTargets(
   if (field.kind === "record") {
     visitNestedFieldTypeTargets(
       field.value,
+      states,
+      visited,
+      hasOwningPlayerAncestor,
+    );
+    return;
+  }
+
+  if (field.kind === "object") {
+    for (const nestedField of Object.values(field.properties)) {
+      visitNestedFieldTypeTargets(
+        nestedField,
+        states,
+        visited,
+        hasOwningPlayerAncestor,
+      );
+    }
+    return;
+  }
+
+  if (field.kind === "optional") {
+    visitNestedFieldTypeTargets(
+      field.item,
       states,
       visited,
       hasOwningPlayerAncestor,
