@@ -1,90 +1,114 @@
 # tabletop-kernel
 
-## Goal
+## Purpose
 
-`tabletop-kernel` is intended to be a reusable, transport-agnostic runtime for board-game rules engines. The purpose is to let a coding agent build game-specific rules on top of a stable kernel instead of re-implementing the same runtime infrastructure for every game.
+`tabletop-kernel` is a reusable, transport-agnostic runtime for board-game and
+tabletop rules engines.
 
-The kernel should eventually provide first-class support for:
+The repo is no longer in bootstrap stage. The kernel package already supports a
+working execution model that game packages can build on directly.
 
-- turn and phase progression
-- event emission and handling
-- triggered abilities
-- stack or queue resolution when a game needs it
-- hidden information and player-specific views
-- deterministic randomness
-- serialization and persistence boundaries
-- replay logs and deterministic replay
-- simulation support
-- a runtime-native test harness
+## Implemented Runtime Surface
 
-## Non-Goals
+Current implemented capabilities include:
 
-This repository should not make transport or hosting decisions for its users.
+- canonical `{ game, runtime }` state
+- `GameDefinitionBuilder`
+- `createGameExecutor(...)`
+- command validation, execution, availability, and discovery
+- deterministic RNG with persisted cursor state
+- progression definition, normalization, and lifecycle hooks
+- transactional execution against a cloned working state
+- decorator-authored state facades via `@State()`, `@field(...)`, and `t`
+- viewer-specific state projection through `getView(...)`
+- hidden-information helpers:
+  - `@hidden`
+  - `@visibleToSelf`
+  - `@OwnedByPlayer()`
+  - `projectCustomView(...)`
+- snapshots, replay helpers, and scenario-style test harness support
+- protocol descriptor generation
+- initial hosted AsyncAPI generation
 
-Out of scope for the kernel:
+## Repo Layout
 
-- web-specific concerns
-- server/client coupling
-- lobby/auth/storage product decisions
-- assumptions about browser, Steam, native app, peer-to-peer, or dedicated server deployment
+Important workspace areas:
 
-Consumers of `tabletop-kernel` should be able to host and present the runtime however they want.
+- `packages/tabletop-kernel`
+  the reusable kernel package
+- `examples/splendor`
+  reference game built on the kernel
+- `examples/splendor-terminal`
+  terminal client for exercising the hosted-style interaction loop locally
+- `docs/design`
+  current design decisions
+- `docs/plans`
+  implementation plans and historical execution notes
 
-## Current Status
+Inside the kernel package:
 
-The repo is in the research/bootstrap stage.
+- `src/runtime`
+  command execution, progression orchestration, runtime events, transactions
+- `src/state-facade`
+  facade metadata, compilation, hydration, and visibility projection
+- `src/schema`
+  shared runtime schema API `t`
+- `src/protocol`
+  protocol descriptor and AsyncAPI generation
 
-Current state as of 2026-03-12:
+## Current Architectural Direction
 
-- no runtime implementation yet
-- initial `boardgame.io` runtime research has been added
-- project direction is now explicitly transport-agnostic
+Prefer explicit engine semantics over framework magic.
 
-The current reference document is:
+That currently means:
 
-- `docs/research/2026-03-12-boardgame-io-runtime-deep-dive.md`
+- keep authoritative canonical state separate from viewer-facing visible state
+- let games author logic against facade classes while the executor still
+  persists plain canonical data
+- keep execution deterministic and replayable
+- colocate runtime schemas with the game code that owns them
+- keep transport decisions outside the core runtime, while still helping with
+  protocol description and AsyncAPI generation
 
-## What We Learned from boardgame.io
+## Current Non-Goals
 
-`boardgame.io` is useful as a reference for:
+Still out of scope for the kernel itself:
 
-- deterministic reducer-driven state updates
-- turn/phase/stage orchestration
-- seed-backed randomness with persisted PRNG state
-- player-view filtering and log redaction
-- practical undo/redo and action logging
+- web framework integration
+- auth, lobby, matchmaking, or hosting product decisions
+- persistence product decisions
+- UI rendering concerns
+- deployment assumptions
 
-It is not a complete blueprint for this repo because it does not provide a first-class:
+## Active Deferrals
 
-- domain event bus
-- triggered-ability engine
-- stack/priority resolution model
-- kernel-level hidden-information model that fits this repo's current direction
-- semantic replay model for complex tabletop engines
+The following are intentionally not complete yet:
 
-## Immediate Priorities
+- trigger engine
+- stack / queue resolution model
+- richer event-resolution model distinct from player-facing logs
+- persistence adapters
+- richer hosted protocol beyond the current initial AsyncAPI surface
 
-The next implementation work should define the kernel architecture around a few explicit subsystems:
+## Guidance For Future Work
 
-1. Core runtime state model
-2. Progression engine for turns/phases/steps
-3. Command and event pipeline
-4. Trigger engine
-5. Resolution stack/queue abstraction
-6. Deterministic RNG service
-7. Serialization and snapshot format
-8. Replay/history model
-9. Kernel-native test harness
-10. Whether hidden-information handling needs a first-class kernel model after initial implementation experience
+When editing this repo:
 
-## Working Principle
+- preserve the public naming direction around `GameExecutor` and `GameEvent`
+- avoid reintroducing vague `Kernel` naming in the consumer-facing API
+- keep the kernel transport-agnostic even when adding protocol-generation help
+- prefer plain serializable outputs for hosted/client-facing data
+- treat examples as real consumer documentation, not throwaway code
+- update design docs when architecture decisions change materially
 
-Prefer engine semantics over framework convenience.
+## Verification
 
-That means:
+Common verification commands:
 
-- model domain events explicitly
-- keep deterministic behavior inspectable
-- separate authoritative state from observer views
-- treat replay and testing as core runtime capabilities
-- avoid baking in transport assumptions
+```bash
+bun run lint
+bunx tsc -b
+bun test --cwd packages/tabletop-kernel
+bun test --cwd examples/splendor
+bun test --cwd examples/splendor-terminal
+```
