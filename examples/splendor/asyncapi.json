@@ -1,0 +1,1139 @@
+{
+  "asyncapi": "2.6.0",
+  "info": {
+    "title": "Splendor Hosted API",
+    "version": "0.1.0"
+  },
+  "channels": {
+    "command.submit": {
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/SubmitCommand"
+        }
+      }
+    },
+    "match.view": {
+      "publish": {
+        "message": {
+          "$ref": "#/components/messages/MatchView"
+        }
+      }
+    },
+    "command.rejected": {
+      "publish": {
+        "message": {
+          "$ref": "#/components/messages/CommandRejected"
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "SubmitCommand": {
+        "name": "SubmitCommand",
+        "payload": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": ["type", "payload"],
+              "properties": {
+                "type": {
+                  "const": "take_three_distinct_gems",
+                  "type": "string"
+                },
+                "actorId": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "colors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "returnTokens": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "payload"],
+              "properties": {
+                "type": {
+                  "const": "take_two_same_gems",
+                  "type": "string"
+                },
+                "actorId": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "color": {
+                      "type": "string"
+                    },
+                    "returnTokens": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "payload"],
+              "properties": {
+                "type": {
+                  "const": "reserve_face_up_card",
+                  "type": "string"
+                },
+                "actorId": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "level": {
+                      "type": "number"
+                    },
+                    "cardId": {
+                      "type": "number"
+                    },
+                    "returnTokens": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "payload"],
+              "properties": {
+                "type": {
+                  "const": "reserve_deck_card",
+                  "type": "string"
+                },
+                "actorId": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "level": {
+                      "type": "number"
+                    },
+                    "returnTokens": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "payload"],
+              "properties": {
+                "type": {
+                  "const": "buy_face_up_card",
+                  "type": "string"
+                },
+                "actorId": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "level": {
+                      "type": "number"
+                    },
+                    "cardId": {
+                      "type": "number"
+                    },
+                    "chosenNobleId": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["type", "payload"],
+              "properties": {
+                "type": {
+                  "const": "buy_reserved_card",
+                  "type": "string"
+                },
+                "actorId": {
+                  "type": "string"
+                },
+                "payload": {
+                  "type": "object",
+                  "properties": {
+                    "cardId": {
+                      "type": "number"
+                    },
+                    "chosenNobleId": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "MatchView": {
+        "name": "MatchView",
+        "payload": {
+          "type": "object",
+          "required": ["type", "view"],
+          "properties": {
+            "type": {
+              "const": "match.view",
+              "type": "string"
+            },
+            "view": {
+              "type": "object",
+              "required": ["game", "progression"],
+              "properties": {
+                "game": {
+                  "type": "object",
+                  "required": [
+                    "playerOrder",
+                    "players",
+                    "bank",
+                    "board",
+                    "endGame",
+                    "winnerIds"
+                  ],
+                  "properties": {
+                    "playerOrder": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "players": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "tokens",
+                            "reservedCardIds",
+                            "purchasedCardIds",
+                            "nobleIds"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "tokens": {
+                              "type": "object",
+                              "required": [
+                                "white",
+                                "blue",
+                                "green",
+                                "red",
+                                "black",
+                                "gold"
+                              ],
+                              "properties": {
+                                "white": {
+                                  "type": "number"
+                                },
+                                "blue": {
+                                  "type": "number"
+                                },
+                                "green": {
+                                  "type": "number"
+                                },
+                                "red": {
+                                  "type": "number"
+                                },
+                                "black": {
+                                  "type": "number"
+                                },
+                                "gold": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            "reservedCardIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "purchasedCardIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "nobleIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "bank": {
+                      "type": "object",
+                      "required": [
+                        "white",
+                        "blue",
+                        "green",
+                        "red",
+                        "black",
+                        "gold"
+                      ],
+                      "properties": {
+                        "white": {
+                          "type": "number"
+                        },
+                        "blue": {
+                          "type": "number"
+                        },
+                        "green": {
+                          "type": "number"
+                        },
+                        "red": {
+                          "type": "number"
+                        },
+                        "black": {
+                          "type": "number"
+                        },
+                        "gold": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "board": {
+                      "type": "object",
+                      "required": ["faceUpByLevel", "deckByLevel", "nobleIds"],
+                      "properties": {
+                        "faceUpByLevel": {
+                          "type": "object",
+                          "patternProperties": {
+                            "^(0|[1-9][0-9]*)$": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "deckByLevel": {
+                          "type": "object",
+                          "patternProperties": {
+                            "^(0|[1-9][0-9]*)$": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "nobleIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    },
+                    "endGame": {
+                      "type": "object",
+                      "required": ["triggeredByPlayerId", "endsAfterPlayerId"],
+                      "properties": {
+                        "triggeredByPlayerId": {
+                          "type": "string"
+                        },
+                        "endsAfterPlayerId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "winnerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "progression": {
+                  "type": "object",
+                  "required": ["current", "rootId", "segments"],
+                  "properties": {
+                    "current": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rootId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "segments": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {
+                          "type": "object",
+                          "required": ["id", "childIds", "active"],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "parentId": {
+                              "type": "string"
+                            },
+                            "childIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "active": {
+                              "type": "boolean"
+                            },
+                            "ownerId": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CommandRejected": {
+        "name": "CommandRejected",
+        "payload": {
+          "type": "object",
+          "required": ["type", "reason"],
+          "properties": {
+            "type": {
+              "const": "command.rejected",
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "VisibleState": {
+        "type": "object",
+        "required": ["game", "progression"],
+        "properties": {
+          "game": {
+            "type": "object",
+            "required": [
+              "playerOrder",
+              "players",
+              "bank",
+              "board",
+              "endGame",
+              "winnerIds"
+            ],
+            "properties": {
+              "playerOrder": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "players": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "tokens",
+                      "reservedCardIds",
+                      "purchasedCardIds",
+                      "nobleIds"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "tokens": {
+                        "type": "object",
+                        "required": [
+                          "white",
+                          "blue",
+                          "green",
+                          "red",
+                          "black",
+                          "gold"
+                        ],
+                        "properties": {
+                          "white": {
+                            "type": "number"
+                          },
+                          "blue": {
+                            "type": "number"
+                          },
+                          "green": {
+                            "type": "number"
+                          },
+                          "red": {
+                            "type": "number"
+                          },
+                          "black": {
+                            "type": "number"
+                          },
+                          "gold": {
+                            "type": "number"
+                          }
+                        }
+                      },
+                      "reservedCardIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      },
+                      "purchasedCardIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      },
+                      "nobleIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "bank": {
+                "type": "object",
+                "required": ["white", "blue", "green", "red", "black", "gold"],
+                "properties": {
+                  "white": {
+                    "type": "number"
+                  },
+                  "blue": {
+                    "type": "number"
+                  },
+                  "green": {
+                    "type": "number"
+                  },
+                  "red": {
+                    "type": "number"
+                  },
+                  "black": {
+                    "type": "number"
+                  },
+                  "gold": {
+                    "type": "number"
+                  }
+                }
+              },
+              "board": {
+                "type": "object",
+                "required": ["faceUpByLevel", "deckByLevel", "nobleIds"],
+                "properties": {
+                  "faceUpByLevel": {
+                    "type": "object",
+                    "patternProperties": {
+                      "^(0|[1-9][0-9]*)$": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "deckByLevel": {
+                    "type": "object",
+                    "patternProperties": {
+                      "^(0|[1-9][0-9]*)$": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "nobleIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "endGame": {
+                "type": "object",
+                "required": ["triggeredByPlayerId", "endsAfterPlayerId"],
+                "properties": {
+                  "triggeredByPlayerId": {
+                    "type": "string"
+                  },
+                  "endsAfterPlayerId": {
+                    "type": "string"
+                  }
+                }
+              },
+              "winnerIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "progression": {
+            "type": "object",
+            "required": ["current", "rootId", "segments"],
+            "properties": {
+              "current": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rootId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "segments": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {
+                    "type": "object",
+                    "required": ["id", "childIds", "active"],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "parentId": {
+                        "type": "string"
+                      },
+                      "childIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "ownerId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "MatchView": {
+        "type": "object",
+        "required": ["type", "view"],
+        "properties": {
+          "type": {
+            "const": "match.view",
+            "type": "string"
+          },
+          "view": {
+            "type": "object",
+            "required": ["game", "progression"],
+            "properties": {
+              "game": {
+                "type": "object",
+                "required": [
+                  "playerOrder",
+                  "players",
+                  "bank",
+                  "board",
+                  "endGame",
+                  "winnerIds"
+                ],
+                "properties": {
+                  "playerOrder": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "players": {
+                    "type": "object",
+                    "patternProperties": {
+                      "^(.*)$": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "tokens",
+                          "reservedCardIds",
+                          "purchasedCardIds",
+                          "nobleIds"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "tokens": {
+                            "type": "object",
+                            "required": [
+                              "white",
+                              "blue",
+                              "green",
+                              "red",
+                              "black",
+                              "gold"
+                            ],
+                            "properties": {
+                              "white": {
+                                "type": "number"
+                              },
+                              "blue": {
+                                "type": "number"
+                              },
+                              "green": {
+                                "type": "number"
+                              },
+                              "red": {
+                                "type": "number"
+                              },
+                              "black": {
+                                "type": "number"
+                              },
+                              "gold": {
+                                "type": "number"
+                              }
+                            }
+                          },
+                          "reservedCardIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "purchasedCardIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "nobleIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "bank": {
+                    "type": "object",
+                    "required": [
+                      "white",
+                      "blue",
+                      "green",
+                      "red",
+                      "black",
+                      "gold"
+                    ],
+                    "properties": {
+                      "white": {
+                        "type": "number"
+                      },
+                      "blue": {
+                        "type": "number"
+                      },
+                      "green": {
+                        "type": "number"
+                      },
+                      "red": {
+                        "type": "number"
+                      },
+                      "black": {
+                        "type": "number"
+                      },
+                      "gold": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "board": {
+                    "type": "object",
+                    "required": ["faceUpByLevel", "deckByLevel", "nobleIds"],
+                    "properties": {
+                      "faceUpByLevel": {
+                        "type": "object",
+                        "patternProperties": {
+                          "^(0|[1-9][0-9]*)$": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      },
+                      "deckByLevel": {
+                        "type": "object",
+                        "patternProperties": {
+                          "^(0|[1-9][0-9]*)$": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      },
+                      "nobleIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "endGame": {
+                    "type": "object",
+                    "required": ["triggeredByPlayerId", "endsAfterPlayerId"],
+                    "properties": {
+                      "triggeredByPlayerId": {
+                        "type": "string"
+                      },
+                      "endsAfterPlayerId": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "winnerIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "progression": {
+                "type": "object",
+                "required": ["current", "rootId", "segments"],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rootId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "segments": {
+                    "type": "object",
+                    "patternProperties": {
+                      "^(.*)$": {
+                        "type": "object",
+                        "required": ["id", "childIds", "active"],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "parentId": {
+                            "type": "string"
+                          },
+                          "childIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "active": {
+                            "type": "boolean"
+                          },
+                          "ownerId": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CommandRejected": {
+        "type": "object",
+        "required": ["type", "reason"],
+        "properties": {
+          "type": {
+            "const": "command.rejected",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "TakeThreeDistinctGemsCommandInput": {
+        "type": "object",
+        "required": ["type", "payload"],
+        "properties": {
+          "type": {
+            "const": "take_three_distinct_gems",
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "colors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "returnTokens": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "TakeTwoSameGemsCommandInput": {
+        "type": "object",
+        "required": ["type", "payload"],
+        "properties": {
+          "type": {
+            "const": "take_two_same_gems",
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "color": {
+                "type": "string"
+              },
+              "returnTokens": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReserveFaceUpCardCommandInput": {
+        "type": "object",
+        "required": ["type", "payload"],
+        "properties": {
+          "type": {
+            "const": "reserve_face_up_card",
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "number"
+              },
+              "cardId": {
+                "type": "number"
+              },
+              "returnTokens": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReserveDeckCardCommandInput": {
+        "type": "object",
+        "required": ["type", "payload"],
+        "properties": {
+          "type": {
+            "const": "reserve_deck_card",
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "number"
+              },
+              "returnTokens": {
+                "type": "object",
+                "patternProperties": {
+                  "^(.*)$": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "BuyFaceUpCardCommandInput": {
+        "type": "object",
+        "required": ["type", "payload"],
+        "properties": {
+          "type": {
+            "const": "buy_face_up_card",
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "number"
+              },
+              "cardId": {
+                "type": "number"
+              },
+              "chosenNobleId": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "BuyReservedCardCommandInput": {
+        "type": "object",
+        "required": ["type", "payload"],
+        "properties": {
+          "type": {
+            "const": "buy_reserved_card",
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "cardId": {
+                "type": "number"
+              },
+              "chosenNobleId": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
