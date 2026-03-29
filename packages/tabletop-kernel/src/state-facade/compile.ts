@@ -1,10 +1,9 @@
 import {
   type FieldVisibilityMetadata,
   getStateMetadata,
-  type FieldType,
   type StateClass,
-  type StateFieldMetadata,
 } from "./metadata";
+import type { FieldType, StateFieldMetadata } from "../schema";
 
 export interface CompiledStateDefinition {
   type: StateClass;

@@ -1,12 +1,12 @@
 export { GameDefinitionBuilder } from "./game-definition";
 export { createGameExecutor, createKernel } from "./kernel/create-kernel";
+export { t } from "./schema";
 export {
   field,
   getStateMetadata,
   hidden,
   OwnedByPlayer,
   State,
-  t,
   visibleToSelf,
 } from "./state-facade/metadata";
 export {

@@ -2,47 +2,10 @@ export type StateClass<TState extends object = object> = new (
   ...args: unknown[]
 ) => TState;
 
-export type StateFieldTargetFactory = () => StateClass;
+import { t } from "../schema";
+import type { FieldType, StateFieldMetadata } from "../schema";
 
-export interface NumberFieldType {
-  kind: "number";
-}
-
-export interface StringFieldType {
-  kind: "string";
-}
-
-export interface BooleanFieldType {
-  kind: "boolean";
-}
-
-export interface NestedStateFieldType {
-  kind: "state";
-  target: StateFieldTargetFactory;
-}
-
-export interface ArrayFieldType {
-  kind: "array";
-  item: FieldType;
-}
-
-export interface RecordFieldType {
-  kind: "record";
-  key: PrimitiveFieldType;
-  value: FieldType;
-}
-
-export type PrimitiveFieldType =
-  | NumberFieldType
-  | StringFieldType
-  | BooleanFieldType;
-
-export type FieldType =
-  | PrimitiveFieldType
-  | NestedStateFieldType
-  | ArrayFieldType
-  | RecordFieldType;
-export type StateFieldMetadata = FieldType;
+export { t };
 
 export type VisibilityMode = "hidden" | "visible_to_self";
 
@@ -124,48 +87,6 @@ export function visibleToSelf(): PropertyDecorator {
     });
   };
 }
-
-export const t = {
-  number(): NumberFieldType {
-    return {
-      kind: "number",
-    };
-  },
-
-  string(): StringFieldType {
-    return {
-      kind: "string",
-    };
-  },
-
-  boolean(): BooleanFieldType {
-    return {
-      kind: "boolean",
-    };
-  },
-
-  state(target: StateFieldTargetFactory): NestedStateFieldType {
-    return {
-      kind: "state",
-      target,
-    };
-  },
-
-  array(item: FieldType): ArrayFieldType {
-    return {
-      kind: "array",
-      item,
-    };
-  },
-
-  record(key: PrimitiveFieldType, value: FieldType): RecordFieldType {
-    return {
-      kind: "record",
-      key,
-      value,
-    };
-  },
-};
 
 export function getStateMetadata(target: StateClass): StateMetadata {
   const metadata = STATE_METADATA.get(target);

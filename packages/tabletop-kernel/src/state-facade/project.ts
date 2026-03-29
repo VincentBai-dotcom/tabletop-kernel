@@ -1,5 +1,6 @@
 import type { CompiledStateFacadeDefinition } from "./compile";
-import type { FieldType, StateClass, VisibilityMode } from "./metadata";
+import type { FieldType } from "../schema";
+import type { StateClass, VisibilityMode } from "./metadata";
 import { hydrateStateNode } from "./hydrate";
 import type { CanonicalState } from "../types/state";
 import type { HiddenValue, Viewer, VisibleState } from "../types/visibility";

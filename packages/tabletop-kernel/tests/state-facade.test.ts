@@ -151,3 +151,9 @@ test("state facade metadata exports visibility decorators", () => {
     typeof (visibilityMetadata as Record<string, unknown>).OwnedByPlayer,
   ).toBe("function");
 });
+
+test("state facade metadata exports the shared runtime schema api", () => {
+  expect(typeof (visibilityMetadata as Record<string, unknown>).t).toBe(
+    "object",
+  );
+});
