@@ -1,4 +1,4 @@
-import type { KernelEvent } from "tabletop-kernel";
+import type { GameEvent } from "tabletop-kernel";
 import {
   DEVELOPMENT_LEVELS,
   developmentCardsById,
@@ -142,7 +142,7 @@ function renderActivity(activity: SessionActivity): string[] {
   return lines;
 }
 
-function formatEvent(event: KernelEvent): string {
+function formatEvent(event: GameEvent): string {
   if (!event.payload || Object.keys(event.payload).length === 0) {
     return event.type;
   }

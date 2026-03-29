@@ -5,7 +5,7 @@ import type {
   InternalExecuteContext,
   InternalValidationContext,
 } from "../types/command";
-import type { KernelEvent } from "../types/event";
+import type { GameEvent } from "../types/event";
 import type { CanonicalState, RuntimeState } from "../types/state";
 import type { RNGApi } from "../types/rng";
 import type {
@@ -99,7 +99,7 @@ export function createExecuteContext<
   commandInput: TCommandInput,
   rng: RNGApi,
   setCurrentSegmentOwner: (ownerId?: string) => void,
-  emitEvent: (event: KernelEvent) => void,
+  emitEvent: (event: GameEvent) => void,
 ): InternalExecuteContext<
   CanonicalGameState,
   FacadeGameState,
@@ -154,7 +154,7 @@ export function createProgressionLifecycleHookContext<
   commandInput: TCommandInput,
   segment: ProgressionSegmentState,
   rng: RNGApi,
-  emitEvent: (event: KernelEvent) => void,
+  emitEvent: (event: GameEvent) => void,
 ): InternalProgressionLifecycleHookContext<
   CanonicalGameState,
   FacadeGameState,

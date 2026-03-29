@@ -1,5 +1,5 @@
 import type { CommandInput } from "../types/command";
-import type { KernelEvent } from "../types/event";
+import type { GameEvent } from "../types/event";
 import type { ExecutionResult } from "../types/result";
 import type { CanonicalState } from "../types/state";
 import type { ReplayRecord, Snapshot } from "../types/snapshot";
@@ -8,7 +8,7 @@ import { restoreSnapshot } from "../snapshot/snapshot";
 export function createReplayRecord<
   State extends CanonicalState = CanonicalState,
   TCommandInput extends CommandInput = CommandInput,
-  Ev extends KernelEvent = KernelEvent,
+  Ev extends GameEvent = GameEvent,
 >(initialSnapshot: Snapshot<State>): ReplayRecord<State, TCommandInput, Ev> {
   return {
     initialSnapshot,
@@ -21,7 +21,7 @@ export function createReplayRecord<
 export function appendReplayStep<
   State extends CanonicalState = CanonicalState,
   TCommandInput extends CommandInput = CommandInput,
-  Ev extends KernelEvent = KernelEvent,
+  Ev extends GameEvent = GameEvent,
 >(
   record: ReplayRecord<State, TCommandInput, Ev>,
   command: TCommandInput,
@@ -38,7 +38,7 @@ export function replayRecord<
   State extends CanonicalState = CanonicalState,
   TCommandInput extends CommandInput = CommandInput,
 >(
-  kernel: {
+  gameExecutor: {
     executeCommand(
       state: State,
       command: TCommandInput,
@@ -49,7 +49,7 @@ export function replayRecord<
   let state = restoreSnapshot(record.initialSnapshot);
 
   for (const command of record.commands) {
-    state = kernel.executeCommand(state, command).state;
+    state = gameExecutor.executeCommand(state, command).state;
   }
 
   return state;

@@ -1,4 +1,4 @@
-import type { KernelEvent } from "tabletop-kernel";
+import type { GameEvent } from "tabletop-kernel";
 import { field, State, t } from "tabletop-kernel";
 import { developmentCardsById } from "../data/cards.ts";
 import { nobleTilesById } from "../data/nobles.ts";
@@ -148,7 +148,7 @@ export class SplendorGameState {
 
   resolveTurnEnd(
     actorId: string,
-    emitEvent: (event: KernelEvent) => void,
+    emitEvent: (event: GameEvent) => void,
     chosenNobleId?: number,
   ): void {
     const player = this.getPlayer(actorId);

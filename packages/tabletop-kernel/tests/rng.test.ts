@@ -72,9 +72,9 @@ test("game executor rng cursor advances when randomness is consumed", () => {
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const result = kernel.executeCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const result = gameExecutor.executeCommand(initialState, {
     type: "sample_randomness",
   });
 

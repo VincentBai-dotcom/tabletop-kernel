@@ -7,7 +7,7 @@ import type {
   CanonicalState,
   DiscoveryContext,
   ExecutionResult,
-  KernelEvent,
+  GameEvent,
   ProgressionCompletionContext,
   ProgressionDefinition,
   ProgressionLifecycleHookContext,
@@ -23,7 +23,7 @@ import type {
 import type { RuntimeState } from "../src/types/state";
 
 test("foundational runtime types compose", () => {
-  const event: KernelEvent = {
+  const event: GameEvent = {
     category: "domain",
     type: "card_drawn",
     payload: { playerId: "p1", count: 1 },

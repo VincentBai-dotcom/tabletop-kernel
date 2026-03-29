@@ -558,9 +558,9 @@ test("createGameExecutor creates initial state and commits successful commands",
     .rngSeed("test-seed")
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const success = kernel.executeCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const success = gameExecutor.executeCommand(initialState, {
     type: "increment_counter",
     payload: { amount: 2 },
   });
@@ -599,9 +599,9 @@ test("createGameExecutor returns unchanged state for validation failures", () =>
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const failure = kernel.executeCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const failure = gameExecutor.executeCommand(initialState, {
     type: "decrement_counter",
   });
 
@@ -647,9 +647,9 @@ test("execute context can update current progression owner through controlled AP
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const result = kernel.executeCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const result = gameExecutor.executeCommand(initialState, {
     type: "pass_turn",
   });
 
@@ -774,9 +774,9 @@ test("successful commands trigger automatic progression lifecycle and emit lifec
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const result = kernel.executeCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const result = gameExecutor.executeCommand(initialState, {
     type: "take_action",
     actorId: "player-1",
   });
@@ -918,9 +918,9 @@ test("nested progression can cascade through multiple segment transitions", () =
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const result = kernel.executeCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const result = gameExecutor.executeCommand(initialState, {
     type: "resolve_step",
     actorId: "player-1",
   });
@@ -996,9 +996,9 @@ test("manual progression paths can avoid auto-advancing ordinary commands and st
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const actionResult = kernel.executeCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const actionResult = gameExecutor.executeCommand(initialState, {
     type: "take_action",
     actorId: "player-1",
   });
@@ -1019,7 +1019,7 @@ test("manual progression paths can avoid auto-advancing ordinary commands and st
     actionResult.events.filter((event) => event.type === "segment_exited"),
   ).toHaveLength(0);
 
-  const endTurnResult = kernel.executeCommand(actionResult.state, {
+  const endTurnResult = gameExecutor.executeCommand(actionResult.state, {
     type: "end_turn",
     actorId: "player-1",
   });
@@ -1078,14 +1078,14 @@ test("game executor can list available commands through per-command availability
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
 
   expect(
-    kernel.listAvailableCommands(initialState, { actorId: "player-1" }),
+    gameExecutor.listAvailableCommands(initialState, { actorId: "player-1" }),
   ).toEqual(["pass_turn", "spend_energy"]);
 
-  const nextState = kernel.executeCommand(initialState, {
+  const nextState = gameExecutor.executeCommand(initialState, {
     type: "spend_energy",
     actorId: "player-1",
   });
@@ -1097,7 +1097,9 @@ test("game executor can list available commands through per-command availability
   }
 
   expect(
-    kernel.listAvailableCommands(nextState.state, { actorId: "player-1" }),
+    gameExecutor.listAvailableCommands(nextState.state, {
+      actorId: "player-1",
+    }),
   ).toEqual(["pass_turn"]);
 });
 
@@ -1138,13 +1140,13 @@ test("game executor can discover the next semantic options for a command", () =>
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
-  const firstStep = kernel.discoverCommand(initialState, {
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
+  const firstStep = gameExecutor.discoverCommand(initialState, {
     type: "play_card",
     actorId: "player-1",
   });
-  const secondStep = kernel.discoverCommand(initialState, {
+  const secondStep = gameExecutor.discoverCommand(initialState, {
     type: "play_card",
     actorId: "player-1",
     payload: {

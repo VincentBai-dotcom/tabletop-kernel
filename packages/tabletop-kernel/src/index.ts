@@ -57,7 +57,7 @@ export type {
   ExecuteContext,
   ValidationContext,
 } from "./types/command";
-export type { KernelEvent } from "./types/event";
+export type { GameEvent } from "./types/event";
 export type {
   ExecutionFailure,
   ExecutionResult,

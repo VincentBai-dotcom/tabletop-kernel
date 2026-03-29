@@ -177,8 +177,8 @@ test("createGameExecutor normalizes nested progression trees into runtime state"
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const state = kernel.createInitialState();
+  const gameExecutor = createGameExecutor(game);
+  const state = gameExecutor.createInitialState();
 
   expect(state.runtime.progression.rootId).toBe("round");
   expect(state.runtime.progression.current).toBe("main");

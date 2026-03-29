@@ -50,8 +50,8 @@ test("snapshots restore canonical state and replay reproduces final state", () =
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const initialState = kernel.createInitialState();
+  const gameExecutor = createGameExecutor(game);
+  const initialState = gameExecutor.createInitialState();
   const initialSnapshot = createSnapshot(initialState);
   const restoredInitialState = restoreSnapshot(initialSnapshot);
   let replay = createReplayRecord(initialSnapshot);
@@ -64,13 +64,19 @@ test("snapshots restore canonical state and replay reproduces final state", () =
     type: "sample_randomness",
   } as const;
 
-  const firstResult = kernel.executeCommand(restoredInitialState, firstCommand);
+  const firstResult = gameExecutor.executeCommand(
+    restoredInitialState,
+    firstCommand,
+  );
   replay = appendReplayStep(replay, firstCommand, firstResult);
 
-  const secondResult = kernel.executeCommand(firstResult.state, secondCommand);
+  const secondResult = gameExecutor.executeCommand(
+    firstResult.state,
+    secondCommand,
+  );
   replay = appendReplayStep(replay, secondCommand, secondResult);
 
-  const replayedState = replayRecord(kernel, replay);
+  const replayedState = replayRecord(gameExecutor, replay);
 
   expect(restoredInitialState).toEqual(initialState);
   expect(replay.commands).toHaveLength(2);

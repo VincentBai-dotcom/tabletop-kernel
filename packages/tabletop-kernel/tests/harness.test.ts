@@ -34,8 +34,8 @@ test("runScenario applies commands in order and returns per-command results", ()
     })
     .build();
 
-  const kernel = createGameExecutor(game);
-  const scenario = runScenario(kernel, [
+  const gameExecutor = createGameExecutor(game);
+  const scenario = runScenario(gameExecutor, [
     { type: "increment_counter", payload: { amount: 2 } },
     { type: "increment_counter", payload: { amount: 3 } },
   ]);

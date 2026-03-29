@@ -1,7 +1,7 @@
 import type {
   CommandDiscoveryResult,
   CommandInput,
-  KernelEvent,
+  GameEvent,
   CanonicalState,
 } from "tabletop-kernel";
 import type {
@@ -19,7 +19,7 @@ export type SplendorTerminalDiscovery =
 
 export interface SessionActivity {
   command: SplendorTerminalCommand | null;
-  events: KernelEvent[];
+  events: GameEvent[];
   summary: string | null;
   error: string | null;
 }

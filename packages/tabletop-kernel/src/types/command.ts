@@ -1,4 +1,4 @@
-import type { KernelEvent } from "./event";
+import type { GameEvent } from "./event";
 import type { ValidationOutcome } from "./result";
 import type { CanonicalState, RuntimeState } from "./state";
 import type { RNGApi } from "./rng";
@@ -121,7 +121,7 @@ export interface InternalExecuteContext<
   runtime: Readonly<Runtime>;
   rng: RNGApi;
   setCurrentSegmentOwner(ownerId?: string): void;
-  emitEvent(event: KernelEvent): void;
+  emitEvent(event: GameEvent): void;
 }
 
 export type ExecuteContext<
@@ -133,7 +133,7 @@ export type ExecuteContext<
   commandInput: TCommandInput;
   rng: RNGApi;
   setCurrentSegmentOwner(ownerId?: string): void;
-  emitEvent(event: KernelEvent): void;
+  emitEvent(event: GameEvent): void;
 };
 
 export interface InternalCommandDefinition<

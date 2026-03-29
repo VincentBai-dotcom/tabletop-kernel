@@ -1,5 +1,5 @@
 import type { CommandInput } from "./command";
-import type { KernelEvent } from "./event";
+import type { GameEvent } from "./event";
 import type { RNGApi } from "./rng";
 
 export type BuiltInProgressionCompletionPolicy =
@@ -75,7 +75,7 @@ export interface InternalProgressionLifecycleHookContext<
 > {
   game: FacadeGameState;
   rng: RNGApi;
-  emitEvent(event: KernelEvent): void;
+  emitEvent(event: GameEvent): void;
 }
 
 export interface ProgressionLifecycleHookContext<
@@ -89,7 +89,7 @@ export interface ProgressionLifecycleHookContext<
 > {
   game: FacadeGameState;
   rng: RNGApi;
-  emitEvent(event: KernelEvent): void;
+  emitEvent(event: GameEvent): void;
 }
 
 export type ProgressionCompletionCallback<

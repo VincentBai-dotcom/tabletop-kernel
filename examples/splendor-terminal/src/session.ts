@@ -2,7 +2,7 @@ import {
   createGameExecutor,
   type ExecutionResult,
   type GameExecutor,
-  type KernelEvent,
+  type GameEvent,
 } from "tabletop-kernel";
 import { createSplendorGame, type SplendorGameState } from "splendor-example";
 import type {
@@ -95,7 +95,7 @@ export class SplendorTerminalSession {
 
     this.activity = {
       command: null,
-      events: [] satisfies KernelEvent[],
+      events: [] satisfies GameEvent[],
       summary: null,
       error: result.reason,
     };

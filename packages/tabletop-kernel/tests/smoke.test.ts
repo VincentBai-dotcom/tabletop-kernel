@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
-import * as kernel from "../src/index";
+import * as packageExports from "../src/index";
 
 test("package root exports an object", () => {
-  expect(kernel).toBeObject();
-  expect(kernel.GameDefinitionBuilder).toBeDefined();
-  expect("defineGame" in kernel).toBe(false);
-  expect(kernel.createGameExecutor).toBeDefined();
+  expect(packageExports).toBeObject();
+  expect(packageExports.GameDefinitionBuilder).toBeDefined();
+  expect("defineGame" in packageExports).toBe(false);
+  expect(packageExports.createGameExecutor).toBeDefined();
 });

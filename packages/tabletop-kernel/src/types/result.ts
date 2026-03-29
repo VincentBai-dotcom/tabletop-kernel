@@ -1,4 +1,4 @@
-import type { KernelEvent } from "./event";
+import type { GameEvent } from "./event";
 import type { CanonicalState } from "./state";
 
 export interface ValidationResult {
@@ -18,7 +18,7 @@ export interface ExecutionSuccess<
 > {
   ok: true;
   state: State;
-  events: KernelEvent[];
+  events: GameEvent[];
 }
 
 export interface ExecutionFailure<
@@ -28,7 +28,7 @@ export interface ExecutionFailure<
   state: State;
   reason: string;
   metadata?: unknown;
-  events: KernelEvent[];
+  events: GameEvent[];
 }
 
 export type ExecutionResult<State extends CanonicalState = CanonicalState> =

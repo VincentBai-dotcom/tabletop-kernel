@@ -15,7 +15,7 @@ import type {
   InternalProgressionCompletionContext,
   ProgressionCompletionPolicy,
 } from "../types/progression";
-import type { KernelEvent } from "../types/event";
+import type { GameEvent } from "../types/event";
 import type { RNGApi } from "../types/rng";
 
 export type {
@@ -66,7 +66,7 @@ export function resolveProgressionLifecycle<
     TCommandInput
   >,
   rng: RNGApi,
-  emitEvent: (event: KernelEvent) => void,
+  emitEvent: (event: GameEvent) => void,
 ): void {
   let segmentId = state.runtime.progression.current;
 

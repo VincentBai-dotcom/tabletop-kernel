@@ -12,8 +12,8 @@ function createTestGameExecutor(playerIds: string[]) {
 }
 
 test("splendor setup follows official 2-player rules", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
   expect(state.game.playerOrder).toEqual(["p1", "p2"]);
   expect(state.game.bank.white).toBe(4);
@@ -49,8 +49,8 @@ test("splendor game definition compiles a root state facade", () => {
 });
 
 test("splendor setup follows official 4-player rules", () => {
-  const kernel = createTestGameExecutor(["p1", "p2", "p3", "p4"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2", "p3", "p4"]);
+  const state = gameExecutor.createInitialState();
 
   expect(state.game.bank.white).toBe(7);
   expect(state.game.bank.blue).toBe(7);
@@ -62,26 +62,28 @@ test("splendor setup follows official 4-player rules", () => {
 });
 
 test("splendor exposes the expected available command families on the opening turn", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
-  expect(kernel.listAvailableCommands(state, { actorId: "p1" })).toEqual([
+  expect(gameExecutor.listAvailableCommands(state, { actorId: "p1" })).toEqual([
     "take_three_distinct_gems",
     "take_two_same_gems",
     "reserve_face_up_card",
     "reserve_deck_card",
   ]);
-  expect(kernel.listAvailableCommands(state, { actorId: "p2" })).toEqual([]);
+  expect(gameExecutor.listAvailableCommands(state, { actorId: "p2" })).toEqual(
+    [],
+  );
 });
 
 test("splendor exposes buy commands once the active player can afford them", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
   state.game.players.p1!.tokens.gold = 20;
   state.game.players.p1!.reservedCardIds = [24];
 
-  const availableCommands = kernel.listAvailableCommands(state, {
+  const availableCommands = gameExecutor.listAvailableCommands(state, {
     actorId: "p1",
   });
 
@@ -90,14 +92,14 @@ test("splendor exposes buy commands once the active player can afford them", () 
 });
 
 test("splendor discovers gem color choices before return tokens for three-distinct take", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
-  const firstStep = kernel.discoverCommand(state, {
+  const firstStep = gameExecutor.discoverCommand(state, {
     type: "take_three_distinct_gems",
     actorId: "p1",
   });
-  const secondStep = kernel.discoverCommand(state, {
+  const secondStep = gameExecutor.discoverCommand(state, {
     type: "take_three_distinct_gems",
     actorId: "p1",
     payload: {
@@ -122,8 +124,8 @@ test("splendor discovers gem color choices before return tokens for three-distin
 });
 
 test("splendor discovers noble selection when a purchase leaves multiple nobles eligible", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
   state.game.board.nobleIds = [6, 7];
   state.game.players.p1!.tokens.white = 0;
@@ -138,7 +140,7 @@ test("splendor discovers noble selection when a purchase leaves multiple nobles 
   ];
   state.game.players.p1!.nobleIds = [];
 
-  const discovery = kernel.discoverCommand(state, {
+  const discovery = gameExecutor.discoverCommand(state, {
     type: "buy_reserved_card",
     actorId: "p1",
     payload: {
@@ -160,9 +162,9 @@ test("splendor discovers noble selection when a purchase leaves multiple nobles 
 });
 
 test("taking three distinct gems updates tokens and advances the turn", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
-  const result = kernel.executeCommand(state, {
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
+  const result = gameExecutor.executeCommand(state, {
     type: "take_three_distinct_gems",
     actorId: "p1",
     payload: {
@@ -199,11 +201,11 @@ test("taking three distinct gems updates tokens and advances the turn", () => {
 });
 
 test("taking two gems of the same color requires at least four in the bank", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
   state.game.bank.red = 3;
 
-  const result = kernel.executeCommand(state, {
+  const result = gameExecutor.executeCommand(state, {
     type: "take_two_same_gems",
     actorId: "p1",
     payload: {
@@ -223,13 +225,13 @@ test("taking two gems of the same color requires at least four in the bank", () 
 });
 
 test("reserving a face-up card grants gold and refills the market", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
   state.game.board.faceUpByLevel[1] = [1, 2, 3, 4];
   state.game.board.deckByLevel[1] = [5, 6];
 
-  const result = kernel.executeCommand(state, {
+  const result = gameExecutor.executeCommand(state, {
     type: "reserve_face_up_card",
     actorId: "p1",
     payload: {
@@ -253,8 +255,8 @@ test("reserving a face-up card grants gold and refills the market", () => {
 });
 
 test("buying a reserved card uses discounts and can claim a noble automatically", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
   state.game.board.nobleIds = [1];
   state.game.players.p1!.tokens.white = 0;
@@ -267,7 +269,7 @@ test("buying a reserved card uses discounts and can claim a noble automatically"
   state.game.players.p1!.purchasedCardIds = [17, 18, 9, 10, 11, 25, 26, 27];
   state.game.players.p1!.nobleIds = [];
 
-  const result = kernel.executeCommand(state, {
+  const result = gameExecutor.executeCommand(state, {
     type: "buy_reserved_card",
     actorId: "p1",
     payload: {
@@ -290,8 +292,8 @@ test("buying a reserved card uses discounts and can claim a noble automatically"
 });
 
 test("endgame finishes after the final player in turn order and breaks ties by fewest cards", () => {
-  const kernel = createTestGameExecutor(["p1", "p2"]);
-  const state = kernel.createInitialState();
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
 
   state.game.players.p1!.tokens.white = 0;
   state.game.players.p1!.tokens.blue = 0;
@@ -312,7 +314,7 @@ test("endgame finishes after the final player in turn order and breaks ties by f
   state.game.players.p2!.purchasedCardIds = [78, 80, 46];
   state.game.players.p2!.nobleIds = [];
 
-  const firstResult = kernel.executeCommand(state, {
+  const firstResult = gameExecutor.executeCommand(state, {
     type: "buy_reserved_card",
     actorId: "p1",
     payload: {
@@ -335,7 +337,7 @@ test("endgame finishes after the final player in turn order and breaks ties by f
     "p2",
   );
 
-  const secondResult = kernel.executeCommand(firstResult.state, {
+  const secondResult = gameExecutor.executeCommand(firstResult.state, {
     type: "buy_reserved_card",
     actorId: "p2",
     payload: {

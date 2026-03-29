@@ -16,7 +16,7 @@ export function runScenario<
   State extends CanonicalState = CanonicalState,
   TCommandInput extends CommandInput = CommandInput,
 >(
-  kernel: {
+  gameExecutor: {
     createInitialState(): State;
     executeCommand(
       state: State,
@@ -25,12 +25,12 @@ export function runScenario<
   },
   commands: TCommandInput[],
 ): ScenarioResult<State, TCommandInput> {
-  const initialState = kernel.createInitialState();
+  const initialState = gameExecutor.createInitialState();
   let currentState = initialState;
   const results: ExecutionResult<State>[] = [];
 
   for (const command of commands) {
-    const result = kernel.executeCommand(currentState, command);
+    const result = gameExecutor.executeCommand(currentState, command);
     results.push(result);
     currentState = result.state;
   }
