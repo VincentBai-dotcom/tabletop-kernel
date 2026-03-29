@@ -1,5 +1,6 @@
 export { GameDefinitionBuilder } from "./game-definition";
 export { createGameExecutor, createKernel } from "./kernel/create-kernel";
+export { generateAsyncApi } from "./protocol/asyncapi";
 export { describeGameProtocol } from "./protocol/describe";
 export { t } from "./schema";
 export {
@@ -25,6 +26,11 @@ export type {
   GameSetupContext,
 } from "./game-definition";
 export type { GameExecutor, Kernel } from "./kernel/create-kernel";
+export type {
+  AsyncApiChannelNames,
+  AsyncApiDocument,
+  AsyncApiOptions,
+} from "./protocol/asyncapi";
 export type {
   GameProtocolDescriptor,
   ProtocolCommandDescriptor,
