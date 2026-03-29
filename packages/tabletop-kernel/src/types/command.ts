@@ -2,7 +2,7 @@ import type { KernelEvent } from "./event";
 import type { ValidationOutcome } from "./result";
 import type { CanonicalState, RuntimeState } from "./state";
 import type { RNGApi } from "./rng";
-import type { ObjectFieldType } from "../schema";
+import type { InferSchema, ObjectFieldType } from "../schema";
 
 export interface CommandInput<
   Payload extends Record<string, unknown> = Record<string, unknown>,
@@ -12,12 +12,29 @@ export interface CommandInput<
   payload?: Payload;
 }
 
-type PayloadFromSchema<TPayloadSchema extends ObjectFieldType> =
-  TPayloadSchema extends ObjectFieldType ? Record<string, unknown> : never;
+type PayloadFromSchema<TPayloadSchema extends ObjectFieldType | never> = [
+  TPayloadSchema,
+] extends [never]
+  ? Record<string, unknown>
+  : Extract<
+        InferSchema<Extract<TPayloadSchema, ObjectFieldType>>,
+        Record<string, unknown>
+      > extends never
+    ? Record<string, unknown>
+    : Extract<
+        InferSchema<Extract<TPayloadSchema, ObjectFieldType>>,
+        Record<string, unknown>
+      >;
 
 export type CommandInputFromSchema<
-  TPayloadSchema extends ObjectFieldType = ObjectFieldType,
+  TPayloadSchema extends ObjectFieldType | never = never,
 > = CommandInput<PayloadFromSchema<TPayloadSchema>>;
+
+type CommandPayloadSchema<TPayloadSchema extends ObjectFieldType | never> = [
+  TPayloadSchema,
+] extends [never]
+  ? ObjectFieldType
+  : Extract<TPayloadSchema, ObjectFieldType>;
 
 export interface InternalValidationContext<
   CanonicalGameState extends object = object,
@@ -123,10 +140,10 @@ export interface InternalCommandDefinition<
   CanonicalGameState extends object = object,
   FacadeGameState extends object = CanonicalGameState,
   Runtime extends RuntimeState = RuntimeState,
-  TPayloadSchema extends ObjectFieldType = ObjectFieldType,
+  TPayloadSchema extends ObjectFieldType | never = never,
 > {
   commandId: string;
-  payloadSchema: TPayloadSchema;
+  payloadSchema: CommandPayloadSchema<TPayloadSchema>;
   isAvailable?(
     context: InternalCommandAvailabilityContext<
       CanonicalGameState,
@@ -162,10 +179,10 @@ export interface InternalCommandDefinition<
 
 export type CommandDefinition<
   FacadeGameState extends object = object,
-  TPayloadSchema extends ObjectFieldType = ObjectFieldType,
+  TPayloadSchema extends ObjectFieldType | never = never,
 > = {
   commandId: string;
-  payloadSchema: TPayloadSchema;
+  payloadSchema: CommandPayloadSchema<TPayloadSchema>;
   isAvailable?(context: CommandAvailabilityContext<FacadeGameState>): boolean;
   discover?(
     context: DiscoveryContext<

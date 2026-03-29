@@ -218,13 +218,18 @@ test("consumer command definitions only expose game state and command input gene
   > = {
     commandId: "gain_score",
     payloadSchema: gainScorePayload,
-    validate: ({ commandInput }) => ({
-      ok: typeof commandInput.payload?.amount === "number",
-      reason: "amount_required",
-    }),
+    validate: ({ commandInput }) => {
+      const amount: number | undefined = commandInput.payload?.amount;
+
+      return {
+        ok: typeof amount === "number",
+        reason: "amount_required",
+      };
+    },
     execute: ({ game, commandInput }) => {
       game.increment();
-      void commandInput.payload?.amount;
+      const amount: number | undefined = commandInput.payload?.amount;
+      void amount;
     },
   };
 
@@ -247,15 +252,17 @@ test("internal command definitions still expose canonical state separately from 
     validate: ({ game, state, commandInput }) => {
       void game.increment;
       void state.game.score;
+      const amount: number | undefined = commandInput.payload?.amount;
       return {
-        ok: typeof commandInput.payload?.amount === "number",
+        ok: typeof amount === "number",
         reason: "amount_required",
       };
     },
     execute: ({ game, state, commandInput }) => {
       game.increment();
       void state.game.score;
-      void commandInput.payload?.amount;
+      const amount: number | undefined = commandInput.payload?.amount;
+      void amount;
     },
   };
 

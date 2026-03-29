@@ -2,17 +2,14 @@ import type { CommandDefinition } from "./types/command";
 import type { ProgressionDefinition } from "./types/progression";
 import type { RuntimeState } from "./types/state";
 import type { RNGApi } from "./types/rng";
-import type { ObjectFieldType } from "./schema";
 import {
   compileStateFacadeDefinition,
   type CompiledStateFacadeDefinition,
 } from "./state-facade/compile";
 import type { StateClass } from "./state-facade/metadata";
 
-type AnyCommandDefinition<FacadeGameState extends object> = CommandDefinition<
-  FacadeGameState,
-  ObjectFieldType
->;
+type AnyCommandDefinition<FacadeGameState extends object> =
+  CommandDefinition<FacadeGameState>;
 
 type CommandDefinitionMap<FacadeGameState extends object> = Record<
   string,
