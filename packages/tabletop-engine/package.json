@@ -1,5 +1,5 @@
 {
-  "name": "tabletop-kernel",
+  "name": "tabletop-engine",
   "version": "0.0.0",
   "type": "module",
   "private": false,

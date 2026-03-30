@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createGameExecutor } from "tabletop-kernel";
+import { createGameExecutor } from "tabletop-engine";
 import { createSplendorGame } from "../src/game";
 
 function createTestGameExecutor(playerIds: string[]) {

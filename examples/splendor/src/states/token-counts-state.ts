@@ -1,4 +1,4 @@
-import { field, State, t } from "tabletop-kernel";
+import { field, State, t } from "tabletop-engine";
 import { TOKEN_COLORS, type TokenColor } from "./constants.ts";
 
 export type ReturnTokensPayload = Partial<Record<TokenColor, number>>;

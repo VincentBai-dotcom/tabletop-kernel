@@ -3,7 +3,7 @@ import {
   type ExecutionResult,
   type GameExecutor,
   type GameEvent,
-} from "tabletop-kernel";
+} from "tabletop-engine";
 import { createSplendorGame, type SplendorGameState } from "splendor-example";
 import type {
   SessionActivity,

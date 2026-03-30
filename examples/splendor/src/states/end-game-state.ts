@@ -1,4 +1,4 @@
-import { field, State, t } from "tabletop-kernel";
+import { field, State, t } from "tabletop-engine";
 
 @State()
 export class SplendorEndGameState {

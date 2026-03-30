@@ -1,10 +1,10 @@
-# tabletop-kernel
+# tabletop-engine
 
-Reusable runtime kernel package for tabletop and board-game rules engines.
+Reusable runtime engine package for tabletop and board-game rules engines.
 
 ## Current scope
 
-This package currently provides a runtime skeleton with:
+This package currently provides:
 
 - canonical `{ game, runtime }` state types
 - command definitions with `validate` and `execute`
@@ -12,20 +12,23 @@ This package currently provides a runtime skeleton with:
 - `rootState(...)` authoring on `GameDefinitionBuilder`
 - hydrated state facades for command execution, validation, availability, and discovery
 - transactional command execution
-- nested progression definitions with kernel-managed lifecycle resolution
+- nested progression definitions with engine-managed lifecycle resolution
 - semantic event collection
 - deterministic RNG primitives
 - snapshot and replay helpers
 - a small scenario-style test harness
+- viewer-specific visible state projection
+- protocol descriptor generation
+- hosted AsyncAPI generation
 
 ## Intentional deferrals
 
 The current package does **not** yet implement:
 
-- a first-class visibility / hidden-information subsystem
 - a first-class public internal-step abstraction
 - rich trigger resolution beyond the current skeleton
 - richer stack / queue resolution models
+- persistence adapters
 
 ## Scripts
 
@@ -36,7 +39,7 @@ bun run typecheck
 
 ## State facade authoring
 
-Games can continue to persist and execute against plain canonical state, while
+Games can continue to persist and execute against plain canonical state while
 authoring against a decorated root facade class.
 
 ```ts

@@ -29,8 +29,8 @@ export function createRNGService(state: RNGState): RNGApi {
       for (let index = shuffled.length - 1; index > 0; index -= 1) {
         const swapIndex = Math.floor(next() * (index + 1));
         [shuffled[index], shuffled[swapIndex]] = [
-          shuffled[swapIndex] as typeof shuffled[number],
-          shuffled[index] as typeof shuffled[number],
+          shuffled[swapIndex] as (typeof shuffled)[number],
+          shuffled[index] as (typeof shuffled)[number],
         ];
       }
 

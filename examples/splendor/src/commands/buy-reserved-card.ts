@@ -4,7 +4,7 @@ import {
   type NumberFieldType,
   type ObjectFieldType,
   type OptionalFieldType,
-} from "tabletop-kernel";
+} from "tabletop-engine";
 import {
   completeDiscovery,
   createNobleDiscovery,

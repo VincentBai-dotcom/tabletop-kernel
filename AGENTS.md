@@ -1,11 +1,11 @@
-# tabletop-kernel
+# tabletop-engine
 
 ## Purpose
 
-`tabletop-kernel` is a reusable, transport-agnostic runtime for board-game and
+`tabletop-engine` is a reusable, transport-agnostic runtime for board-game and
 tabletop rules engines.
 
-The repo is no longer in bootstrap stage. The kernel package already supports a
+The repo is no longer in bootstrap stage. The engine package already supports a
 working execution model that game packages can build on directly.
 
 ## Implemented Runtime Surface
@@ -34,10 +34,10 @@ Current implemented capabilities include:
 
 Important workspace areas:
 
-- `packages/tabletop-kernel`
-  the reusable kernel package
+- `packages/tabletop-engine`
+  the reusable engine package
 - `examples/splendor`
-  reference game built on the kernel
+  reference game built on the engine
 - `examples/splendor-terminal`
   terminal client for exercising the hosted-style interaction loop locally
 - `docs/design`
@@ -45,7 +45,7 @@ Important workspace areas:
 - `docs/plans`
   implementation plans and historical execution notes
 
-Inside the kernel package:
+Inside the engine package:
 
 - `src/runtime`
   command execution, progression orchestration, runtime events, transactions
@@ -72,7 +72,7 @@ That currently means:
 
 ## Current Non-Goals
 
-Still out of scope for the kernel itself:
+Still out of scope for the engine itself:
 
 - web framework integration
 - auth, lobby, matchmaking, or hosting product decisions
@@ -95,8 +95,8 @@ The following are intentionally not complete yet:
 When editing this repo:
 
 - preserve the public naming direction around `GameExecutor` and `GameEvent`
-- avoid reintroducing vague `Kernel` naming in the consumer-facing API
-- keep the kernel transport-agnostic even when adding protocol-generation help
+- avoid reintroducing vague low-level naming in the consumer-facing API
+- keep the engine transport-agnostic even when adding protocol-generation help
 - prefer plain serializable outputs for hosted/client-facing data
 - treat examples as real consumer documentation, not throwaway code
 - update design docs when architecture decisions change materially
@@ -108,7 +108,7 @@ Common verification commands:
 ```bash
 bun run lint
 bunx tsc -b
-bun test --cwd packages/tabletop-kernel
+bun test --cwd packages/tabletop-engine
 bun test --cwd examples/splendor
 bun test --cwd examples/splendor-terminal
 ```

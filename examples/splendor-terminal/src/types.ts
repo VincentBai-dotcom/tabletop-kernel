@@ -3,7 +3,7 @@ import type {
   CommandInput,
   GameEvent,
   CanonicalState,
-} from "tabletop-kernel";
+} from "tabletop-engine";
 import type {
   SplendorDiscoveryOption,
   SplendorGameState,

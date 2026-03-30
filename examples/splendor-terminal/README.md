@@ -15,7 +15,7 @@ The client runs one local in-memory match with:
 - `bot-2`
 - `bot-3`
 
-It consumes the kernel's command discovery APIs to prompt for command families
+It consumes the engine's command discovery APIs to prompt for command families
 and follow-up inputs.
 
 The terminal client stays on the plain executor/session model. It does not need

@@ -1,14 +1,14 @@
-# tabletop-kernel
+# tabletop-engine
 
 Transport-agnostic runtime for board-game and tabletop rules engines.
 
-This repo is a Bun workspace centered on the reusable kernel package in
-[`packages/tabletop-kernel`](./packages/tabletop-kernel), plus working example
+This repo is a Bun workspace centered on the reusable engine package in
+[`packages/tabletop-engine`](./packages/tabletop-engine), plus working example
 games and clients.
 
 ## Current Status
 
-The project is no longer just research or bootstrap code. The kernel currently
+The project is no longer just research or bootstrap code. The engine currently
 implements:
 
 - `GameDefinitionBuilder`
@@ -24,10 +24,10 @@ implements:
 
 ## Workspace Layout
 
-- [`packages/tabletop-kernel`](./packages/tabletop-kernel)
+- [`packages/tabletop-engine`](./packages/tabletop-engine)
   reusable runtime package
 - [`examples/splendor`](./examples/splendor)
-  reference game built on the kernel
+  reference game built on the engine
 - [`examples/splendor-terminal`](./examples/splendor-terminal)
   terminal client for exercising gameplay and discovery loops
 - [`docs/design`](./docs/design)
