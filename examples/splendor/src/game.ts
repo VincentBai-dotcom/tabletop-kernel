@@ -2,7 +2,7 @@ import {
   GameDefinitionBuilder,
   type CommandInput,
   type GameDefinition,
-} from "tabletop-kernel";
+} from "tabletop-engine";
 import { createCommands } from "./commands/index.ts";
 import { createInitialGameState, setupSplendorGame } from "./setup.ts";
 import type {

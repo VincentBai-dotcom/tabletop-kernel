@@ -1,4 +1,4 @@
-import type { CommandDiscoveryResult } from "tabletop-kernel";
+import type { CommandDiscoveryResult } from "tabletop-engine";
 import {
   TOKEN_COLORS,
   type ReturnTokensPayload,

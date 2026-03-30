@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "splendor-example": "workspace:*",
-    "tabletop-kernel": "workspace:*"
+    "tabletop-engine": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest"

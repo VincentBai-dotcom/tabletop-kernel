@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { generateAsyncApi } from "tabletop-kernel";
+import { generateAsyncApi } from "tabletop-engine";
 import { createSplendorGame } from "./game.ts";
 
 const document = generateAsyncApi(

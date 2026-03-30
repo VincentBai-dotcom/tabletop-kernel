@@ -1,4 +1,4 @@
-import type { CommandDefinition } from "tabletop-kernel";
+import type { CommandDefinition } from "tabletop-engine";
 import type { SplendorGameState } from "../state.ts";
 import {
   BuyFaceUpCardCommand,

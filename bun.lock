@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "tabletop-kernel",
+      "name": "tabletop-engine",
       "devDependencies": {
         "@eslint/js": "^9.39.2",
         "@eslint/json": "^0.14.0",
@@ -25,7 +25,7 @@
       "name": "splendor-example",
       "version": "0.0.0",
       "dependencies": {
-        "tabletop-kernel": "workspace:*",
+        "tabletop-engine": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -39,7 +39,7 @@
       "version": "0.0.0",
       "dependencies": {
         "splendor-example": "workspace:*",
-        "tabletop-kernel": "workspace:*",
+        "tabletop-engine": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -48,8 +48,8 @@
         "typescript": "^5",
       },
     },
-    "packages/tabletop-kernel": {
-      "name": "tabletop-kernel",
+    "packages/tabletop-engine": {
+      "name": "tabletop-engine",
       "version": "0.0.0",
       "dependencies": {
         "@sinclair/typebox": "^0.34.41",
@@ -427,7 +427,7 @@
 
     "supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
 
-    "tabletop-kernel": ["tabletop-kernel@workspace:packages/tabletop-kernel"],
+    "tabletop-engine": ["tabletop-engine@workspace:packages/tabletop-engine"],
 
     "tinyexec": ["tinyexec@1.0.4", "", {}, "sha512-u9r3uZC0bdpGOXtlxUIdwf9pkmvhqJdrVCH9fapQtgy/OeTTMZ1nqH7agtvEfmGui6e1XxjcdrlxvxJvc3sMqw=="],
 

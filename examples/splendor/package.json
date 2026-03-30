@@ -12,7 +12,7 @@
     "generate:asyncapi": "bun run ./src/generate-asyncapi.ts"
   },
   "dependencies": {
-    "tabletop-kernel": "workspace:*"
+    "tabletop-engine": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest"

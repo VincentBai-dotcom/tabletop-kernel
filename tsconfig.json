@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/tabletop-kernel"
+      "path": "./packages/tabletop-engine"
     },
     {
       "path": "./examples/splendor"

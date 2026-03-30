@@ -1,4 +1,4 @@
-import type { RuntimeState, RNGApi } from "tabletop-kernel";
+import type { RuntimeState, RNGApi } from "tabletop-engine";
 import { developmentCardsByLevel } from "./data/cards.ts";
 import { nobleTiles } from "./data/nobles.ts";
 import {

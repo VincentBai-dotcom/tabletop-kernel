@@ -7,7 +7,7 @@ import {
   type OptionalFieldType,
   type RecordFieldType,
   type StringFieldType,
-} from "tabletop-kernel";
+} from "tabletop-engine";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,

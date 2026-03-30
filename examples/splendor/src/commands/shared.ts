@@ -7,7 +7,7 @@ import type {
   ObjectFieldType,
   ValidationContext,
   ValidationOutcome,
-} from "tabletop-kernel";
+} from "tabletop-engine";
 import type { SplendorGameState } from "../state.ts";
 
 type ProgressionRuntime = {
