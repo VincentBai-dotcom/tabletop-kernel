@@ -28,12 +28,21 @@ const reserveDeckCardPayloadSchema = t.object({
 
 export type ReserveDeckCardPayload = typeof reserveDeckCardPayloadSchema.static;
 
+const reserveDeckCardDraftSchema = t.object({
+  selectedLevel: t.optional(t.number()),
+  returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+type ReserveDeckCardDraft = typeof reserveDeckCardDraftSchema.static;
+
 export class ReserveDeckCardCommand implements CommandDefinition<
   SplendorGameState,
-  ReserveDeckCardPayload
+  ReserveDeckCardPayload,
+  ReserveDeckCardDraft
 > {
   readonly commandId = "reserve_deck_card";
   readonly payloadSchema = reserveDeckCardPayloadSchema;
+  readonly discoveryDraftSchema = reserveDeckCardDraftSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -50,15 +59,15 @@ export class ReserveDeckCardCommand implements CommandDefinition<
     });
   }
 
-  discover(context: SplendorDiscoveryContext<ReserveDeckCardPayload>) {
+  discover(context: SplendorDiscoveryContext<ReserveDeckCardDraft>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readDraft<ReserveDeckCardPayload>(context.discoveryInput);
+    const draft = readDraft<ReserveDeckCardDraft>(context.discoveryInput);
     const deckEntries = Object.entries(game.board.deckByLevel) as Array<
       [string, number[]]
     >;
 
-    if (!payload.level) {
+    if (!draft.selectedLevel) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectDeckLevel,
@@ -67,8 +76,8 @@ export class ReserveDeckCardCommand implements CommandDefinition<
           .map(([level]) => ({
             id: level,
             nextDraft: {
-              ...payload,
-              level: Number(level),
+              ...draft,
+              selectedLevel: Number(level),
             },
             metadata: {
               level: Number(level),
@@ -86,12 +95,18 @@ export class ReserveDeckCardCommand implements CommandDefinition<
 
     const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
-      payload,
+      draft,
       player.tokens,
       requiredReturnCount,
     );
 
-    return returnDiscovery ?? completeDiscovery(payload);
+    return (
+      returnDiscovery ??
+      completeDiscovery({
+        level: draft.selectedLevel,
+        returnTokens: draft.returnTokens,
+      })
+    );
   }
 
   validate({

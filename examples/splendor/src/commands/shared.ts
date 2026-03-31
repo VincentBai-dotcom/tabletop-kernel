@@ -27,8 +27,8 @@ export type SplendorAvailabilityContext =
   CommandAvailabilityContext<SplendorGameState>;
 
 export type SplendorDiscoveryContext<
-  TPayload extends Record<string, unknown> = Record<string, unknown>,
-> = DiscoveryContext<SplendorGameState, TPayload>;
+  TDraft extends Record<string, unknown> = Record<string, unknown>,
+> = DiscoveryContext<SplendorGameState, TDraft>;
 
 export type SplendorValidationContext<
   TPayload extends Record<string, unknown> = Record<string, unknown>,
@@ -42,7 +42,9 @@ export function readPayload<T>(commandInput: CommandInput): T {
   return (commandInput.payload ?? {}) as T;
 }
 
-export function readDraft<T>(discoveryInput: DiscoveryInput): T {
+export function readDraft<T extends Record<string, unknown>>(
+  discoveryInput: DiscoveryInput<T>,
+): T {
   return (discoveryInput.draft ?? {}) as T;
 }
 

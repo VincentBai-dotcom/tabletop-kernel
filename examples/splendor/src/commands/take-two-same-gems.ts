@@ -28,12 +28,21 @@ const takeTwoSameGemsPayloadSchema = t.object({
 
 export type TakeTwoSameGemsPayload = typeof takeTwoSameGemsPayloadSchema.static;
 
+const takeTwoSameGemsDraftSchema = t.object({
+  selectedColor: t.optional(t.string()),
+  returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+type TakeTwoSameGemsDraft = typeof takeTwoSameGemsDraftSchema.static;
+
 export class TakeTwoSameGemsCommand implements CommandDefinition<
   SplendorGameState,
-  TakeTwoSameGemsPayload
+  TakeTwoSameGemsPayload,
+  TakeTwoSameGemsDraft
 > {
   readonly commandId = "take_two_same_gems";
   readonly payloadSchema = takeTwoSameGemsPayloadSchema;
+  readonly discoveryDraftSchema = takeTwoSameGemsDraftSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -47,12 +56,12 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<
     });
   }
 
-  discover(context: SplendorDiscoveryContext<TakeTwoSameGemsPayload>) {
+  discover(context: SplendorDiscoveryContext<TakeTwoSameGemsDraft>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readDraft<TakeTwoSameGemsPayload>(context.discoveryInput);
+    const draft = readDraft<TakeTwoSameGemsDraft>(context.discoveryInput);
 
-    if (!payload.color) {
+    if (!draft.selectedColor) {
       const bankEntries = Object.entries(game.bank) as Array<[string, number]>;
 
       return {
@@ -63,8 +72,8 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<
           .map(([color]) => ({
             id: color,
             nextDraft: {
-              ...payload,
-              color,
+              ...draft,
+              selectedColor: color,
             },
             metadata: {
               color,
@@ -75,18 +84,24 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<
     }
 
     const player = game.getPlayer(actorId).clone();
-    if (!isGemTokenColor(payload.color)) {
+    if (!isGemTokenColor(draft.selectedColor)) {
       throw new Error("invalid_color");
     }
-    player.tokens.adjustColor(payload.color, 2);
+    player.tokens.adjustColor(draft.selectedColor, 2);
     const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
-      payload,
+      draft,
       player.tokens,
       requiredReturnCount,
     );
 
-    return returnDiscovery ?? completeDiscovery(payload);
+    return (
+      returnDiscovery ??
+      completeDiscovery({
+        color: draft.selectedColor,
+        returnTokens: draft.returnTokens,
+      })
+    );
   }
 
   validate({

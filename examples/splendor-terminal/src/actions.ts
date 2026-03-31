@@ -203,8 +203,8 @@ function describeReservedCardSelection(payload: SplendorPayload): string {
 function describeFaceUpCard(
   payload: Partial<ReserveFaceUpCardPayload> | Partial<BuyFaceUpCardPayload>,
 ): string {
-  const cardId = payload.cardId;
-  const level = payload.level;
+  const cardId = readCardId(payload);
+  const level = readLevel(payload);
 
   if (typeof cardId !== "number" || typeof level !== "number") {
     return "face-up card";
@@ -242,11 +242,19 @@ function readReservedCardId(
 }
 
 function readCardId(payload: SplendorPayload): number {
-  return (payload.cardId as number | undefined) ?? -1;
+  return (
+    (payload.cardId as number | undefined) ??
+    (payload.selectedCardId as number | undefined) ??
+    -1
+  );
 }
 
 function readLevel(payload: SplendorPayload): number {
-  return (payload.level as number | undefined) ?? -1;
+  return (
+    (payload.level as number | undefined) ??
+    (payload.selectedLevel as number | undefined) ??
+    -1
+  );
 }
 
 export function describeNoble(nobleId: number): string {

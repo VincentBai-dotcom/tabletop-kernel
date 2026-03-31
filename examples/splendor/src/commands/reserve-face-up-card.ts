@@ -30,12 +30,22 @@ const reserveFaceUpCardPayloadSchema = t.object({
 export type ReserveFaceUpCardPayload =
   typeof reserveFaceUpCardPayloadSchema.static;
 
+const reserveFaceUpCardDraftSchema = t.object({
+  selectedLevel: t.optional(t.number()),
+  selectedCardId: t.optional(t.number()),
+  returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+type ReserveFaceUpCardDraft = typeof reserveFaceUpCardDraftSchema.static;
+
 export class ReserveFaceUpCardCommand implements CommandDefinition<
   SplendorGameState,
-  ReserveFaceUpCardPayload
+  ReserveFaceUpCardPayload,
+  ReserveFaceUpCardDraft
 > {
   readonly commandId = "reserve_face_up_card";
   readonly payloadSchema = reserveFaceUpCardPayloadSchema;
+  readonly discoveryDraftSchema = reserveFaceUpCardDraftSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -52,15 +62,15 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
     });
   }
 
-  discover(context: SplendorDiscoveryContext<ReserveFaceUpCardPayload>) {
+  discover(context: SplendorDiscoveryContext<ReserveFaceUpCardDraft>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readDraft<ReserveFaceUpCardPayload>(context.discoveryInput);
+    const draft = readDraft<ReserveFaceUpCardDraft>(context.discoveryInput);
     const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
       [string, number[]]
     >;
 
-    if (!payload.level || !payload.cardId) {
+    if (!draft.selectedLevel || !draft.selectedCardId) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
@@ -68,9 +78,9 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
           cardIds.map((cardId: number) => ({
             id: `${level}:${cardId}`,
             nextDraft: {
-              ...payload,
-              level: Number(level),
-              cardId,
+              ...draft,
+              selectedLevel: Number(level),
+              selectedCardId: cardId,
             },
             metadata: {
               level: Number(level),
@@ -90,12 +100,19 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
 
     const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
-      payload,
+      draft,
       player.tokens,
       requiredReturnCount,
     );
 
-    return returnDiscovery ?? completeDiscovery(payload);
+    return (
+      returnDiscovery ??
+      completeDiscovery({
+        level: draft.selectedLevel,
+        cardId: draft.selectedCardId,
+        returnTokens: draft.returnTokens,
+      })
+    );
   }
 
   validate({

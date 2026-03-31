@@ -29,12 +29,22 @@ const takeThreeDistinctGemsPayloadSchema = t.object({
 export type TakeThreeDistinctGemsPayload =
   typeof takeThreeDistinctGemsPayloadSchema.static;
 
+const takeThreeDistinctGemsDraftSchema = t.object({
+  selectedColors: t.optional(t.array(t.string())),
+  returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+type TakeThreeDistinctGemsDraft =
+  typeof takeThreeDistinctGemsDraftSchema.static;
+
 export class TakeThreeDistinctGemsCommand implements CommandDefinition<
   SplendorGameState,
-  TakeThreeDistinctGemsPayload
+  TakeThreeDistinctGemsPayload,
+  TakeThreeDistinctGemsDraft
 > {
   readonly commandId = "take_three_distinct_gems";
   readonly payloadSchema = takeThreeDistinctGemsPayloadSchema;
+  readonly discoveryDraftSchema = takeThreeDistinctGemsDraftSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -49,13 +59,13 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<
     });
   }
 
-  discover(context: SplendorDiscoveryContext<TakeThreeDistinctGemsPayload>) {
+  discover(context: SplendorDiscoveryContext<TakeThreeDistinctGemsDraft>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readDraft<TakeThreeDistinctGemsPayload>(
-      context.discoveryInput,
-    );
-    const selectedColors = payload.colors ? [...payload.colors] : [];
+    const draft = readDraft<TakeThreeDistinctGemsDraft>(context.discoveryInput);
+    const selectedColors = draft.selectedColors
+      ? [...draft.selectedColors]
+      : [];
 
     if (selectedColors.length < 3) {
       const bankEntries = Object.entries(game.bank) as Array<[string, number]>;
@@ -71,8 +81,8 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<
           .map(([color]) => ({
             id: color,
             nextDraft: {
-              ...payload,
-              colors: [...selectedColors, color],
+              ...draft,
+              selectedColors: [...selectedColors, color],
             },
             metadata: {
               color,
@@ -93,8 +103,8 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<
     const requiredReturnCount = player.getRequiredReturnCount();
     const returnDiscovery = createReturnTokenDiscovery(
       {
-        ...payload,
-        colors: [...selectedColors],
+        ...draft,
+        selectedColors: [...selectedColors],
       },
       player.tokens,
       requiredReturnCount,
@@ -103,8 +113,8 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<
     return (
       returnDiscovery ??
       completeDiscovery({
-        ...payload,
         colors: [...selectedColors],
+        returnTokens: draft.returnTokens,
       })
     );
   }

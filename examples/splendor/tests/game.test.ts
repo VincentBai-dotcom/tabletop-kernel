@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { createGameExecutor } from "tabletop-engine";
+import { createCommands } from "../src/commands/index.ts";
 import { createSplendorGame } from "../src/game";
 
 function createTestGameExecutor(playerIds: string[]) {
@@ -91,6 +92,16 @@ test("splendor exposes buy commands once the active player can afford them", () 
   expect(availableCommands).toContain("buy_reserved_card");
 });
 
+test("splendor commands declare explicit discovery draft schemas", () => {
+  const commands = createCommands();
+
+  expect(commands).not.toHaveLength(0);
+
+  for (const command of commands) {
+    expect(command.discoveryDraftSchema).toBeDefined();
+  }
+});
+
 test("splendor discovers gem color choices before return tokens for three-distinct take", () => {
   const gameExecutor = createTestGameExecutor(["p1", "p2"]);
   const state = gameExecutor.createInitialState();
@@ -103,7 +114,7 @@ test("splendor discovers gem color choices before return tokens for three-distin
     type: "take_three_distinct_gems",
     actorId: "p1",
     draft: {
-      colors: ["white", "blue", "green"],
+      selectedColors: ["white", "blue", "green"],
     },
   });
 
@@ -118,7 +129,7 @@ test("splendor discovers gem color choices before return tokens for three-distin
   expect(firstStep.options[0]).toMatchObject({
     id: expect.any(String),
     nextDraft: {
-      colors: [expect.any(String)],
+      selectedColors: [expect.any(String)],
     },
   });
   expect(secondStep).toMatchObject({
@@ -153,7 +164,7 @@ test("splendor discovers noble selection when a purchase leaves multiple nobles 
     type: "buy_reserved_card",
     actorId: "p1",
     draft: {
-      cardId: 45,
+      selectedCardId: 45,
     },
   });
 
@@ -168,7 +179,7 @@ test("splendor discovers noble selection when a purchase leaves multiple nobles 
   expect(discovery.options[0]).toMatchObject({
     id: expect.any(String),
     nextDraft: {
-      cardId: 45,
+      selectedCardId: 45,
       chosenNobleId: expect.any(Number),
     },
   });

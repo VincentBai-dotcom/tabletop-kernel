@@ -26,12 +26,21 @@ const buyReservedCardPayloadSchema = t.object({
 
 export type BuyReservedCardPayload = typeof buyReservedCardPayloadSchema.static;
 
+const buyReservedCardDraftSchema = t.object({
+  selectedCardId: t.optional(t.number()),
+  chosenNobleId: t.optional(t.number()),
+});
+
+type BuyReservedCardDraft = typeof buyReservedCardDraftSchema.static;
+
 export class BuyReservedCardCommand implements CommandDefinition<
   SplendorGameState,
-  BuyReservedCardPayload
+  BuyReservedCardPayload,
+  BuyReservedCardDraft
 > {
   readonly commandId = "buy_reserved_card";
   readonly payloadSchema = buyReservedCardPayloadSchema;
+  readonly discoveryDraftSchema = buyReservedCardDraftSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -47,13 +56,13 @@ export class BuyReservedCardCommand implements CommandDefinition<
     });
   }
 
-  discover(context: SplendorDiscoveryContext<BuyReservedCardPayload>) {
+  discover(context: SplendorDiscoveryContext<BuyReservedCardDraft>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readDraft<BuyReservedCardPayload>(context.discoveryInput);
+    const draft = readDraft<BuyReservedCardDraft>(context.discoveryInput);
     const player = game.getPlayer(actorId);
 
-    if (!payload.cardId) {
+    if (!draft.selectedCardId) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
@@ -66,8 +75,8 @@ export class BuyReservedCardCommand implements CommandDefinition<
           .map((cardId: number) => ({
             id: String(cardId),
             nextDraft: {
-              ...payload,
-              cardId,
+              ...draft,
+              selectedCardId: cardId,
             },
             metadata: {
               cardId,
@@ -78,12 +87,18 @@ export class BuyReservedCardCommand implements CommandDefinition<
     }
 
     const hypotheticalPlayer = player.clone();
-    hypotheticalPlayer.removeReservedCard(payload.cardId);
-    hypotheticalPlayer.buyCard(payload.cardId);
+    hypotheticalPlayer.removeReservedCard(draft.selectedCardId);
+    hypotheticalPlayer.buyCard(draft.selectedCardId);
     const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
-    const nobleDiscovery = createNobleDiscovery(payload, eligibleNobles);
+    const nobleDiscovery = createNobleDiscovery(draft, eligibleNobles);
 
-    return nobleDiscovery ?? completeDiscovery(payload);
+    return (
+      nobleDiscovery ??
+      completeDiscovery({
+        cardId: draft.selectedCardId,
+        chosenNobleId: draft.chosenNobleId,
+      })
+    );
   }
 
   validate({

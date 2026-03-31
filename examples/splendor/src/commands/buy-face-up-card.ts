@@ -29,12 +29,22 @@ const buyFaceUpCardPayloadSchema = t.object({
 
 export type BuyFaceUpCardPayload = typeof buyFaceUpCardPayloadSchema.static;
 
+const buyFaceUpCardDraftSchema = t.object({
+  selectedLevel: t.optional(t.number()),
+  selectedCardId: t.optional(t.number()),
+  chosenNobleId: t.optional(t.number()),
+});
+
+type BuyFaceUpCardDraft = typeof buyFaceUpCardDraftSchema.static;
+
 export class BuyFaceUpCardCommand implements CommandDefinition<
   SplendorGameState,
-  BuyFaceUpCardPayload
+  BuyFaceUpCardPayload,
+  BuyFaceUpCardDraft
 > {
   readonly commandId = "buy_face_up_card";
   readonly payloadSchema = buyFaceUpCardPayloadSchema;
+  readonly discoveryDraftSchema = buyFaceUpCardDraftSchema;
 
   isAvailable(context: SplendorAvailabilityContext) {
     return guardedAvailability(() => {
@@ -58,16 +68,16 @@ export class BuyFaceUpCardCommand implements CommandDefinition<
     });
   }
 
-  discover(context: SplendorDiscoveryContext<BuyFaceUpCardPayload>) {
+  discover(context: SplendorDiscoveryContext<BuyFaceUpCardDraft>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readDraft<BuyFaceUpCardPayload>(context.discoveryInput);
+    const draft = readDraft<BuyFaceUpCardDraft>(context.discoveryInput);
     const player = game.getPlayer(actorId);
     const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
       [string, number[]]
     >;
 
-    if (!payload.level || !payload.cardId) {
+    if (!draft.selectedLevel || !draft.selectedCardId) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
@@ -81,9 +91,9 @@ export class BuyFaceUpCardCommand implements CommandDefinition<
             .map((cardId: number) => ({
               id: `${level}:${cardId}`,
               nextDraft: {
-                ...payload,
-                level: Number(level),
-                cardId,
+                ...draft,
+                selectedLevel: Number(level),
+                selectedCardId: cardId,
               },
               metadata: {
                 level: Number(level),
@@ -96,11 +106,18 @@ export class BuyFaceUpCardCommand implements CommandDefinition<
     }
 
     const hypotheticalPlayer = player.clone();
-    hypotheticalPlayer.buyCard(payload.cardId);
+    hypotheticalPlayer.buyCard(draft.selectedCardId);
     const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
-    const nobleDiscovery = createNobleDiscovery(payload, eligibleNobles);
+    const nobleDiscovery = createNobleDiscovery(draft, eligibleNobles);
 
-    return nobleDiscovery ?? completeDiscovery(payload);
+    return (
+      nobleDiscovery ??
+      completeDiscovery({
+        level: draft.selectedLevel,
+        cardId: draft.selectedCardId,
+        chosenNobleId: draft.chosenNobleId,
+      })
+    );
   }
 
   validate({
