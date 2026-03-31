@@ -13,6 +13,7 @@ import {
   guardedAvailability,
   guardedValidate,
   isGemTokenColor,
+  readDraft,
   readPayload,
   type SplendorAvailabilityContext,
   type SplendorDiscoveryContext,
@@ -51,8 +52,8 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<
   discover(context: SplendorDiscoveryContext<TakeThreeDistinctGemsPayload>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readPayload<Partial<TakeThreeDistinctGemsPayload>>(
-      context.partialCommand,
+    const payload = readDraft<TakeThreeDistinctGemsPayload>(
+      context.discoveryInput,
     );
     const selectedColors = payload.colors ? [...payload.colors] : [];
 
@@ -60,6 +61,7 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<
       const bankEntries = Object.entries(game.bank) as Array<[string, number]>;
 
       return {
+        complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
         options: bankEntries
           .filter(
@@ -68,7 +70,7 @@ export class TakeThreeDistinctGemsCommand implements CommandDefinition<
           )
           .map(([color]) => ({
             id: color,
-            value: {
+            nextDraft: {
               ...payload,
               colors: [...selectedColors, color],
             },

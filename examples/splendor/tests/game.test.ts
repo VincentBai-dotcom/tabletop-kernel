@@ -102,24 +102,33 @@ test("splendor discovers gem color choices before return tokens for three-distin
   const secondStep = gameExecutor.discoverCommand(state, {
     type: "take_three_distinct_gems",
     actorId: "p1",
-    payload: {
+    draft: {
       colors: ["white", "blue", "green"],
     },
   });
 
   expect(firstStep).toMatchObject({
+    complete: false,
     step: "select_gem_color",
   });
-  expect(firstStep?.options).toHaveLength(5);
-  expect(firstStep?.options[0]).toMatchObject({
+  if (!firstStep || firstStep.complete) {
+    throw new Error("expected_incomplete_discovery");
+  }
+  expect(firstStep.options).toHaveLength(5);
+  expect(firstStep.options[0]).toMatchObject({
     id: expect.any(String),
-    value: {
+    nextDraft: {
       colors: [expect.any(String)],
     },
   });
   expect(secondStep).toMatchObject({
-    step: "complete",
     complete: true,
+  });
+  if (!secondStep || !secondStep.complete) {
+    throw new Error("expected_complete_discovery");
+  }
+  expect(secondStep.payload).toEqual({
+    colors: ["white", "blue", "green"],
   });
 });
 
@@ -143,18 +152,22 @@ test("splendor discovers noble selection when a purchase leaves multiple nobles 
   const discovery = gameExecutor.discoverCommand(state, {
     type: "buy_reserved_card",
     actorId: "p1",
-    payload: {
+    draft: {
       cardId: 45,
     },
   });
 
   expect(discovery).toMatchObject({
+    complete: false,
     step: "select_noble",
   });
-  expect(discovery?.options).toHaveLength(2);
-  expect(discovery?.options[0]).toMatchObject({
+  if (!discovery || discovery.complete) {
+    throw new Error("expected_incomplete_discovery");
+  }
+  expect(discovery.options).toHaveLength(2);
+  expect(discovery.options[0]).toMatchObject({
     id: expect.any(String),
-    value: {
+    nextDraft: {
       cardId: 45,
       chosenNobleId: expect.any(Number),
     },

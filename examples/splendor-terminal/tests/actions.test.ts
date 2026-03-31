@@ -7,27 +7,28 @@ import {
 } from "../src/actions.ts";
 import type {
   SplendorState,
-  SplendorTerminalCommand,
   SplendorTerminalDiscovery,
+  SplendorTerminalDiscoveryInput,
 } from "../src/types.ts";
 
 test("buildCommandFromDiscovery follows discovered steps until completion", async () => {
-  const partialCommands: SplendorTerminalCommand[] = [];
+  const discoveryInputs: SplendorTerminalDiscoveryInput[] = [];
   const session = {
     discoverCommand(
-      command: SplendorTerminalCommand,
+      discoveryInput: SplendorTerminalDiscoveryInput,
     ): SplendorTerminalDiscovery | null {
-      partialCommands.push(command);
+      discoveryInputs.push(discoveryInput);
 
-      const payload = command.payload ?? {};
+      const draft = discoveryInput.draft ?? {};
 
-      if (!("cardId" in payload)) {
+      if (!("cardId" in draft)) {
         return {
+          complete: false,
           step: "select_card",
           options: [
             {
               id: "24",
-              value: {
+              nextDraft: {
                 cardId: 24,
               },
             },
@@ -35,13 +36,14 @@ test("buildCommandFromDiscovery follows discovered steps until completion", asyn
         };
       }
 
-      if (!("chosenNobleId" in payload)) {
+      if (!("chosenNobleId" in draft)) {
         return {
+          complete: false,
           step: "select_noble",
           options: [
             {
               id: "6",
-              value: {
+              nextDraft: {
                 cardId: 24,
                 chosenNobleId: 6,
               },
@@ -51,9 +53,11 @@ test("buildCommandFromDiscovery follows discovered steps until completion", asyn
       }
 
       return {
-        step: "complete",
-        options: [],
         complete: true,
+        payload: {
+          cardId: 24,
+          chosenNobleId: 6,
+        },
       };
     },
   };
@@ -65,7 +69,7 @@ test("buildCommandFromDiscovery follows discovered steps until completion", asyn
     async (discovery) => discovery.options[0]!,
   );
 
-  expect(partialCommands).toEqual([
+  expect(discoveryInputs).toEqual([
     {
       type: "buy_reserved_card",
       actorId: "you",
@@ -73,14 +77,14 @@ test("buildCommandFromDiscovery follows discovered steps until completion", asyn
     {
       type: "buy_reserved_card",
       actorId: "you",
-      payload: {
+      draft: {
         cardId: 24,
       },
     },
     {
       type: "buy_reserved_card",
       actorId: "you",
-      payload: {
+      draft: {
         cardId: 24,
         chosenNobleId: 6,
       },
@@ -110,11 +114,12 @@ test("chooseRandom helpers use the provided random function", () => {
   );
   const option = chooseRandomDiscoveryOption(
     {
+      complete: false,
       step: "select",
       options: [
-        { id: "one", value: {} },
-        { id: "two", value: {} },
-        { id: "three", value: {} },
+        { id: "one", nextDraft: {} },
+        { id: "two", nextDraft: {} },
+        { id: "three", nextDraft: {} },
       ],
     },
     () => 0.99,

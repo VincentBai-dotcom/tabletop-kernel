@@ -11,6 +11,7 @@ import {
   assertGameActive,
   guardedAvailability,
   guardedValidate,
+  readDraft,
   readPayload,
   type SplendorAvailabilityContext,
   type SplendorDiscoveryContext,
@@ -49,13 +50,12 @@ export class BuyReservedCardCommand implements CommandDefinition<
   discover(context: SplendorDiscoveryContext<BuyReservedCardPayload>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readPayload<Partial<BuyReservedCardPayload>>(
-      context.partialCommand,
-    );
+    const payload = readDraft<BuyReservedCardPayload>(context.discoveryInput);
     const player = game.getPlayer(actorId);
 
     if (!payload.cardId) {
       return {
+        complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
         options: player.reservedCardIds
           .filter((cardId: number) => {
@@ -65,7 +65,7 @@ export class BuyReservedCardCommand implements CommandDefinition<
           })
           .map((cardId: number) => ({
             id: String(cardId),
-            value: {
+            nextDraft: {
               ...payload,
               cardId,
             },

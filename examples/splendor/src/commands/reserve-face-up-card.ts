@@ -13,6 +13,7 @@ import {
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
+  readDraft,
   readPayload,
   type SplendorAvailabilityContext,
   type SplendorDiscoveryContext,
@@ -54,20 +55,19 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
   discover(context: SplendorDiscoveryContext<ReserveFaceUpCardPayload>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readPayload<Partial<ReserveFaceUpCardPayload>>(
-      context.partialCommand,
-    );
+    const payload = readDraft<ReserveFaceUpCardPayload>(context.discoveryInput);
     const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
       [string, number[]]
     >;
 
     if (!payload.level || !payload.cardId) {
       return {
+        complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
         options: faceUpEntries.flatMap(([level, cardIds]) =>
           cardIds.map((cardId: number) => ({
             id: `${level}:${cardId}`,
-            value: {
+            nextDraft: {
               ...payload,
               level: Number(level),
               cardId,

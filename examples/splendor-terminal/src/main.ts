@@ -17,8 +17,8 @@ import { renderGameScreen } from "./render.ts";
 import type {
   MenuOption,
   SplendorTerminalCommand,
-  SplendorTerminalDiscovery,
   SplendorTerminalDiscoveryOption,
+  SplendorTerminalOpenDiscovery,
 } from "./types.ts";
 
 async function main(): Promise<void> {
@@ -109,7 +109,7 @@ async function promptForHumanCommand(
 async function promptForDiscoveryOption(
   prompt: Interface,
   session: ReturnType<typeof createLocalSplendorSession>,
-  discovery: SplendorTerminalDiscovery,
+  discovery: SplendorTerminalOpenDiscovery,
 ): Promise<SplendorTerminalDiscoveryOption> {
   const options: MenuOption<SplendorTerminalDiscoveryOption>[] =
     discovery.options.map((option: SplendorTerminalDiscoveryOption) => ({

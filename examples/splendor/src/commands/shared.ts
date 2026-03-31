@@ -2,6 +2,7 @@ import type {
   CommandAvailabilityContext,
   CommandInput,
   CommandInputFromSchema,
+  DiscoveryInput,
   DiscoveryContext,
   ExecuteContext,
   ValidationContext,
@@ -27,7 +28,7 @@ export type SplendorAvailabilityContext =
 
 export type SplendorDiscoveryContext<
   TPayload extends Record<string, unknown> = Record<string, unknown>,
-> = DiscoveryContext<SplendorGameState, CommandInputFromSchema<TPayload>>;
+> = DiscoveryContext<SplendorGameState, TPayload>;
 
 export type SplendorValidationContext<
   TPayload extends Record<string, unknown> = Record<string, unknown>,
@@ -39,6 +40,10 @@ export type SplendorExecuteContext<
 
 export function readPayload<T>(commandInput: CommandInput): T {
   return (commandInput.payload ?? {}) as T;
+}
+
+export function readDraft<T>(discoveryInput: DiscoveryInput): T {
+  return (discoveryInput.draft ?? {}) as T;
 }
 
 export function isGemTokenColor(value: unknown): value is GemTokenColor {

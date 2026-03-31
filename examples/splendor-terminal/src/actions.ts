@@ -3,8 +3,9 @@ import type {
   MenuOption,
   SplendorPayload,
   SplendorTerminalCommand,
-  SplendorTerminalDiscovery,
+  SplendorTerminalDiscoveryInput,
   SplendorTerminalDiscoveryOption,
+  SplendorTerminalOpenDiscovery,
 } from "./types.ts";
 import {
   developmentCardsById,
@@ -41,23 +42,27 @@ export async function buildCommandFromDiscovery(
   actorId: string,
   commandType: string,
   chooseOption: (
-    discovery: SplendorTerminalDiscovery,
+    discovery: SplendorTerminalOpenDiscovery,
   ) => Promise<SplendorTerminalDiscoveryOption>,
 ): Promise<SplendorTerminalCommand> {
-  let partialCommand: SplendorTerminalCommand = {
+  let discoveryInput: SplendorTerminalDiscoveryInput = {
     type: commandType,
     actorId,
   };
 
   for (;;) {
-    const discovery = session.discoverCommand(partialCommand);
+    const discovery = session.discoverCommand(discoveryInput);
 
     if (!discovery) {
       throw new Error(`discovery_unavailable:${commandType}`);
     }
 
     if (discovery.complete) {
-      return partialCommand;
+      return {
+        type: commandType,
+        actorId,
+        payload: discovery.payload,
+      };
     }
 
     if (discovery.options.length === 0) {
@@ -65,9 +70,9 @@ export async function buildCommandFromDiscovery(
     }
 
     const choice = await chooseOption(discovery);
-    partialCommand = {
-      ...partialCommand,
-      payload: choice.value,
+    discoveryInput = {
+      ...discoveryInput,
+      draft: choice.nextDraft,
     };
   }
 }
@@ -87,7 +92,7 @@ export function chooseRandomAvailableCommandType(
 }
 
 export function chooseRandomDiscoveryOption(
-  discovery: SplendorTerminalDiscovery,
+  discovery: SplendorTerminalOpenDiscovery,
   random: () => number = Math.random,
 ): SplendorTerminalDiscoveryOption {
   if (discovery.options.length === 0) {
@@ -121,7 +126,7 @@ export function describeCommand(command: SplendorTerminalCommand): string {
 }
 
 export function describeDiscoveryPrompt(
-  discovery: SplendorTerminalDiscovery,
+  discovery: SplendorTerminalOpenDiscovery,
 ): string {
   switch (discovery.step) {
     case SPLENDOR_DISCOVERY_STEPS.selectGemColor:
@@ -144,7 +149,7 @@ export function describeDiscoveryPrompt(
 }
 
 export function describeDiscoveryOption(
-  discovery: SplendorTerminalDiscovery,
+  discovery: SplendorTerminalOpenDiscovery,
   option: SplendorTerminalDiscoveryOption,
 ): string {
   const metadata = option.metadata ?? {};
@@ -153,11 +158,11 @@ export function describeDiscoveryOption(
     case SPLENDOR_DISCOVERY_STEPS.selectGemColor:
       return `Take ${String(metadata.color ?? option.id)}`;
     case SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard:
-      return describeCardSelection(option.value);
+      return describeCardSelection(option.nextDraft);
     case SPLENDOR_DISCOVERY_STEPS.selectDeckLevel:
       return `Level ${String(metadata.level ?? option.id)} deck`;
     case SPLENDOR_DISCOVERY_STEPS.selectReservedCard:
-      return describeReservedCardSelection(option.value);
+      return describeReservedCardSelection(option.nextDraft);
     case SPLENDOR_DISCOVERY_STEPS.selectReturnToken:
       return `Return ${String(metadata.color ?? option.id)}`;
     case SPLENDOR_DISCOVERY_STEPS.selectNoble:

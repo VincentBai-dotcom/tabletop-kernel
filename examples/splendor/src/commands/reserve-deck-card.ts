@@ -13,6 +13,7 @@ import {
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
+  readDraft,
   readPayload,
   type SplendorAvailabilityContext,
   type SplendorDiscoveryContext,
@@ -52,21 +53,20 @@ export class ReserveDeckCardCommand implements CommandDefinition<
   discover(context: SplendorDiscoveryContext<ReserveDeckCardPayload>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readPayload<Partial<ReserveDeckCardPayload>>(
-      context.partialCommand,
-    );
+    const payload = readDraft<ReserveDeckCardPayload>(context.discoveryInput);
     const deckEntries = Object.entries(game.board.deckByLevel) as Array<
       [string, number[]]
     >;
 
     if (!payload.level) {
       return {
+        complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectDeckLevel,
         options: deckEntries
           .filter(([, cardIds]) => cardIds.length > 0)
           .map(([level]) => ({
             id: level,
-            value: {
+            nextDraft: {
               ...payload,
               level: Number(level),
             },

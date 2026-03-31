@@ -20,25 +20,24 @@ export type SplendorDiscoveryStep =
   (typeof SPLENDOR_DISCOVERY_STEPS)[keyof typeof SPLENDOR_DISCOVERY_STEPS];
 
 export interface SplendorDiscoveryOption<
-  TPayload extends Record<string, unknown>,
+  TDraft extends Record<string, unknown>,
 > {
   id: string;
-  value: TPayload;
+  nextDraft: TDraft;
   metadata?: Record<string, unknown>;
 }
 
-export type SplendorDiscoveryResult<TPayload extends Record<string, unknown>> =
-  CommandDiscoveryResult<SplendorDiscoveryOption<TPayload>>;
+export type SplendorDiscoveryResult<
+  TDraft extends Record<string, unknown>,
+  TPayload extends Record<string, unknown> = TDraft,
+> = CommandDiscoveryResult<TDraft, TPayload>;
 
 export function completeDiscovery<TPayload extends Record<string, unknown>>(
   payload: TPayload,
 ): SplendorDiscoveryResult<TPayload> {
-  void payload;
-
   return {
-    step: SPLENDOR_DISCOVERY_STEPS.complete,
-    options: [],
-    complete: true,
+    complete: true as const,
+    payload,
   };
 }
 
@@ -59,12 +58,13 @@ export function createReturnTokenDiscovery<
   }
 
   return {
+    complete: false as const,
     step: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,
     options: TOKEN_COLORS.filter(
       (color) => availableTokens[color] > (currentReturnTokens[color] ?? 0),
     ).map((color) => ({
       id: color,
-      value: {
+      nextDraft: {
         ...payload,
         returnTokens: {
           ...currentReturnTokens,
@@ -97,10 +97,11 @@ export function createNobleDiscovery<
   }
 
   return {
+    complete: false as const,
     step: SPLENDOR_DISCOVERY_STEPS.selectNoble,
     options: eligibleNobles.map((noble) => ({
       id: String(noble.id),
-      value: {
+      nextDraft: {
         ...payload,
         chosenNobleId: noble.id,
       },

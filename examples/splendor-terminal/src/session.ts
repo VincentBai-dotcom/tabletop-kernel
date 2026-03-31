@@ -10,6 +10,7 @@ import type {
   SplendorState,
   SplendorTerminalDiscovery,
   SplendorTerminalCommand,
+  SplendorTerminalDiscoveryInput,
 } from "./types.ts";
 
 type SplendorGameExecutorApi = Pick<
@@ -67,11 +68,11 @@ export class SplendorTerminalSession {
   }
 
   discoverCommand(
-    partialCommand: SplendorTerminalCommand,
+    discoveryInput: SplendorTerminalDiscoveryInput,
   ): SplendorTerminalDiscovery | null {
     return this.gameExecutor.discoverCommand(
       this.state,
-      partialCommand,
+      discoveryInput,
     ) as SplendorTerminalDiscovery | null;
   }
 

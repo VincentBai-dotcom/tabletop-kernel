@@ -13,6 +13,7 @@ import {
   guardedAvailability,
   guardedValidate,
   isGemTokenColor,
+  readDraft,
   readPayload,
   type SplendorAvailabilityContext,
   type SplendorDiscoveryContext,
@@ -49,20 +50,19 @@ export class TakeTwoSameGemsCommand implements CommandDefinition<
   discover(context: SplendorDiscoveryContext<TakeTwoSameGemsPayload>) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const payload = readPayload<Partial<TakeTwoSameGemsPayload>>(
-      context.partialCommand,
-    );
+    const payload = readDraft<TakeTwoSameGemsPayload>(context.discoveryInput);
 
     if (!payload.color) {
       const bankEntries = Object.entries(game.bank) as Array<[string, number]>;
 
       return {
+        complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
         options: bankEntries
           .filter(([color, count]) => color !== "gold" && count >= 4)
           .map(([color]) => ({
             id: color,
-            value: {
+            nextDraft: {
               ...payload,
               color,
             },
