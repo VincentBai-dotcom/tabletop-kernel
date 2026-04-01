@@ -32,3 +32,11 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# local splendor reference files
+examples/splendor/Splendor Cards.csv
+examples/splendor/Splendor.md
+examples/splendor/nobile tiles.md
+
+# local codex state
+.codex
