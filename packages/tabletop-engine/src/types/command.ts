@@ -4,6 +4,10 @@ import type { ValidationOutcome } from "./result";
 import type { CanonicalState, RuntimeState } from "./state";
 import type { RNGApi } from "./rng";
 
+export const commandDefinitionBrand = Symbol(
+  "tabletop-engine.command-definition",
+);
+
 export interface CommandInput<
   Payload extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -50,7 +54,11 @@ type CommandLifecycleMethods<
   ): void;
 };
 
-export type DiscoverableCommandDefinition<
+type CommandDefinitionBrand = {
+  readonly [commandDefinitionBrand]: true;
+};
+
+export type DiscoverableCommandConfig<
   FacadeGameState extends object = object,
   TPayload extends CommandPayload = CommandPayload,
   TDraft extends DiscoveryDraft = DiscoveryDraft,
@@ -63,7 +71,7 @@ export type DiscoverableCommandDefinition<
   ): CommandDiscoveryResult<TDraft, TPayload> | null;
 } & CommandLifecycleMethods<FacadeGameState, TPayload>;
 
-export type NonDiscoverableCommandDefinition<
+export type NonDiscoverableCommandConfig<
   FacadeGameState extends object = object,
   TPayload extends CommandPayload = CommandPayload,
 > = {
@@ -72,6 +80,37 @@ export type NonDiscoverableCommandDefinition<
   discoveryDraftSchema?: never;
   discover?: never;
 } & CommandLifecycleMethods<FacadeGameState, TPayload>;
+
+export type DefinedCommand<
+  FacadeGameState extends object = object,
+  TPayload extends CommandPayload = CommandPayload,
+  TDraft extends DiscoveryDraft = TPayload,
+> = CommandDefinitionBrand &
+  CommandDefinitionShape<FacadeGameState, TPayload, TDraft>;
+
+export type CommandDefinitionShape<
+  FacadeGameState extends object = object,
+  TPayload extends CommandPayload = CommandPayload,
+  TDraft extends DiscoveryDraft = TPayload,
+> =
+  | (DiscoverableCommandConfig<FacadeGameState, TPayload, TDraft> & {
+      discoveryDraftSchema: CommandPayloadSchema<TDraft>;
+    })
+  | NonDiscoverableCommandConfig<FacadeGameState, TPayload>;
+
+export type CommandDefinitionLike<FacadeGameState extends object = object> = {
+  commandId: string;
+  payloadSchema: CommandPayloadSchema<Record<string, unknown>>;
+  discoveryDraftSchema?: CommandPayloadSchema<Record<string, unknown>>;
+  isAvailable?(context: CommandAvailabilityContext<FacadeGameState>): boolean;
+  discover?(
+    context: DiscoveryContext<FacadeGameState, Record<string, unknown>>,
+  ): CommandDiscoveryResult | null;
+  validate(
+    context: ValidationContext<FacadeGameState, CommandInput>,
+  ): ValidationOutcome;
+  execute(context: ExecuteContext<FacadeGameState, CommandInput>): void;
+};
 
 export interface InternalValidationContext<
   CanonicalGameState extends object = object,
@@ -231,11 +270,3 @@ export interface InternalCommandDefinition<
     >,
   ): void;
 }
-
-export type CommandDefinition<
-  FacadeGameState extends object = object,
-  TPayload extends CommandPayload = CommandPayload,
-  TDraft extends DiscoveryDraft = TPayload,
-> =
-  | DiscoverableCommandDefinition<FacadeGameState, TPayload, TDraft>
-  | NonDiscoverableCommandDefinition<FacadeGameState, TPayload>;

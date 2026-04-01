@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import type {
   CommandAvailabilityContext,
-  CommandDefinition,
   CommandInput,
   CommandDiscoveryResult,
   CanonicalState,
@@ -244,22 +243,19 @@ test("discovery types compose for draft-based next-step options and completion",
 });
 
 test("consumer command definitions only expose game state and command input generics", () => {
+  const defineCommand = createCommandFactory<{
+    increment(): void;
+  }>();
   const gainScorePayload = t.object({
     amount: t.number(),
   });
-  type GainScorePayload = typeof gainScorePayload.static;
 
-  type GainScoreDraft = {
-    amount?: number;
-  };
-
-  const definition: CommandDefinition<
-    { increment(): void },
-    GainScorePayload,
-    GainScoreDraft
-  > = {
+  const definition = defineCommand({
     commandId: "gain_score",
     payloadSchema: gainScorePayload,
+    discoveryDraftSchema: t.object({
+      amount: t.optional(t.number()),
+    }),
     discover: ({ discoveryInput }) => {
       if (typeof discoveryInput.draft?.amount !== "number") {
         return {
@@ -294,7 +290,7 @@ test("consumer command definitions only expose game state and command input gene
       const amount: number | undefined = commandInput.payload?.amount;
       void amount;
     },
-  };
+  });
 
   expect(definition.commandId).toBe("gain_score");
 });

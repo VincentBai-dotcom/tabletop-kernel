@@ -49,19 +49,19 @@ export type {
 } from "./schema";
 export type {
   CommandAvailabilityContext,
-  CommandDefinition,
+  CommandDefinitionLike,
   CommandPayloadSchema,
   CommandDiscoveryResult,
   CommandInput,
-  DiscoverableCommandDefinition,
   DiscoveryInput,
   DiscoveryOption,
   CommandInputFromSchema,
   DiscoveryContext,
+  DefinedCommand,
   ExecuteContext,
-  NonDiscoverableCommandDefinition,
   ValidationContext,
 } from "./types/command";
+export type { CommandFactory } from "./command-factory";
 export type { GameEvent } from "./types/event";
 export type {
   ExecutionFailure,
