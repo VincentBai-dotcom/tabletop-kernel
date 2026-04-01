@@ -1,13 +1,12 @@
-import type { DefinedCommand } from "tabletop-engine";
 import { buyFaceUpCardCommand } from "./buy-face-up-card.ts";
 import { buyReservedCardCommand } from "./buy-reserved-card.ts";
 import { reserveDeckCardCommand } from "./reserve-deck-card.ts";
 import { reserveFaceUpCardCommand } from "./reserve-face-up-card.ts";
 import { takeThreeDistinctGemsCommand } from "./take-three-distinct-gems.ts";
 import { takeTwoSameGemsCommand } from "./take-two-same-gems.ts";
-import type { SplendorGameState } from "../state.ts";
+import type { SplendorCommand } from "./shared.ts";
 
-export function createCommands(): DefinedCommand<SplendorGameState>[] {
+export function createCommands(): SplendorCommand[] {
   return [
     takeThreeDistinctGemsCommand,
     takeTwoSameGemsCommand,
@@ -17,15 +16,6 @@ export function createCommands(): DefinedCommand<SplendorGameState>[] {
     buyReservedCardCommand,
   ];
 }
-
-export {
-  buyFaceUpCardCommand,
-  buyReservedCardCommand,
-  reserveDeckCardCommand,
-  reserveFaceUpCardCommand,
-  takeThreeDistinctGemsCommand,
-  takeTwoSameGemsCommand,
-};
 
 export type { BuyFaceUpCardPayload } from "./buy-face-up-card.ts";
 export type { BuyReservedCardPayload } from "./buy-reserved-card.ts";

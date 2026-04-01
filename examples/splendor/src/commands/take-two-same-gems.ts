@@ -1,10 +1,9 @@
-import { t, type DefinedCommand } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type { SplendorGameState } from "../state.ts";
 import {
   assertGemTokenColor,
   assertAvailableActor,
@@ -14,12 +13,10 @@ import {
   guardedValidate,
   isGemTokenColor,
   defineSplendorCommand,
-  readDraft,
-  readPayload,
 } from "./shared.ts";
 
 const takeTwoSameGemsPayloadSchema = t.object({
-  color: t.optional(t.string()),
+  color: t.string(),
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
@@ -30,13 +27,7 @@ const takeTwoSameGemsDraftSchema = t.object({
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
-type TakeTwoSameGemsDraft = typeof takeTwoSameGemsDraftSchema.static;
-
-export const takeTwoSameGemsCommand: DefinedCommand<
-  SplendorGameState,
-  TakeTwoSameGemsPayload,
-  TakeTwoSameGemsDraft
-> = defineSplendorCommand({
+const takeTwoSameGemsCommand = defineSplendorCommand({
   commandId: "take_two_same_gems",
   payloadSchema: takeTwoSameGemsPayloadSchema,
   discoveryDraftSchema: takeTwoSameGemsDraftSchema,
@@ -56,9 +47,9 @@ export const takeTwoSameGemsCommand: DefinedCommand<
   discover(context) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const draft = readDraft(context.discoveryInput);
+    const draft = context.discoveryInput.draft;
 
-    if (!draft.selectedColor) {
+    if (!draft?.selectedColor) {
       const bankEntries = Object.entries(game.bank) as Array<[string, number]>;
 
       return {
@@ -69,7 +60,7 @@ export const takeTwoSameGemsCommand: DefinedCommand<
           .map(([color]) => ({
             id: color,
             nextDraft: {
-              ...draft,
+              ...(draft ?? {}),
               selectedColor: color,
             },
             metadata: {
@@ -105,9 +96,9 @@ export const takeTwoSameGemsCommand: DefinedCommand<
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
-      const payload = readPayload(commandInput);
+      const payload = commandInput.payload;
 
-      if (!payload.color) {
+      if (!payload) {
         return { ok: false, reason: "color_required" };
       }
 
@@ -139,7 +130,7 @@ export const takeTwoSameGemsCommand: DefinedCommand<
 
   execute({ game, commandInput, emitEvent }) {
     const actorId = commandInput.actorId!;
-    const payload = readPayload(commandInput);
+    const payload = commandInput.payload!;
     const color = assertGemTokenColor(payload.color);
     const player = game.getPlayer(actorId);
 
@@ -157,3 +148,5 @@ export const takeTwoSameGemsCommand: DefinedCommand<
     });
   },
 });
+
+export { takeTwoSameGemsCommand };

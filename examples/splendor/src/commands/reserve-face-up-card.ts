@@ -1,10 +1,9 @@
-import { t, type DefinedCommand } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type { SplendorGameState } from "../state.ts";
 import {
   assertDevelopmentLevel,
   assertAvailableActor,
@@ -14,13 +13,11 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
-  readDraft,
-  readPayload,
 } from "./shared.ts";
 
 const reserveFaceUpCardPayloadSchema = t.object({
-  level: t.optional(t.number()),
-  cardId: t.optional(t.number()),
+  level: t.number(),
+  cardId: t.number(),
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
@@ -33,13 +30,7 @@ const reserveFaceUpCardDraftSchema = t.object({
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
-type ReserveFaceUpCardDraft = typeof reserveFaceUpCardDraftSchema.static;
-
-export const reserveFaceUpCardCommand: DefinedCommand<
-  SplendorGameState,
-  ReserveFaceUpCardPayload,
-  ReserveFaceUpCardDraft
-> = defineSplendorCommand({
+const reserveFaceUpCardCommand = defineSplendorCommand({
   commandId: "reserve_face_up_card",
   payloadSchema: reserveFaceUpCardPayloadSchema,
   discoveryDraftSchema: reserveFaceUpCardDraftSchema,
@@ -62,12 +53,12 @@ export const reserveFaceUpCardCommand: DefinedCommand<
   discover(context) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const draft = readDraft(context.discoveryInput);
+    const draft = context.discoveryInput.draft;
     const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
       [string, number[]]
     >;
 
-    if (!draft.selectedLevel || !draft.selectedCardId) {
+    if (!draft?.selectedLevel || !draft?.selectedCardId) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
@@ -75,7 +66,7 @@ export const reserveFaceUpCardCommand: DefinedCommand<
           cardIds.map((cardId: number) => ({
             id: `${level}:${cardId}`,
             nextDraft: {
-              ...draft,
+              ...(draft ?? {}),
               selectedLevel: Number(level),
               selectedCardId: cardId,
             },
@@ -116,14 +107,14 @@ export const reserveFaceUpCardCommand: DefinedCommand<
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
-      const payload = readPayload(commandInput);
+      const payload = commandInput.payload;
       const player = game.getPlayer(actorId).clone();
 
       if (!player.canReserveMoreCards()) {
         return { ok: false, reason: "reserved_limit_reached" };
       }
 
-      if (!payload.cardId || !payload.level) {
+      if (!payload) {
         return { ok: false, reason: "level_and_card_required" };
       }
 
@@ -156,11 +147,7 @@ export const reserveFaceUpCardCommand: DefinedCommand<
 
   execute({ game, commandInput, emitEvent }) {
     const actorId = commandInput.actorId!;
-    const payload = readPayload(commandInput);
-    if (!payload.cardId || !payload.level) {
-      throw new Error("level_and_card_required");
-    }
-
+    const payload = commandInput.payload!;
     const level = assertDevelopmentLevel(payload.level);
     const player = game.getPlayer(actorId);
 
@@ -184,3 +171,5 @@ export const reserveFaceUpCardCommand: DefinedCommand<
     });
   },
 });
+
+export { reserveFaceUpCardCommand };

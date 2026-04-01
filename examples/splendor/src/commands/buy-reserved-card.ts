@@ -1,10 +1,9 @@
-import { t, type DefinedCommand } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import {
   completeDiscovery,
   createNobleDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type { SplendorGameState } from "../state.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -12,12 +11,10 @@ import {
   defineSplendorCommand,
   guardedAvailability,
   guardedValidate,
-  readDraft,
-  readPayload,
 } from "./shared.ts";
 
 const buyReservedCardPayloadSchema = t.object({
-  cardId: t.optional(t.number()),
+  cardId: t.number(),
   chosenNobleId: t.optional(t.number()),
 });
 
@@ -28,13 +25,7 @@ const buyReservedCardDraftSchema = t.object({
   chosenNobleId: t.optional(t.number()),
 });
 
-type BuyReservedCardDraft = typeof buyReservedCardDraftSchema.static;
-
-export const buyReservedCardCommand: DefinedCommand<
-  SplendorGameState,
-  BuyReservedCardPayload,
-  BuyReservedCardDraft
-> = defineSplendorCommand({
+const buyReservedCardCommand = defineSplendorCommand({
   commandId: "buy_reserved_card",
   payloadSchema: buyReservedCardPayloadSchema,
   discoveryDraftSchema: buyReservedCardDraftSchema,
@@ -56,10 +47,10 @@ export const buyReservedCardCommand: DefinedCommand<
   discover(context) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const draft = readDraft(context.discoveryInput);
+    const draft = context.discoveryInput.draft;
     const player = game.getPlayer(actorId);
 
-    if (!draft.selectedCardId) {
+    if (!draft?.selectedCardId) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
@@ -72,7 +63,7 @@ export const buyReservedCardCommand: DefinedCommand<
           .map((cardId: number) => ({
             id: String(cardId),
             nextDraft: {
-              ...draft,
+              ...(draft ?? {}),
               selectedCardId: cardId,
             },
             metadata: {
@@ -102,10 +93,10 @@ export const buyReservedCardCommand: DefinedCommand<
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
-      const payload = readPayload(commandInput);
+      const payload = commandInput.payload;
       const player = game.getPlayer(actorId);
 
-      if (!payload.cardId) {
+      if (!payload) {
         return { ok: false, reason: "card_required" };
       }
 
@@ -144,11 +135,7 @@ export const buyReservedCardCommand: DefinedCommand<
 
   execute({ game, commandInput, emitEvent }) {
     const actorId = commandInput.actorId!;
-    const payload = readPayload(commandInput);
-    if (!payload.cardId) {
-      throw new Error("card_required");
-    }
-
+    const payload = commandInput.payload!;
     const player = game.getPlayer(actorId);
     const card = game.getCard(payload.cardId);
     const payment = player.getAffordablePayment(card);
@@ -172,3 +159,5 @@ export const buyReservedCardCommand: DefinedCommand<
     });
   },
 });
+
+export { buyReservedCardCommand };

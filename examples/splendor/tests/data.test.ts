@@ -5,15 +5,7 @@ import {
   developmentCardsByLevel,
   nobleTiles,
 } from "../src/index.ts";
-import {
-  buyFaceUpCardCommand,
-  buyReservedCardCommand,
-  createCommands,
-  reserveDeckCardCommand,
-  reserveFaceUpCardCommand,
-  takeThreeDistinctGemsCommand,
-  takeTwoSameGemsCommand,
-} from "../src/commands/index.ts";
+import { createCommands } from "../src/commands/index.ts";
 
 test("splendor static data is complete", () => {
   expect(developmentCards).toHaveLength(90);
@@ -40,10 +32,12 @@ test("splendor static data has stable identifiers", () => {
 test("splendor command registry is composed from factory-defined command objects", () => {
   const commands = createCommands();
 
-  expect(commands[0]).toBe(takeThreeDistinctGemsCommand);
-  expect(commands[1]).toBe(takeTwoSameGemsCommand);
-  expect(commands[2]).toBe(reserveFaceUpCardCommand);
-  expect(commands[3]).toBe(reserveDeckCardCommand);
-  expect(commands[4]).toBe(buyFaceUpCardCommand);
-  expect(commands[5]).toBe(buyReservedCardCommand);
+  expect(commands.map((command) => command.commandId)).toEqual([
+    "take_three_distinct_gems",
+    "take_two_same_gems",
+    "reserve_face_up_card",
+    "reserve_deck_card",
+    "buy_face_up_card",
+    "buy_reserved_card",
+  ]);
 });

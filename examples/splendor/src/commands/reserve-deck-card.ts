@@ -1,10 +1,9 @@
-import { t, type DefinedCommand } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type { SplendorGameState } from "../state.ts";
 import {
   assertDevelopmentLevel,
   assertAvailableActor,
@@ -14,12 +13,10 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
-  readDraft,
-  readPayload,
 } from "./shared.ts";
 
 const reserveDeckCardPayloadSchema = t.object({
-  level: t.optional(t.number()),
+  level: t.number(),
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
@@ -30,13 +27,7 @@ const reserveDeckCardDraftSchema = t.object({
   returnTokens: t.optional(t.record(t.string(), t.number())),
 });
 
-type ReserveDeckCardDraft = typeof reserveDeckCardDraftSchema.static;
-
-export const reserveDeckCardCommand: DefinedCommand<
-  SplendorGameState,
-  ReserveDeckCardPayload,
-  ReserveDeckCardDraft
-> = defineSplendorCommand({
+const reserveDeckCardCommand = defineSplendorCommand({
   commandId: "reserve_deck_card",
   payloadSchema: reserveDeckCardPayloadSchema,
   discoveryDraftSchema: reserveDeckCardDraftSchema,
@@ -59,12 +50,12 @@ export const reserveDeckCardCommand: DefinedCommand<
   discover(context) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const draft = readDraft(context.discoveryInput);
+    const draft = context.discoveryInput.draft;
     const deckEntries = Object.entries(game.board.deckByLevel) as Array<
       [string, number[]]
     >;
 
-    if (!draft.selectedLevel) {
+    if (!draft?.selectedLevel) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectDeckLevel,
@@ -73,7 +64,7 @@ export const reserveDeckCardCommand: DefinedCommand<
           .map(([level]) => ({
             id: level,
             nextDraft: {
-              ...draft,
+              ...(draft ?? {}),
               selectedLevel: Number(level),
             },
             metadata: {
@@ -110,14 +101,14 @@ export const reserveDeckCardCommand: DefinedCommand<
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
-      const payload = readPayload(commandInput);
+      const payload = commandInput.payload;
       const player = game.getPlayer(actorId).clone();
 
       if (!player.canReserveMoreCards()) {
         return { ok: false, reason: "reserved_limit_reached" };
       }
 
-      if (!payload.level) {
+      if (!payload) {
         return { ok: false, reason: "level_required" };
       }
 
@@ -150,7 +141,7 @@ export const reserveDeckCardCommand: DefinedCommand<
 
   execute({ game, commandInput, emitEvent }) {
     const actorId = commandInput.actorId!;
-    const payload = readPayload(commandInput);
+    const payload = commandInput.payload!;
     const level = assertDevelopmentLevel(payload.level);
     const player = game.getPlayer(actorId);
     const reservedCardId = game.board.reserveDeckCard(level);
@@ -172,3 +163,5 @@ export const reserveDeckCardCommand: DefinedCommand<
     });
   },
 });
+
+export { reserveDeckCardCommand };

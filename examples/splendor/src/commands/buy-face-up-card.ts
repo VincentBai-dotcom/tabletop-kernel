@@ -1,10 +1,9 @@
-import { t, type DefinedCommand } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import {
   completeDiscovery,
   createNobleDiscovery,
   SPLENDOR_DISCOVERY_STEPS,
 } from "../discovery.ts";
-import type { SplendorGameState } from "../state.ts";
 import {
   assertDevelopmentLevel,
   assertAvailableActor,
@@ -14,13 +13,11 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
-  readDraft,
-  readPayload,
 } from "./shared.ts";
 
 const buyFaceUpCardPayloadSchema = t.object({
-  level: t.optional(t.number()),
-  cardId: t.optional(t.number()),
+  level: t.number(),
+  cardId: t.number(),
   chosenNobleId: t.optional(t.number()),
 });
 
@@ -32,13 +29,7 @@ const buyFaceUpCardDraftSchema = t.object({
   chosenNobleId: t.optional(t.number()),
 });
 
-type BuyFaceUpCardDraft = typeof buyFaceUpCardDraftSchema.static;
-
-export const buyFaceUpCardCommand: DefinedCommand<
-  SplendorGameState,
-  BuyFaceUpCardPayload,
-  BuyFaceUpCardDraft
-> = defineSplendorCommand({
+const buyFaceUpCardCommand = defineSplendorCommand({
   commandId: "buy_face_up_card",
   payloadSchema: buyFaceUpCardPayloadSchema,
   discoveryDraftSchema: buyFaceUpCardDraftSchema,
@@ -68,13 +59,13 @@ export const buyFaceUpCardCommand: DefinedCommand<
   discover(context) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const draft = readDraft(context.discoveryInput);
+    const draft = context.discoveryInput.draft;
     const player = game.getPlayer(actorId);
     const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
       [string, number[]]
     >;
 
-    if (!draft.selectedLevel || !draft.selectedCardId) {
+    if (!draft?.selectedLevel || !draft?.selectedCardId) {
       return {
         complete: false as const,
         step: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
@@ -88,7 +79,7 @@ export const buyFaceUpCardCommand: DefinedCommand<
             .map((cardId: number) => ({
               id: `${level}:${cardId}`,
               nextDraft: {
-                ...draft,
+                ...(draft ?? {}),
                 selectedLevel: Number(level),
                 selectedCardId: cardId,
               },
@@ -121,9 +112,9 @@ export const buyFaceUpCardCommand: DefinedCommand<
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
-      const payload = readPayload(commandInput);
+      const payload = commandInput.payload;
 
-      if (!payload.cardId || !payload.level) {
+      if (!payload) {
         return { ok: false, reason: "level_and_card_required" };
       }
 
@@ -168,11 +159,7 @@ export const buyFaceUpCardCommand: DefinedCommand<
 
   execute({ game, commandInput, emitEvent }) {
     const actorId = commandInput.actorId!;
-    const payload = readPayload(commandInput);
-    if (!payload.cardId || !payload.level) {
-      throw new Error("level_and_card_required");
-    }
-
+    const payload = commandInput.payload!;
     const level = assertDevelopmentLevel(payload.level);
     const player = game.getPlayer(actorId);
     const card = game.getCard(payload.cardId);
@@ -199,3 +186,5 @@ export const buyFaceUpCardCommand: DefinedCommand<
     });
   },
 });
+
+export { buyFaceUpCardCommand };
