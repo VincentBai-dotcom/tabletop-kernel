@@ -1,0 +1,345 @@
+# Command Factory Migration Design
+
+## Goal
+
+Move consumer command authoring from class-based `implements CommandDefinition`
+to a `defineCommand(...)` / `createCommandFactory(...)` API.
+
+The engine, not the consumer, should provide the method input types for:
+
+- `isAvailable(context)`
+- `discover(context)`
+- `validate(context)`
+- `execute(context)`
+
+## Problem
+
+Current command authoring makes consumers define too much type plumbing.
+
+In Splendor today, the consumer has to:
+
+- define local context aliases in
+  [`examples/splendor/src/commands/shared.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/examples/splendor/src/commands/shared.ts)
+- manually annotate the parameter type of `isAvailable`, `discover`,
+  `validate`, and `execute`
+- repeat the game-state type in each command class generic
+
+This happens because `class ... implements CommandDefinition<...>` only checks
+compatibility after the class is written. It does not contextually type class
+method parameters from the interface.
+
+## Recommended Direction
+
+Adopt a game-bound command factory as the primary authoring API.
+
+Recommended shape:
+
+```ts
+const defineSplendorCommand = createCommandFactory<SplendorGameState>();
+
+export const takeThreeDistinctGemsCommand = defineSplendorCommand({
+  commandId: "take_three_distinct_gems",
+  payloadSchema: t.object({
+    colors: t.optional(t.array(t.string())),
+    returnTokens: t.optional(t.record(t.string(), t.number())),
+  }),
+  discoveryDraftSchema: t.object({
+    selectedColors: t.optional(t.array(t.string())),
+    returnTokens: t.optional(t.record(t.string(), t.number())),
+  }),
+
+  isAvailable({ game, actorId, runtime }) {
+    return true;
+  },
+
+  discover({ game, actorId, discoveryInput }) {
+    return {
+      complete: true,
+      payload: {
+        colors: [],
+      },
+    };
+  },
+
+  validate({ game, runtime, commandInput }) {
+    return { ok: true };
+  },
+
+  execute({ game, commandInput, emitEvent }) {
+    void emitEvent;
+  },
+});
+```
+
+In that model:
+
+- `SplendorGameState` is bound once in the factory
+- payload type is inferred from `payloadSchema`
+- draft type is inferred from `discoveryDraftSchema`
+- method parameter types are supplied by the engine
+- consumers no longer need local context aliases
+
+## Why `defineCommand(...)` Instead Of A Base Class
+
+An abstract base class would improve the current class API, but it would still
+be weaker than a factory:
+
+- it can reduce explicit method parameter annotations
+- but it still requires class generics
+- and it still cannot infer `TPayload` / `TDraft` from sibling schema
+  properties in the same way an object-literal factory can
+
+The factory approach is the closest match to the desired Elysia-style
+experience.
+
+## Proposed API Shape
+
+### Public Factory
+
+Add:
+
+```ts
+createCommandFactory<FacadeGameState>();
+```
+
+It returns:
+
+```ts
+defineCommand(config);
+```
+
+### Discoverable vs Non-Discoverable Commands
+
+The `defineCommand(...)` input should be a discriminated union at the type
+level:
+
+- non-discoverable commands:
+  - no `discover`
+  - no `discoveryDraftSchema`
+- discoverable commands:
+  - `discover` required
+  - `discoveryDraftSchema` required
+
+This preserves the protocol guarantees already enforced in
+[`packages/tabletop-engine/src/protocol/describe.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-engine/src/protocol/describe.ts),
+but moves the rule earlier into the authoring surface.
+
+### Return Shape
+
+`defineCommand(...)` should return the same structural command object shape the
+engine already uses today:
+
+- `commandId`
+- `payloadSchema`
+- optional `discoveryDraftSchema`
+- optional `isAvailable`
+- optional `discover`
+- required `validate`
+- required `execute`
+
+This keeps the migration mostly at the authoring and typing layer.
+
+## Dependency Surface Investigation
+
+### 1. GameDefinitionBuilder
+
+File:
+
+- [`packages/tabletop-engine/src/game-definition.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-engine/src/game-definition.ts)
+
+Current behavior:
+
+- accepts a command map or a command list
+- normalizes list input into a command map by `commandId`
+
+Conclusion:
+
+- this area does not require a structural redesign
+- the builder already depends on command object shape, not command classes
+- only typing cleanup may be needed
+
+### 2. GameExecutor Runtime
+
+File:
+
+- [`packages/tabletop-engine/src/runtime/game-executor.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-engine/src/runtime/game-executor.ts)
+
+Current behavior:
+
+- reads command objects from `game.commands`
+- calls `isAvailable`, `discover`, `validate`, and `execute`
+- hydrates facade state on demand before each command lifecycle call
+
+Conclusion:
+
+- no migration issue here, as long as `defineCommand(...)` returns the same
+  object contract
+- facade hydration should continue to work unchanged
+
+### 3. Protocol Descriptor
+
+File:
+
+- [`packages/tabletop-engine/src/protocol/describe.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-engine/src/protocol/describe.ts)
+
+Current behavior:
+
+- reads `payloadSchema`
+- reads `discoveryDraftSchema`
+- validates discoverability pairing
+
+Conclusion:
+
+- no class dependency
+- should continue to work if the returned command object has the same fields
+
+### 4. AsyncAPI Generator
+
+File:
+
+- [`packages/tabletop-engine/src/protocol/asyncapi.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-engine/src/protocol/asyncapi.ts)
+
+Current behavior:
+
+- builds submit-command schemas from `payloadSchema`
+- builds discovery input/result/rejection schemas from
+  `discoveryDraftSchema` and `payloadSchema`
+
+Conclusion:
+
+- no class dependency
+- should continue to work unchanged if command objects retain the same
+  properties
+
+### 5. Example Games
+
+Files:
+
+- [`examples/splendor/src/commands`](/home/vincent-bai/Documents/github/tabletop-kernel/examples/splendor/src/commands)
+
+Current behavior:
+
+- every command is a class
+- local context aliases exist only to work around the class typing problem
+
+Required changes:
+
+- replace classes with `defineSplendorCommand(...)`
+- remove most or all of the command-context aliases from
+  [`examples/splendor/src/commands/shared.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/examples/splendor/src/commands/shared.ts)
+- keep helper functions like `assertAvailableActor`, `readPayload`, and
+  `readDraft`
+
+### 6. Tests
+
+Files:
+
+- [`packages/tabletop-engine/tests`](/home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-engine/tests)
+- [`examples/splendor/tests`](/home/vincent-bai/Documents/github/tabletop-kernel/examples/splendor/tests)
+
+Required changes:
+
+- command fixtures in tests should move from classes to factory-defined command
+  objects where they are testing normal consumer authoring
+- internal engine typing tests should be updated to validate the new factory
+  inference behavior explicitly
+
+### 7. Exports and Public API Surface
+
+File:
+
+- [`packages/tabletop-engine/src/index.ts`](/home/vincent-bai/Documents/github/tabletop-kernel/packages/tabletop-engine/src/index.ts)
+
+Required changes:
+
+- export `createCommandFactory`
+- likely keep `CommandDefinition` as the structural type the factory returns
+
+Open question:
+
+- whether to keep the class-oriented authoring path officially supported or
+  treat it as legacy-only
+
+## What Probably Does Not Need To Change
+
+These areas appear structurally compatible with the migration:
+
+- command storage in `GameDefinition`
+- command execution in `GameExecutor`
+- facade hydration during availability/discovery/validation/execution
+- protocol descriptor extraction
+- AsyncAPI generation
+
+The main migration is at the authoring API and type inference boundary, not the
+execution pipeline.
+
+## Awkward Or Risky Areas
+
+### 1. Keeping Class Authoring As A First-Class API
+
+If class authoring remains equally blessed:
+
+- consumers will still see two competing ways to write commands
+- the worse DX path remains visible in docs/examples
+- the engine will need to explain why one path infers well and the other does
+  not
+
+Recommendation:
+
+- make `defineCommand(...)` the primary API
+- treat class-based command authoring as legacy compatibility if kept at all
+
+### 2. Full Backward Compatibility In Types
+
+Trying to preserve every current generic pattern while also introducing the new
+factory may make the type surface noisier than necessary.
+
+Recommendation:
+
+- preserve structural runtime compatibility
+- do not over-optimize for every old class-based typing pattern
+
+### 3. Game-Bound Factory Requirement
+
+The best DX comes from:
+
+```ts
+const defineSplendorCommand = createCommandFactory<SplendorGameState>();
+```
+
+This means the consumer still binds the game state once per game package.
+
+That is acceptable, but it is still one explicit step. There is no realistic
+way to remove even that while keeping the command definitions decoupled from the
+builder.
+
+## Migration Recommendation
+
+Recommended sequence:
+
+1. add `createCommandFactory<FacadeGameState>()`
+2. keep `CommandDefinition` as the structural return type
+3. add type tests proving contextual inference for all four methods
+4. migrate Splendor commands first
+5. remove local Splendor command-context aliases
+6. update docs/examples to present factory-based authoring as the default
+7. decide later whether to de-emphasize or remove class-style authoring
+
+## Summary
+
+The key finding is:
+
+- the executor, builder, protocol descriptor, and AsyncAPI generator already
+  depend on command shape, not command class identity
+
+That means the migration is viable and mostly localized.
+
+The main work is:
+
+- introduce a game-bound command factory
+- migrate examples/tests
+- simplify the public authoring story
+
+The main thing to avoid is trying to preserve class-based authoring as an equal
+first-class experience, because that keeps the exact DX problem this migration
+is meant to solve.
