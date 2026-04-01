@@ -1,4 +1,4 @@
-import { t, type CommandDefinition } from "tabletop-engine";
+import { t, type DefinedCommand } from "tabletop-engine";
 import {
   completeDiscovery,
   createReturnTokenDiscovery,
@@ -13,12 +13,9 @@ import {
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
+  defineSplendorCommand,
   readDraft,
   readPayload,
-  type SplendorAvailabilityContext,
-  type SplendorDiscoveryContext,
-  type SplendorExecuteContext,
-  type SplendorValidationContext,
 } from "./shared.ts";
 
 const reserveFaceUpCardPayloadSchema = t.object({
@@ -38,16 +35,16 @@ const reserveFaceUpCardDraftSchema = t.object({
 
 type ReserveFaceUpCardDraft = typeof reserveFaceUpCardDraftSchema.static;
 
-export class ReserveFaceUpCardCommand implements CommandDefinition<
+export const reserveFaceUpCardCommand: DefinedCommand<
   SplendorGameState,
   ReserveFaceUpCardPayload,
   ReserveFaceUpCardDraft
-> {
-  readonly commandId = "reserve_face_up_card";
-  readonly payloadSchema = reserveFaceUpCardPayloadSchema;
-  readonly discoveryDraftSchema = reserveFaceUpCardDraftSchema;
+> = defineSplendorCommand({
+  commandId: "reserve_face_up_card",
+  payloadSchema: reserveFaceUpCardPayloadSchema,
+  discoveryDraftSchema: reserveFaceUpCardDraftSchema,
 
-  isAvailable(context: SplendorAvailabilityContext) {
+  isAvailable(context) {
     return guardedAvailability(() => {
       const actorId = assertAvailableActor(context);
       const game = context.game;
@@ -60,12 +57,12 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
 
       return faceUpPiles.some((cards) => cards.length > 0);
     });
-  }
+  },
 
-  discover(context: SplendorDiscoveryContext<ReserveFaceUpCardDraft>) {
+  discover(context) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const draft = readDraft<ReserveFaceUpCardDraft>(context.discoveryInput);
+    const draft = readDraft(context.discoveryInput);
     const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
       [string, number[]]
     >;
@@ -113,17 +110,13 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
         returnTokens: draft.returnTokens,
       })
     );
-  }
+  },
 
-  validate({
-    runtime,
-    game,
-    commandInput,
-  }: SplendorValidationContext<ReserveFaceUpCardPayload>) {
+  validate({ runtime, game, commandInput }) {
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
-      const payload = readPayload<ReserveFaceUpCardPayload>(commandInput);
+      const payload = readPayload(commandInput);
       const player = game.getPlayer(actorId).clone();
 
       if (!player.canReserveMoreCards()) {
@@ -159,15 +152,11 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
 
       return { ok: true };
     });
-  }
+  },
 
-  execute({
-    game,
-    commandInput,
-    emitEvent,
-  }: SplendorExecuteContext<ReserveFaceUpCardPayload>) {
+  execute({ game, commandInput, emitEvent }) {
     const actorId = commandInput.actorId!;
-    const payload = readPayload<ReserveFaceUpCardPayload>(commandInput);
+    const payload = readPayload(commandInput);
     if (!payload.cardId || !payload.level) {
       throw new Error("level_and_card_required");
     }
@@ -193,7 +182,5 @@ export class ReserveFaceUpCardCommand implements CommandDefinition<
         returnTokens: payload.returnTokens ?? null,
       },
     });
-  }
-}
-
-export const reserveFaceUpCardCommand = new ReserveFaceUpCardCommand();
+  },
+});

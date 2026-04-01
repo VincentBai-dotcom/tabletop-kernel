@@ -1,4 +1,4 @@
-import { t, type CommandDefinition } from "tabletop-engine";
+import { t, type DefinedCommand } from "tabletop-engine";
 import {
   completeDiscovery,
   createNobleDiscovery,
@@ -13,12 +13,9 @@ import {
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
+  defineSplendorCommand,
   readDraft,
   readPayload,
-  type SplendorAvailabilityContext,
-  type SplendorDiscoveryContext,
-  type SplendorExecuteContext,
-  type SplendorValidationContext,
 } from "./shared.ts";
 
 const buyFaceUpCardPayloadSchema = t.object({
@@ -37,16 +34,16 @@ const buyFaceUpCardDraftSchema = t.object({
 
 type BuyFaceUpCardDraft = typeof buyFaceUpCardDraftSchema.static;
 
-export class BuyFaceUpCardCommand implements CommandDefinition<
+export const buyFaceUpCardCommand: DefinedCommand<
   SplendorGameState,
   BuyFaceUpCardPayload,
   BuyFaceUpCardDraft
-> {
-  readonly commandId = "buy_face_up_card";
-  readonly payloadSchema = buyFaceUpCardPayloadSchema;
-  readonly discoveryDraftSchema = buyFaceUpCardDraftSchema;
+> = defineSplendorCommand({
+  commandId: "buy_face_up_card",
+  payloadSchema: buyFaceUpCardPayloadSchema,
+  discoveryDraftSchema: buyFaceUpCardDraftSchema,
 
-  isAvailable(context: SplendorAvailabilityContext) {
+  isAvailable(context) {
     return guardedAvailability(() => {
       const actorId = assertAvailableActor(context);
       const game = context.game;
@@ -66,12 +63,12 @@ export class BuyFaceUpCardCommand implements CommandDefinition<
         }),
       );
     });
-  }
+  },
 
-  discover(context: SplendorDiscoveryContext<BuyFaceUpCardDraft>) {
+  discover(context) {
     const actorId = assertAvailableActor(context);
     const game = context.game;
-    const draft = readDraft<BuyFaceUpCardDraft>(context.discoveryInput);
+    const draft = readDraft(context.discoveryInput);
     const player = game.getPlayer(actorId);
     const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
       [string, number[]]
@@ -118,17 +115,13 @@ export class BuyFaceUpCardCommand implements CommandDefinition<
         chosenNobleId: draft.chosenNobleId,
       })
     );
-  }
+  },
 
-  validate({
-    runtime,
-    game,
-    commandInput,
-  }: SplendorValidationContext<BuyFaceUpCardPayload>) {
+  validate({ runtime, game, commandInput }) {
     return guardedValidate(() => {
       assertGameActive(game);
       const actorId = assertActivePlayer(runtime, commandInput.actorId);
-      const payload = readPayload<BuyFaceUpCardPayload>(commandInput);
+      const payload = readPayload(commandInput);
 
       if (!payload.cardId || !payload.level) {
         return { ok: false, reason: "level_and_card_required" };
@@ -171,15 +164,11 @@ export class BuyFaceUpCardCommand implements CommandDefinition<
 
       return { ok: true };
     });
-  }
+  },
 
-  execute({
-    game,
-    commandInput,
-    emitEvent,
-  }: SplendorExecuteContext<BuyFaceUpCardPayload>) {
+  execute({ game, commandInput, emitEvent }) {
     const actorId = commandInput.actorId!;
-    const payload = readPayload<BuyFaceUpCardPayload>(commandInput);
+    const payload = readPayload(commandInput);
     if (!payload.cardId || !payload.level) {
       throw new Error("level_and_card_required");
     }
@@ -208,7 +197,5 @@ export class BuyFaceUpCardCommand implements CommandDefinition<
         payment,
       },
     });
-  }
-}
-
-export const buyFaceUpCardCommand = new BuyFaceUpCardCommand();
+  },
+});

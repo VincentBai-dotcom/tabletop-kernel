@@ -6,13 +6,13 @@ import {
   nobleTiles,
 } from "../src/index.ts";
 import {
-  BuyFaceUpCardCommand,
-  BuyReservedCardCommand,
-  ReserveDeckCardCommand,
-  ReserveFaceUpCardCommand,
-  TakeThreeDistinctGemsCommand,
-  TakeTwoSameGemsCommand,
+  buyFaceUpCardCommand,
+  buyReservedCardCommand,
   createCommands,
+  reserveDeckCardCommand,
+  reserveFaceUpCardCommand,
+  takeThreeDistinctGemsCommand,
+  takeTwoSameGemsCommand,
 } from "../src/commands/index.ts";
 
 test("splendor static data is complete", () => {
@@ -37,13 +37,13 @@ test("splendor static data has stable identifiers", () => {
   );
 });
 
-test("splendor command registry is composed from command class instances", () => {
+test("splendor command registry is composed from factory-defined command objects", () => {
   const commands = createCommands();
 
-  expect(commands[0]).toBeInstanceOf(TakeThreeDistinctGemsCommand);
-  expect(commands[1]).toBeInstanceOf(TakeTwoSameGemsCommand);
-  expect(commands[2]).toBeInstanceOf(ReserveFaceUpCardCommand);
-  expect(commands[3]).toBeInstanceOf(ReserveDeckCardCommand);
-  expect(commands[4]).toBeInstanceOf(BuyFaceUpCardCommand);
-  expect(commands[5]).toBeInstanceOf(BuyReservedCardCommand);
+  expect(commands[0]).toBe(takeThreeDistinctGemsCommand);
+  expect(commands[1]).toBe(takeTwoSameGemsCommand);
+  expect(commands[2]).toBe(reserveFaceUpCardCommand);
+  expect(commands[3]).toBe(reserveDeckCardCommand);
+  expect(commands[4]).toBe(buyFaceUpCardCommand);
+  expect(commands[5]).toBe(buyReservedCardCommand);
 });
