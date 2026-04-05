@@ -99,49 +99,6 @@ Recommended authoring style:
 - pass only the initial stage into the game definition builder
 - let the engine compile the reachable stage graph from that initial stage
 
-Expected consumer feel:
-
-```ts
-const gameEndStage = defineStage({
-  id: "gameEnd",
-  kind: "automatic",
-});
-
-const nextPlayerStage = defineStage({
-  id: "nextPlayer",
-  kind: "automatic",
-  transitions: {
-    nextTurn: () => playerTurnStage,
-    endGame: () => gameEndStage,
-  },
-  run({ game, command, transition }) {
-    const actorId = command.actorId;
-
-    if (!actorId || game.isFinished()) {
-      transition("endGame");
-      return;
-    }
-
-    game.setActivePlayer(game.getNextPlayerId(actorId));
-    transition("nextTurn");
-  },
-});
-
-const playerTurnStage = defineStage({
-  id: "playerTurn",
-  kind: "activePlayer",
-  possibleCommands: ["play_card", "pass_turn"],
-  transitions: {
-    commandResolved: () => nextPlayerStage,
-  },
-});
-
-const game = new GameDefinitionBuilder(...)
-  .commands([...])
-  .initialStage(playerTurnStage)
-  .build();
-```
-
 The important design choice is:
 
 - pass the initial stage only
@@ -151,6 +108,307 @@ This keeps stage authoring aligned with the root state class pattern:
 
 - one entry point
 - engine discovers and compiles reachable structure
+
+## Active Player And Automatic Stage Authoring
+
+For the initial rewrite, the consumer-facing stage API should focus on:
+
+- `activePlayer` stages
+- `automatic` stages
+
+`multipleActivePlayer` is intentionally deferred to its own narrower design
+track.
+
+### Active Player Stage
+
+An `activePlayer` stage should define:
+
+- `id`
+- `kind: "activePlayer"`
+- `activePlayer({ game, runtime })`
+- `commands`
+- `nextStages`
+- `transition({ game, runtime, command })`
+
+Expected authoring shape:
+
+```ts
+const gameEndStage = defineStage({
+  id: "gameEnd",
+  kind: "automatic",
+});
+
+const playerTurnStage = defineStage({
+  id: "playerTurn",
+  kind: "activePlayer",
+
+  activePlayer({ game, runtime }) {
+    const currentStage = runtime.progression.currentStage;
+
+    return currentStage.kind === "activePlayer"
+      ? game.getNextPlayerId(currentStage.activePlayerId)
+      : game.firstPlayerId;
+  },
+
+  commands: [takeGemsCommand, reserveCardCommand, buyCardCommand],
+
+  nextStages: [playerTurnStage, gameEndStage],
+
+  transition({ game }) {
+    return game.isFinished() ? gameEndStage : playerTurnStage;
+  },
+});
+
+const cleanupStage = defineStage({
+  id: "cleanup",
+  kind: "automatic",
+
+  run({ game }) {
+    game.cleanupEndOfTurn();
+  },
+
+  transition({ game }) {
+    return game.isFinished() ? gameEndStage : playerTurnStage;
+  },
+});
+
+const game = new GameDefinitionBuilder(...)
+  .initialStage(playerTurnStage)
+  .build();
+```
+
+### Automatic Stage
+
+An `automatic` stage should define:
+
+- `id`
+- `kind: "automatic"`
+- `run({ game, runtime })`
+- `nextStages`
+- `transition({ game, runtime })`
+
+It should not define active-player selection.
+
+An automatic stage represents:
+
+- cleanup
+- stage-to-stage routing
+- deterministic resolution
+- end-of-round or end-of-turn maintenance
+
+Its logic runs inside the engine once entered, until the engine reaches the
+next player-facing stage or a terminal condition.
+
+### Design Decisions Behind This Shape
+
+#### Active Player Ownership Stays In `runtime.progression`
+
+The current active player should remain progression runtime data, not game
+state tree data.
+
+This preserves the existing good boundary:
+
+- board/domain state lives in `game`
+- turn/stage control state lives in `runtime.progression`
+
+So the stage machine should continue to store active player ids in runtime.
+
+The progression runtime should expose the current stage as:
+
+```ts
+runtime.progression.currentStage;
+```
+
+not:
+
+```ts
+runtime.progression.stage;
+```
+
+Reasoning:
+
+- `currentStage` makes the temporal meaning explicit
+- it leaves room for future progression-level metadata
+- it groups stage-specific runtime information into one coherent record
+
+Expected runtime direction:
+
+```ts
+runtime.progression.currentStage = {
+  id: "playerTurn",
+  kind: "activePlayer",
+  activePlayerId: "p2",
+};
+```
+
+and later:
+
+```ts
+runtime.progression.currentStage = {
+  id: "simultaneousSelection",
+  kind: "multipleActivePlayer",
+  activePlayerIds: ["p1", "p2", "p3", "p4"],
+};
+```
+
+#### The Engine Owns Writing Active Players
+
+The developer should not mutate `runtime.progression.activePlayerIds`
+manually.
+
+Instead:
+
+1. the current stage finishes
+2. the engine decides the next stage
+3. the next `activePlayer` stage computes its active player from readonly
+   `{ game, runtime }`
+4. the engine writes the resulting active player ids into runtime progression
+
+This keeps stage authoring declarative while preserving engine ownership of
+progression bookkeeping.
+
+#### `activePlayer({ game, runtime })` Should Be Narrow
+
+The `activePlayer(...)` hook should receive readonly:
+
+- `game`
+- `runtime`
+
+and nothing command-specific by default.
+
+Reasoning:
+
+- stage entry happens after the previous command resolves
+- there is no new command being submitted to the next stage yet
+- exposing ambiguous `actorId` or command-specific context would make the hook
+  harder to reason about
+
+The developer should derive the next active player from the current game state
+and the previous progression runtime state.
+
+#### Stage Commands Should Be Static Command Definitions
+
+Stages should list command definitions directly:
+
+```ts
+commands: [takeGemsCommand, reserveCardCommand, buyCardCommand];
+```
+
+Not:
+
+```ts
+possibleCommands: ["take_gems", "reserve_card", "buy_card"];
+```
+
+Reasoning:
+
+- avoids fragile string indirection
+- lets the builder derive the command registry from the reachable stage graph
+- keeps stage authoring consistent with command authoring
+
+These stage command lists are a static superset, not a dynamic guarantee that
+every listed command is currently usable.
+
+Dynamic narrowing still belongs to command logic:
+
+- `isAvailable()` for current availability
+- `validate()` for submitted-input legality
+
+This supports asymmetric games cleanly, because a stage can expose a static
+superset of relevant commands while each command still decides whether it is
+actually available to the current player in the current game state.
+
+#### Game Definition Builder Should Stop Accepting `.commands(...)`
+
+Because stages now reference command definitions directly, the builder should no
+longer require a separate `.commands(...)` registration step.
+
+Desired direction:
+
+- `GameDefinitionBuilder.initialStage(...)` receives the root stage
+- the builder compiles the reachable stage graph
+- while compiling stages, the builder also collects the command definitions
+  referenced by those stages
+
+This command collection step should:
+
+- include each reachable command once only
+- handle the fact that the same command may appear in many stages
+- build the canonical command registry from the stage graph rather than from a
+  separate builder input
+
+This keeps the new progression API consistent:
+
+- stages are the source of truth for which commands belong to the game flow
+- the builder derives the registry from those stages
+- consumers do not have to register the same command twice through both stage
+  definitions and `.commands(...)`
+
+#### Stage Graph Compilation Requires Static Outgoing Stage References
+
+The builder cannot compile the reachable stage graph if `transition(...)` is
+the only source of next-stage information and may return stages dynamically.
+
+So stages should also declare a static superset of possible next stages:
+
+```ts
+nextStages: [playerTurnStage, gameEndStage];
+```
+
+while `transition(...)` performs runtime selection:
+
+```ts
+transition({ game }) {
+  return game.isFinished() ? gameEndStage : playerTurnStage;
+}
+```
+
+This mirrors the stage-command split:
+
+- `commands`
+  static superset of commands that may occur in this stage
+- `nextStages`
+  static superset of stages this stage may transition to
+- `transition(...)`
+  dynamic selection of the actual next stage
+
+This is required so the builder can:
+
+- discover the full reachable stage graph from `initialStage`
+- validate stage references
+- compile the command registry from reachable stages
+- support future protocol and tooling generation from the compiled graph
+
+#### Keep Current-Stage Runtime Minimal For `activePlayer` And `automatic`
+
+The first rewrite should not introduce a vague generic field like `local` on
+every current-stage runtime object.
+
+For now:
+
+- `activePlayer` stages only need `activePlayerId`
+- `automatic` stages do not need stage-scoped runtime memory at all
+
+So the current-stage runtime shape should stay minimal for these kinds:
+
+```ts
+runtime.progression.currentStage = {
+  id: "playerTurn",
+  kind: "activePlayer",
+  activePlayerId: "p2",
+};
+```
+
+```ts
+runtime.progression.currentStage = {
+  id: "cleanup",
+  kind: "automatic",
+};
+```
+
+If later stage kinds such as `multipleActivePlayer` require stage-scoped memory
+for submission tracking or buffering, that field can be added specifically for
+those stage runtime variants instead of being introduced everywhere up front.
 
 ## Stage Kinds
 
