@@ -259,44 +259,47 @@ test("consumer command definitions only expose game state and command input gene
   const definition = defineCommand({
     commandId: "gain_score",
     commandSchema: gainScoreCommandSchema,
-    discoverySchema: t.object({
-      amount: t.optional(t.number()),
-    }),
-    discover: ({ discovery }) => {
-      if (typeof discovery.input?.amount !== "number") {
-        return {
-          complete: false as const,
-          step: "select_amount",
-          options: [
-            {
-              id: "amount-1",
-              nextInput: { amount: 1 },
-            },
-          ],
-        };
-      }
+  })
+    .discoverable({
+      discoverySchema: t.object({
+        amount: t.optional(t.number()),
+      }),
+      discover: ({ discovery }) => {
+        if (typeof discovery.input?.amount !== "number") {
+          return {
+            complete: false as const,
+            step: "select_amount",
+            options: [
+              {
+                id: "amount-1",
+                nextInput: { amount: 1 },
+              },
+            ],
+          };
+        }
 
-      return {
-        complete: true as const,
-        input: {
-          amount: discovery.input.amount,
-        },
-      };
-    },
-    validate: ({ command }) => {
+        return {
+          complete: true as const,
+          input: {
+            amount: discovery.input.amount,
+          },
+        };
+      },
+    })
+    .validate(({ command }) => {
       const amount: number | undefined = command.input?.amount;
 
       return {
         ok: typeof amount === "number",
         reason: "amount_required",
       };
-    },
-    execute: ({ game, command }) => {
+    })
+    .execute(({ game, command }) => {
       game.increment();
       const amount: number | undefined = command.input?.amount;
       void amount;
-    },
-  });
+    })
+    .build();
 
   expect(definition.commandId).toBe("gain_score");
 });
@@ -317,49 +320,52 @@ test("command factory contextually types command lifecycle methods", () => {
   const command = defineCommand({
     commandId: "gain_score",
     commandSchema,
-    discoverySchema: draftSchema,
-    isAvailable({ game, actorId, runtime, commandType }) {
+  })
+    .isAvailable(({ game, actorId, runtime, commandType }) => {
       expect(typeof game.score).toBe("number");
       void game.increment;
       void actorId;
       void runtime.progression.current;
       expect(commandType).toBe("gain_score");
       return true;
-    },
-    discover({ discovery }) {
-      const selectedAmount = discovery.input?.selectedAmount;
+    })
+    .discoverable({
+      discoverySchema: draftSchema,
+      discover({ discovery }) {
+        const selectedAmount = discovery.input?.selectedAmount;
 
-      if (typeof selectedAmount !== "number") {
-        return {
-          complete: false as const,
-          step: "select_amount",
-          options: [
-            {
-              id: "one",
-              nextInput: {
-                selectedAmount: 1,
+        if (typeof selectedAmount !== "number") {
+          return {
+            complete: false as const,
+            step: "select_amount",
+            options: [
+              {
+                id: "one",
+                nextInput: {
+                  selectedAmount: 1,
+                },
               },
-            },
-          ],
-        };
-      }
+            ],
+          };
+        }
 
-      return {
-        complete: true as const,
-        input: {
-          amount: selectedAmount,
-        },
-      };
-    },
-    validate({ command }) {
+        return {
+          complete: true as const,
+          input: {
+            amount: selectedAmount,
+          },
+        };
+      },
+    })
+    .validate(({ command }) => {
       expect(command.input?.amount).toBeNumber();
       return { ok: true as const };
-    },
-    execute({ game, command }) {
+    })
+    .execute(({ game, command }) => {
       game.increment();
       expect(command.input?.amount).toBeNumber();
-    },
-  });
+    })
+    .build();
 
   expect(command.commandId).toBe("gain_score");
   expect(command.commandSchema).toBe(commandSchema);
