@@ -834,6 +834,7 @@ test("built-in progression completion policies evaluate through lifecycle contex
   const command = {
     type: "take_action",
     actorId: "player-1",
+    input: {},
   };
   const completionContext = createProgressionCompletionContext(
     state,

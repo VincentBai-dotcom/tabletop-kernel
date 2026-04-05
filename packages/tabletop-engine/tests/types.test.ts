@@ -87,6 +87,7 @@ test("progression lifecycle types support nested segment authoring", () => {
     },
     command: {
       type: "gain_score",
+      actorId: "p1",
       input: { amount: 1 },
     },
     segment: {
@@ -568,6 +569,7 @@ test("internal command definitions still expose canonical state separately from 
     },
     command: {
       type: "gain_score",
+      actorId: "p1",
       input: {
         amount: 2,
       },
