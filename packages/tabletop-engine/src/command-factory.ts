@@ -1,49 +1,16 @@
 import type {
-  CommandAvailabilityContext,
+  CommandBuilderAccumulator,
   CommandBuilder,
   CommandBuilderBaseConfig,
-  CommandDiscoveryResult,
   CommandSchema,
   DefinedCommand,
+  DiscoverableCommandAccumulator,
   DiscoverableCommandBuilderConfig,
-  DiscoveryContext,
-  ExecuteContext,
-  ValidationContext,
+  NonDiscoverableCommandAccumulator,
+  DiscoverableCommandConfig,
+  NonDiscoverableCommandConfig,
 } from "./types/command";
 import { commandDefinitionBrand as brand } from "./types/command";
-
-type CommandAccumulator<
-  FacadeGameState extends object,
-  TCommandInput extends Record<string, unknown>,
-  TDiscoveryInput extends Record<string, unknown>,
-> = {
-  commandId: string;
-  commandSchema: CommandSchema<TCommandInput>;
-  discoverySchema?: CommandSchema<TDiscoveryInput>;
-  discover?(
-    context: DiscoveryContext<FacadeGameState, TDiscoveryInput>,
-  ): CommandDiscoveryResult<TDiscoveryInput, TCommandInput> | null;
-  isAvailable?(context: CommandAvailabilityContext<FacadeGameState>): boolean;
-  validate?(
-    context: ValidationContext<
-      FacadeGameState,
-      { type: string; actorId?: string; input?: TCommandInput }
-    >,
-  ): ReturnType<
-    (
-      context: ValidationContext<
-        FacadeGameState,
-        { type: string; actorId?: string; input?: TCommandInput }
-      >,
-    ) => unknown
-  >;
-  execute?(
-    context: ExecuteContext<
-      FacadeGameState,
-      { type: string; actorId?: string; input?: TCommandInput }
-    >,
-  ): void;
-};
 
 export interface CommandFactory<FacadeGameState extends object> {
   <TCommandInput extends Record<string, unknown>>(
@@ -52,6 +19,41 @@ export interface CommandFactory<FacadeGameState extends object> {
 }
 
 export function createCommandFactory<FacadeGameState extends object>() {
+  function brandCommandDefinition<
+    TCommandInput extends Record<string, unknown>,
+  >(
+    definition: NonDiscoverableCommandConfig<FacadeGameState, TCommandInput>,
+  ): DefinedCommand<FacadeGameState, TCommandInput>;
+  function brandCommandDefinition<
+    TCommandInput extends Record<string, unknown>,
+    TDiscoveryInput extends Record<string, unknown>,
+  >(
+    definition: DiscoverableCommandConfig<
+      FacadeGameState,
+      TCommandInput,
+      TDiscoveryInput
+    >,
+  ): DefinedCommand<FacadeGameState, TCommandInput, TDiscoveryInput>;
+  function brandCommandDefinition<
+    TCommandInput extends Record<string, unknown>,
+    TDiscoveryInput extends Record<string, unknown>,
+  >(
+    definition:
+      | NonDiscoverableCommandConfig<FacadeGameState, TCommandInput>
+      | DiscoverableCommandConfig<
+          FacadeGameState,
+          TCommandInput,
+          TDiscoveryInput
+        >,
+  ) {
+    return Object.defineProperty(definition, brand, {
+      value: true,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    });
+  }
+
   function createBuilder<
     TCommandInput extends Record<string, unknown>,
     TDiscoveryInput extends Record<string, unknown> = TCommandInput,
@@ -60,10 +62,11 @@ export function createCommandFactory<FacadeGameState extends object>() {
     THasValidate extends boolean = false,
     THasExecute extends boolean = false,
   >(
-    accumulator: CommandAccumulator<
+    accumulator: CommandBuilderAccumulator<
       FacadeGameState,
       TCommandInput,
-      TDiscoveryInput
+      TDiscoveryInput,
+      THasDiscovery
     >,
   ): CommandBuilder<
     FacadeGameState,
@@ -93,14 +96,24 @@ export function createCommandFactory<FacadeGameState extends object>() {
           ...accumulator,
           discoverySchema: config.discoverySchema,
           discover: config.discover,
-        });
+        } satisfies DiscoverableCommandAccumulator<
+          FacadeGameState,
+          TCommandInput,
+          TNextDiscoveryInput
+        >);
       },
 
-      isAvailable(
-        isAvailable: (
-          context: CommandAvailabilityContext<FacadeGameState>,
-        ) => boolean,
-      ) {
+      isAvailable(isAvailable) {
+        const nextAccumulator = {
+          ...accumulator,
+          isAvailable,
+        } satisfies CommandBuilderAccumulator<
+          FacadeGameState,
+          TCommandInput,
+          TDiscoveryInput,
+          THasDiscovery
+        >;
+
         return createBuilder<
           TCommandInput,
           TDiscoveryInput,
@@ -108,27 +121,20 @@ export function createCommandFactory<FacadeGameState extends object>() {
           true,
           THasValidate,
           THasExecute
-        >({
-          ...accumulator,
-          isAvailable,
-        });
+        >(nextAccumulator);
       },
 
-      validate(
-        validate: (
-          context: ValidationContext<
-            FacadeGameState,
-            { type: string; actorId?: string; input?: TCommandInput }
-          >,
-        ) => ReturnType<
-          (
-            context: ValidationContext<
-              FacadeGameState,
-              { type: string; actorId?: string; input?: TCommandInput }
-            >,
-          ) => unknown
-        >,
-      ) {
+      validate(validate) {
+        const nextAccumulator = {
+          ...accumulator,
+          validate,
+        } satisfies CommandBuilderAccumulator<
+          FacadeGameState,
+          TCommandInput,
+          TDiscoveryInput,
+          THasDiscovery
+        >;
+
         return createBuilder<
           TCommandInput,
           TDiscoveryInput,
@@ -136,20 +142,20 @@ export function createCommandFactory<FacadeGameState extends object>() {
           THasAvailability,
           true,
           THasExecute
-        >({
-          ...accumulator,
-          validate,
-        });
+        >(nextAccumulator);
       },
 
-      execute(
-        execute: (
-          context: ExecuteContext<
-            FacadeGameState,
-            { type: string; actorId?: string; input?: TCommandInput }
-          >,
-        ) => void,
-      ) {
+      execute(execute) {
+        const nextAccumulator = {
+          ...accumulator,
+          execute,
+        } satisfies CommandBuilderAccumulator<
+          FacadeGameState,
+          TCommandInput,
+          TDiscoveryInput,
+          THasDiscovery
+        >;
+
         return createBuilder<
           TCommandInput,
           TDiscoveryInput,
@@ -157,10 +163,7 @@ export function createCommandFactory<FacadeGameState extends object>() {
           THasAvailability,
           THasValidate,
           true
-        >({
-          ...accumulator,
-          execute,
-        });
+        >(nextAccumulator);
       },
 
       build() {
@@ -172,12 +175,29 @@ export function createCommandFactory<FacadeGameState extends object>() {
           throw new Error("command_builder_missing_execute");
         }
 
-        return Object.defineProperty(accumulator, brand, {
-          value: true,
-          enumerable: false,
-          configurable: false,
-          writable: false,
-        }) as DefinedCommand<FacadeGameState, TCommandInput, TDiscoveryInput>;
+        const validate = accumulator.validate;
+        const execute = accumulator.execute;
+
+        if ("discoverySchema" in accumulator && "discover" in accumulator) {
+          return brandCommandDefinition({
+            ...accumulator,
+            validate,
+            execute,
+          } satisfies DiscoverableCommandConfig<
+            FacadeGameState,
+            TCommandInput,
+            TDiscoveryInput
+          >);
+        }
+
+        return brandCommandDefinition({
+          ...accumulator,
+          validate,
+          execute,
+        } satisfies NonDiscoverableCommandConfig<
+          FacadeGameState,
+          TCommandInput
+        >);
       },
     } as CommandBuilder<
       FacadeGameState,
@@ -196,7 +216,10 @@ export function createCommandFactory<FacadeGameState extends object>() {
     return createBuilder({
       commandId: config.commandId,
       commandSchema: config.commandSchema,
-    });
+    } satisfies NonDiscoverableCommandAccumulator<
+      FacadeGameState,
+      TCommandInput
+    >);
   }
 
   return defineCommand as CommandFactory<FacadeGameState>;

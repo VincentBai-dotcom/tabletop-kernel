@@ -126,6 +126,52 @@ export type CommandDefinition<FacadeGameState extends object = object> = {
   execute(context: ExecuteContext<FacadeGameState, Command>): void;
 };
 
+export type NonDiscoverableCommandAccumulator<
+  FacadeGameState extends object = object,
+  TCommandInput extends CommandData = CommandData,
+> = Pick<
+  NonDiscoverableCommandConfig<FacadeGameState, TCommandInput>,
+  "commandId" | "commandSchema"
+> &
+  Partial<
+    Pick<
+      NonDiscoverableCommandConfig<FacadeGameState, TCommandInput>,
+      "isAvailable" | "validate" | "execute"
+    >
+  >;
+
+export type DiscoverableCommandAccumulator<
+  FacadeGameState extends object = object,
+  TCommandInput extends CommandData = CommandData,
+  TDiscoveryInput extends DiscoveryData = TCommandInput,
+> = Pick<
+  DiscoverableCommandConfig<FacadeGameState, TCommandInput, TDiscoveryInput>,
+  "commandId" | "commandSchema" | "discoverySchema" | "discover"
+> &
+  Partial<
+    Pick<
+      DiscoverableCommandConfig<
+        FacadeGameState,
+        TCommandInput,
+        TDiscoveryInput
+      >,
+      "isAvailable" | "validate" | "execute"
+    >
+  >;
+
+export type CommandBuilderAccumulator<
+  FacadeGameState extends object = object,
+  TCommandInput extends CommandData = CommandData,
+  TDiscoveryInput extends DiscoveryData = TCommandInput,
+  THasDiscovery extends boolean = false,
+> = THasDiscovery extends true
+  ? DiscoverableCommandAccumulator<
+      FacadeGameState,
+      TCommandInput,
+      TDiscoveryInput
+    >
+  : NonDiscoverableCommandAccumulator<FacadeGameState, TCommandInput>;
+
 type NoBuilderMethod = Record<never, never>;
 
 type OptionalBuilderMethod<
