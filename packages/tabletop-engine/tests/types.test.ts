@@ -8,13 +8,9 @@ import type {
   DiscoveryContext,
   ExecutionResult,
   GameEvent,
-  ProgressionCompletionContext,
-  ProgressionDefinition,
-  ProgressionLifecycleHookContext,
-  ProgressionResolveNextResult,
   ValidationOutcome,
 } from "../src/index";
-import { createCommandFactory, t } from "../src/index";
+import { createCommandFactory, createStageFactory, t } from "../src/index";
 import type {
   CommandFromSchema,
   InternalCommandDefinition,
@@ -33,6 +29,10 @@ test("foundational runtime types compose", () => {
     game: {},
     runtime: {
       progression: {
+        currentStage: {
+          id: "gameEnd",
+          kind: "automatic",
+        },
         current: null,
         rootId: null,
         segments: {},
@@ -66,94 +66,60 @@ test("foundational runtime types compose", () => {
   };
 
   expect(event.category).toBe("domain");
-  expect(state.runtime.progression.current).toBeNull();
+  expect(state.runtime.progression.currentStage.kind).toBe("automatic");
   expect(command.type).toBe("draw_card");
   expect(result.ok).toBeTrue();
   expect(result.state).toBe(state);
   expect(validation.ok).toBeFalse();
 });
 
-test("progression lifecycle types support nested segment authoring", () => {
-  const completionContext: ProgressionCompletionContext<
-    { score: number },
-    { progression: { current: string | null } },
-    Command<{ amount: number }>
-  > = {
-    game: { score: 0 },
-    runtime: {
-      progression: {
-        current: "turn",
-      },
-    },
-    command: {
-      type: "gain_score",
-      actorId: "p1",
-      input: { amount: 1 },
-    },
-    segment: {
-      id: "turn",
-      active: true,
-      childIds: [],
-    },
-    progression: {
-      byId: () => undefined,
-      current: () => undefined,
-      parent: () => undefined,
-      activePath: () => [],
-    },
+test("stage machine types support single-active and automatic stage authoring", () => {
+  const defineStage = createStageFactory<{ score: number }>();
+  const gameEndStage = defineStage("gameEnd").automatic().build();
+
+  const playerTurnStage = defineStage("playerTurn")
+    .singleActivePlayer()
+    .activePlayer(({ runtime }) => {
+      const currentStage = runtime.progression.currentStage;
+
+      if (currentStage.kind === "activePlayer") {
+        return currentStage.activePlayerId;
+      }
+
+      return "player-1";
+    })
+    .commands([])
+    .nextStages({
+      gameEndStage,
+    })
+    .transition(({ nextStages, self, command }) => {
+      expect(command.actorId).toBe("player-1");
+      void self;
+      return command.type === "end_game" ? nextStages.gameEndStage : self;
+    })
+    .build();
+
+  const currentStage:
+    | {
+        id: string;
+        kind: "activePlayer";
+        activePlayerId: string;
+      }
+    | {
+        id: string;
+        kind: "automatic";
+      } = {
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "player-1",
   };
 
-  const lifecycleContext: ProgressionLifecycleHookContext<
-    { score: number },
-    { progression: { current: string | null } },
-    Command<{ amount: number }>
-  > = {
-    ...completionContext,
-    rng: {
-      number: () => 0,
-      die: () => 1,
-      shuffle: (items) => [...items],
-    },
-    emitEvent: () => {},
-  };
-
-  const next: ProgressionResolveNextResult = {
-    nextSegmentId: "turn",
-    ownerId: "player-2",
-  };
-
-  const progression: ProgressionDefinition<
-    { score: number },
-    { progression: { current: string | null } },
-    Command<{ amount: number }>
-  > = {
-    root: {
-      id: "round",
-      children: [
-        {
-          id: "turn",
-          kind: "turn",
-          completionPolicy: "after_successful_command",
-          onEnter: (context) => {
-            context.game.score += 1;
-          },
-          onExit: (context) => {
-            context.emitEvent({
-              category: "domain",
-              type: "turn_exited",
-              payload: {},
-            });
-          },
-          resolveNext: () => next,
-          children: [],
-        },
-      ],
-    },
-  };
-
-  expect(progression.root.children[0]?.id).toBe("turn");
-  expect(lifecycleContext.segment.id).toBe("turn");
-  expect(next.ownerId).toBe("player-2");
+  expect(playerTurnStage.id).toBe("playerTurn");
+  expect(currentStage.kind).toBe("activePlayer");
+  if (currentStage.kind === "activePlayer") {
+    expect(currentStage.activePlayerId).toBe("player-1");
+  }
+  expect(gameEndStage.id).toBe("gameEnd");
 });
 
 test("discovery types compose for draft-based next-step options and completion", () => {
@@ -173,7 +139,16 @@ test("discovery types compose for draft-based next-step options and completion",
   }> = {
     game: { handCount: 3 },
     runtime: {
-      progression: { current: "turn", rootId: "turn", segments: {} },
+      progression: {
+        currentStage: {
+          id: "turn",
+          kind: "activePlayer",
+          activePlayerId: "p1",
+        },
+        current: null,
+        rootId: null,
+        segments: {},
+      },
       rng: { seed: "seed", cursor: 0 },
       history: { entries: [] },
     },
@@ -373,7 +348,7 @@ test("command factory contextually types command lifecycle methods", () => {
       expect(typeof game.score).toBe("number");
       void game.increment;
       void actorId;
-      void runtime.progression.current;
+      void runtime.progression.currentStage.id;
       expect(commandType).toBe("gain_score");
       return true;
     })
@@ -452,7 +427,7 @@ test("command builder hides invalid chained methods at each stage", () => {
     commandId: "increment_without_validate",
     commandSchema,
   }).execute(({ game, command }) => {
-    game.counter += command.input?.amount ?? 0;
+    game.counter += command.input.amount;
   });
 
   // @ts-expect-error build should not exist before validate is set
@@ -511,16 +486,16 @@ test("internal command definitions still expose canonical state separately from 
     validate: ({ game, state, command }) => {
       void game.increment;
       void state.game.score;
-      const amount: number | undefined = command.input?.amount;
+      const amount: number = command.input.amount;
       return {
-        ok: typeof amount === "number",
+        ok: amount > 0,
         reason: "amount_required",
       };
     },
     execute: ({ game, state, command }) => {
       game.increment();
       void state.game.score;
-      const amount: number | undefined = command.input?.amount;
+      const amount: number = command.input.amount;
       void amount;
     },
   };
@@ -537,6 +512,10 @@ test("internal command definitions still expose canonical state separately from 
       },
       runtime: {
         progression: {
+          currentStage: {
+            id: "gameEnd",
+            kind: "automatic",
+          },
           current: null,
           rootId: null,
           segments: {},
@@ -555,6 +534,10 @@ test("internal command definitions still expose canonical state separately from 
     },
     runtime: {
       progression: {
+        currentStage: {
+          id: "gameEnd",
+          kind: "automatic",
+        },
         current: null,
         rootId: null,
         segments: {},
@@ -585,7 +568,6 @@ test("internal command definitions still expose canonical state separately from 
         return [...items];
       },
     },
-    setCurrentSegmentOwner() {},
     emitEvent() {},
   };
 

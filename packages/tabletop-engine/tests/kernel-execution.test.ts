@@ -756,54 +756,6 @@ test("createGameExecutor rejects discovery missing input at runtime", () => {
   expect(result).toBeNull();
 });
 
-test("execute context can update current progression owner through controlled API", () => {
-  const defineCommand = createCommandFactory<{ marker: number }>();
-  const game = new GameDefinitionBuilder<{
-    marker: number;
-  }>("turn-game")
-    .initialState(() => ({
-      marker: 0,
-    }))
-    .progression({
-      root: {
-        id: "turn",
-        kind: "turn",
-        children: [],
-      },
-    })
-    .setup(({ runtime }) => {
-      runtime.progression.segments.turn!.ownerId = "player-1";
-    })
-    .commands({
-      pass_turn: defineCommand({
-        commandId: "pass_turn",
-        commandSchema: emptyCommandSchema,
-      })
-        .validate(() => ({ ok: true as const }))
-        .execute(({ setCurrentSegmentOwner }) => {
-          setCurrentSegmentOwner("player-2");
-        })
-        .build(),
-    })
-    .build();
-
-  const gameExecutor = createGameExecutor(game);
-  const initialState = gameExecutor.createInitialState();
-  const result = gameExecutor.executeCommand(initialState, {
-    type: "pass_turn",
-    actorId: "player-1",
-    input: {},
-  });
-
-  expect(initialState.runtime.progression.segments.turn?.ownerId).toBe(
-    "player-1",
-  );
-  expect(result.ok).toBe(true);
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "player-2",
-  );
-});
-
 test("built-in progression completion policies evaluate through lifecycle contexts", () => {
   const state = {
     game: {
@@ -811,6 +763,11 @@ test("built-in progression completion policies evaluate through lifecycle contex
     },
     runtime: {
       progression: {
+        currentStage: {
+          id: "turn",
+          kind: "activePlayer" as const,
+          activePlayerId: "player-1",
+        },
         current: "turn",
         rootId: "turn",
         segments: {

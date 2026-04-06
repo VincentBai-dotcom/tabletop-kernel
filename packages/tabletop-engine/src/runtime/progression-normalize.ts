@@ -99,6 +99,15 @@ export function createProgressionState<
   }
 
   return {
+    currentStage: progression.initialSegmentId
+      ? {
+          id: progression.initialSegmentId,
+          kind: "automatic",
+        }
+      : {
+          id: "__no_stage__",
+          kind: "automatic",
+        },
     current: progression.initialSegmentId,
     rootId: progression.rootId,
     segments,

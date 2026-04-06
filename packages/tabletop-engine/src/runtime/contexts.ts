@@ -99,7 +99,6 @@ export function createExecuteContext<
   game: FacadeGameState,
   command: TCommandInput,
   rng: RNGApi,
-  setCurrentSegmentOwner: (ownerId?: string) => void,
   emitEvent: (event: GameEvent) => void,
 ): InternalExecuteContext<
   CanonicalGameState,
@@ -113,7 +112,6 @@ export function createExecuteContext<
     game,
     runtime: state.runtime,
     rng,
-    setCurrentSegmentOwner,
     emitEvent,
   };
 }

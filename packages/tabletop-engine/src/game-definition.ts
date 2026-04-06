@@ -1,5 +1,8 @@
 import type { CommandDefinition, DefinedCommand } from "./types/command";
-import type { ProgressionDefinition } from "./types/progression";
+import type {
+  ProgressionDefinition,
+  StageDefinition,
+} from "./types/progression";
 import type { RuntimeState } from "./types/state";
 import type { RNGApi } from "./types/rng";
 import {
@@ -27,6 +30,8 @@ type AuthoredCommandDefinitionMap<FacadeGameState extends object> = Record<
 type CommandDefinitionList<FacadeGameState extends object> =
   readonly AuthoredCommandDefinition<FacadeGameState>[];
 
+type AnyStageDefinition = StageDefinition<object>;
+
 export interface GameSetupContext<GameState extends object = object> {
   game: GameState;
   runtime: RuntimeState;
@@ -44,6 +49,7 @@ export interface GameDefinition<
   initialState: () => CanonicalGameState;
   commands: Commands;
   stateFacade?: CompiledStateFacadeDefinition;
+  initialStage?: AnyStageDefinition;
   progression?: ProgressionDefinition<FacadeGameState>;
   rngSeed?: string | number;
   setup?: (context: GameSetupContext<CanonicalGameState>) => void;
@@ -72,6 +78,7 @@ interface GameDefinitionBuilderState<
   name: string;
   commandList?: CommandDefinitionList<FacadeGameState>;
   rootState?: StateClass;
+  initialStage?: AnyStageDefinition;
 }
 
 export class GameDefinitionBuilder<
@@ -204,6 +211,11 @@ export class GameDefinitionBuilder<
     return this;
   }
 
+  initialStage(initialStage: AnyStageDefinition): this {
+    this.config.initialStage = initialStage;
+    return this;
+  }
+
   rngSeed(rngSeed: string | number | undefined): this {
     this.config.rngSeed = rngSeed;
     return this;
@@ -219,13 +231,19 @@ export class GameDefinitionBuilder<
       throw new Error("initial_state_required");
     }
 
-    if (!this.config.commands && !this.config.commandList) {
+    if (
+      !this.config.commands &&
+      !this.config.commandList &&
+      !this.config.initialStage
+    ) {
       throw new Error("commands_required");
     }
 
-    const commands = this.config.commandList
-      ? compileCommandList(this.config.commandList)
-      : this.config.commands;
+    const commands = this.config.initialStage
+      ? compileCommandMapFromStages(this.config.initialStage)
+      : this.config.commandList
+        ? compileCommandList(this.config.commandList)
+        : this.config.commands;
     const stateFacade = this.config.rootState
       ? compileStateFacadeDefinition(this.config.rootState)
       : undefined;
@@ -235,6 +253,7 @@ export class GameDefinitionBuilder<
       initialState: this.config.initialState,
       commands: commands as Commands,
       stateFacade,
+      initialStage: this.config.initialStage,
       progression: this.config.progression,
       rngSeed: this.config.rngSeed,
       setup: this.config.setup,
@@ -253,6 +272,47 @@ function compileCommandList<FacadeGameState extends object>(
     }
 
     commandMap[command.commandId] = command;
+  }
+
+  return commandMap;
+}
+
+function compileCommandMapFromStages<FacadeGameState extends object>(
+  initialStage: StageDefinition<FacadeGameState>,
+): CommandDefinitionMap<FacadeGameState> {
+  const commandMap: CommandDefinitionMap<FacadeGameState> = {};
+  const visitedStages = new Map<string, StageDefinition<FacadeGameState>>();
+  const stack = [initialStage];
+
+  while (stack.length > 0) {
+    const stage = stack.pop()!;
+    const previous = visitedStages.get(stage.id);
+
+    if (previous) {
+      if (previous !== stage) {
+        throw new Error(`duplicate_stage_id:${stage.id}`);
+      }
+
+      continue;
+    }
+
+    visitedStages.set(stage.id, stage);
+
+    if (stage.kind === "activePlayer") {
+      for (const command of stage.commands) {
+        const existing = commandMap[command.commandId];
+
+        if (existing && existing !== command) {
+          throw new Error(`duplicate_command_id:${command.commandId}`);
+        }
+
+        commandMap[command.commandId] = command;
+      }
+    }
+
+    for (const nextStage of Object.values(stage.nextStages ?? {})) {
+      stack.push(nextStage);
+    }
   }
 
   return commandMap;

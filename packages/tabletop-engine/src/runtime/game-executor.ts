@@ -22,6 +22,7 @@ import type {
   InternalCommandDefinition,
 } from "../types/command";
 import type { CommandDiscoveryResult } from "../types/command";
+import type { CurrentStageState } from "../types/progression";
 import type {
   ExecutionFailure,
   ExecutionResult,
@@ -92,6 +93,7 @@ function createInitialRuntimeState<
   CanonicalGameState extends object,
   FacadeGameState extends object = CanonicalGameState,
 >(
+  gameState: CanonicalGameState,
   progression: NormalizedProgressionDefinition<
     FacadeGameState,
     RuntimeState,
@@ -104,7 +106,17 @@ function createInitialRuntimeState<
   >,
 ): RuntimeState {
   const runtime: RuntimeState = {
-    progression: createProgressionState(progression),
+    progression: game.initialStage
+      ? {
+          currentStage: {
+            id: game.initialStage.id,
+            kind: "automatic",
+          },
+          current: null,
+          rootId: null,
+          segments: {},
+        }
+      : createProgressionState(progression),
     rng: {
       seed: game.rngSeed ?? 0,
       cursor: 0,
@@ -114,7 +126,51 @@ function createInitialRuntimeState<
     },
   };
 
+  if (game.initialStage) {
+    runtime.progression.currentStage = resolveInitialStageState(
+      {
+        game: gameState,
+        runtime,
+      },
+      game as GameDefinition<
+        CanonicalGameState,
+        FacadeGameState,
+        CommandDefinitions<CanonicalGameState, FacadeGameState>
+      >,
+    );
+  }
+
   return runtime;
+}
+
+function resolveInitialStageState<
+  CanonicalGameState extends object,
+  FacadeGameState extends object = CanonicalGameState,
+>(
+  state: CanonicalState<CanonicalGameState>,
+  game: GameDefinition<
+    CanonicalGameState,
+    FacadeGameState,
+    CommandDefinitions<CanonicalGameState, FacadeGameState>
+  >,
+): CurrentStageState {
+  const initialStage = game.initialStage;
+
+  if (!initialStage || initialStage.kind === "automatic") {
+    return {
+      id: initialStage?.id ?? "__no_stage__",
+      kind: "automatic",
+    };
+  }
+
+  return {
+    id: initialStage.id,
+    kind: "activePlayer",
+    activePlayerId: initialStage.activePlayer({
+      game: createCommandGameView(game, state, { readonly: true }),
+      runtime: state.runtime,
+    }),
+  };
 }
 
 export function createGameExecutor<
@@ -139,6 +195,7 @@ export function createGameExecutor<
     createInitialState(options) {
       const gameState = game.initialState();
       const runtime = createInitialRuntimeState(
+        gameState,
         progression,
         game as GameDefinition<
           CanonicalGameState,
@@ -327,20 +384,6 @@ export function createGameExecutor<
       const workingState = cloneCanonicalState(state);
       const collector = createEventCollector();
       const rng = createRNGService(workingState.runtime.rng);
-      const setCurrentSegmentOwner = (ownerId?: string) => {
-        const currentSegmentId = workingState.runtime.progression.current;
-
-        if (!currentSegmentId) {
-          return;
-        }
-
-        const currentSegment =
-          workingState.runtime.progression.segments[currentSegmentId];
-
-        if (currentSegment) {
-          currentSegment.ownerId = ownerId;
-        }
-      };
 
       definition.execute(
         createExecuteContext(
@@ -355,7 +398,6 @@ export function createGameExecutor<
           ),
           command,
           rng,
-          setCurrentSegmentOwner,
           collector.emit,
         ),
       );
