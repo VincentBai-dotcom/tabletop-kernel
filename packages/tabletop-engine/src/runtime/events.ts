@@ -1,5 +1,5 @@
 import type { GameEvent } from "../types/event";
-import type { ProgressionSegmentState } from "../types/progression";
+import type { StageState } from "../types/progression";
 
 export interface EventCollector<Event extends GameEvent = GameEvent> {
   emit(event: Event): void;
@@ -21,30 +21,32 @@ export function createEventCollector<
   };
 }
 
-export function createSegmentExitedEvent(
-  segment: ProgressionSegmentState,
-): GameEvent<"runtime", "segment_exited", Record<string, unknown>> {
+export function createStageExitedEvent(
+  stage: StageState,
+): GameEvent<"runtime", "stage_exited", Record<string, unknown>> {
   return {
     category: "runtime",
-    type: "segment_exited",
+    type: "stage_exited",
     payload: {
-      segmentId: segment.id,
-      kind: segment.kind ?? null,
-      ownerId: segment.ownerId ?? null,
+      stageId: stage.id,
+      kind: stage.kind,
+      activePlayerId:
+        stage.kind === "activePlayer" ? stage.activePlayerId : null,
     },
   };
 }
 
-export function createSegmentEnteredEvent(
-  segment: ProgressionSegmentState,
-): GameEvent<"runtime", "segment_entered", Record<string, unknown>> {
+export function createStageEnteredEvent(
+  stage: StageState,
+): GameEvent<"runtime", "stage_entered", Record<string, unknown>> {
   return {
     category: "runtime",
-    type: "segment_entered",
+    type: "stage_entered",
     payload: {
-      segmentId: segment.id,
-      kind: segment.kind ?? null,
-      ownerId: segment.ownerId ?? null,
+      stageId: stage.id,
+      kind: stage.kind,
+      activePlayerId:
+        stage.kind === "activePlayer" ? stage.activePlayerId : null,
     },
   };
 }

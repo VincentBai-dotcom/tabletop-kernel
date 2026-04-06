@@ -114,10 +114,6 @@ const reserveFaceUpCardCommand = defineSplendorCommand({
         return { ok: false, reason: "reserved_limit_reached" };
       }
 
-      if (!input) {
-        return { ok: false, reason: "level_and_card_required" };
-      }
-
       const level = input.level;
 
       if (!isDevelopmentLevel(level)) {

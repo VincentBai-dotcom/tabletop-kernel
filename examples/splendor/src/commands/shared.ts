@@ -14,8 +14,18 @@ import {
 
 type ProgressionRuntime = {
   progression: {
-    current: string | null;
-    segments: Record<string, { ownerId?: string }>;
+    currentStage:
+      | {
+          kind: "activePlayer";
+          activePlayerId: string;
+        }
+      | {
+          kind: "automatic";
+        };
+    lastActingStage: {
+      kind: "activePlayer";
+      activePlayerId: string;
+    } | null;
   };
 };
 
@@ -82,22 +92,14 @@ export function assertGameActive(game: Readonly<SplendorGameState>): void {
 
 export function assertActivePlayer(
   runtime: ProgressionRuntime,
-  actorId: string | undefined,
+  actorId: string,
 ): string {
-  if (!actorId) {
-    throw new Error("actor_id_required");
-  }
+  const currentStage = runtime.progression.currentStage;
 
-  const currentSegmentId = runtime.progression.current;
-
-  if (!currentSegmentId) {
-    throw new Error("no_active_segment");
-  }
-
-  const currentOwnerId =
-    runtime.progression.segments[currentSegmentId]?.ownerId;
-
-  if (!currentOwnerId || actorId !== currentOwnerId) {
+  if (
+    currentStage.kind !== "activePlayer" ||
+    actorId !== currentStage.activePlayerId
+  ) {
     throw new Error("not_active_player");
   }
 
@@ -108,5 +110,15 @@ export function assertAvailableActor(
   context: CommandAvailabilityContext<SplendorGameState>,
 ): string {
   assertGameActive(context.game);
-  return assertActivePlayer(context.runtime, context.actorId);
+  return assertActivePlayer(context.runtime, context.actorId ?? "");
+}
+
+export function assertLastActingPlayer(runtime: ProgressionRuntime): string {
+  const lastActingStage = runtime.progression.lastActingStage;
+
+  if (!lastActingStage) {
+    throw new Error("last_acting_player_missing");
+  }
+
+  return lastActingStage.activePlayerId;
 }

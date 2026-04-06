@@ -1,9 +1,5 @@
 import { t } from "tabletop-engine";
-import {
-  completeDiscovery,
-  createNobleDiscovery,
-  SPLENDOR_DISCOVERY_STEPS,
-} from "../discovery.ts";
+import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   assertAvailableActor,
   assertActivePlayer,
@@ -15,14 +11,12 @@ import {
 
 const buyReservedCardCommandSchema = t.object({
   cardId: t.number(),
-  chosenNobleId: t.optional(t.number()),
 });
 
 export type BuyReservedCardInput = typeof buyReservedCardCommandSchema.static;
 
 const buyReservedCardDiscoverySchema = t.object({
   selectedCardId: t.optional(t.number()),
-  chosenNobleId: t.optional(t.number()),
 });
 
 const buyReservedCardCommand = defineSplendorCommand({
@@ -61,19 +55,9 @@ const buyReservedCardCommand = defineSplendorCommand({
         };
       }
 
-      const hypotheticalPlayer = player.clone();
-      hypotheticalPlayer.removeReservedCard(draft.selectedCardId);
-      hypotheticalPlayer.buyCard(draft.selectedCardId);
-      const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
-      const nobleDiscovery = createNobleDiscovery(draft, eligibleNobles);
-
-      return (
-        nobleDiscovery ??
-        completeDiscovery({
-          cardId: draft.selectedCardId,
-          chosenNobleId: draft.chosenNobleId,
-        })
-      );
+      return completeDiscovery({
+        cardId: draft.selectedCardId,
+      });
     },
   })
   .isAvailable((context) => {
@@ -96,10 +80,6 @@ const buyReservedCardCommand = defineSplendorCommand({
       const input = command.input;
       const player = game.getPlayer(actorId);
 
-      if (!input) {
-        return { ok: false, reason: "card_required" };
-      }
-
       if (!player.reservedCardIds.includes(input.cardId)) {
         return { ok: false, reason: "card_not_reserved" };
       }
@@ -108,25 +88,6 @@ const buyReservedCardCommand = defineSplendorCommand({
 
       if (!player.getAffordablePayment(card)) {
         return { ok: false, reason: "card_not_affordable" };
-      }
-
-      const hypotheticalPlayer = player.clone();
-      hypotheticalPlayer.removeReservedCard(input.cardId);
-      hypotheticalPlayer.buyCard(input.cardId);
-
-      const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
-
-      if (eligibleNobles.length > 1 && !input.chosenNobleId) {
-        return { ok: false, reason: "chosen_noble_required" };
-      }
-
-      if (
-        input.chosenNobleId &&
-        !eligibleNobles.some(
-          (noble: { id: number }) => noble.id === input.chosenNobleId,
-        )
-      ) {
-        return { ok: false, reason: "invalid_chosen_noble" };
       }
 
       return { ok: true };

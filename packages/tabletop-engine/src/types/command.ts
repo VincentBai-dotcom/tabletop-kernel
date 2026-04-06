@@ -401,7 +401,6 @@ export interface InternalExecuteContext<
   game: FacadeGameState;
   runtime: Readonly<Runtime>;
   rng: RNGApi;
-  setCurrentSegmentOwner(ownerId?: string): void;
   emitEvent(event: GameEvent): void;
 }
 
@@ -413,7 +412,6 @@ export type ExecuteContext<
   runtime: Readonly<RuntimeState>;
   command: TCommand;
   rng: RNGApi;
-  setCurrentSegmentOwner(ownerId?: string): void;
   emitEvent(event: GameEvent): void;
 };
 

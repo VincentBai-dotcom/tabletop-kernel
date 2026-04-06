@@ -116,7 +116,7 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
       const actorId = assertActivePlayer(runtime, command.actorId);
       const input = command.input;
 
-      if (!input || input.colors.length !== 3) {
+      if (input.colors.length !== 3) {
         return { ok: false, reason: "three_colors_required" };
       }
 

@@ -27,7 +27,12 @@ test("splendor setup follows official 2-player rules", () => {
   expect(state.game.board.faceUpByLevel[2]).toHaveLength(4);
   expect(state.game.board.faceUpByLevel[3]).toHaveLength(4);
   expect(state.game.board.nobleIds).toHaveLength(3);
-  expect(state.runtime.progression.segments.turn?.ownerId).toBe("p1");
+  expect(state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p1",
+  });
+  expect(state.runtime.progression.lastActingStage).toBeNull();
 });
 
 test("splendor game definition compiles a root state facade", () => {
@@ -144,7 +149,7 @@ test("splendor discovers gem color choices before return tokens for three-distin
   });
 });
 
-test("splendor discovers noble selection when a purchase leaves multiple nobles eligible", () => {
+test("splendor buy discovery no longer asks for noble selection", () => {
   const gameExecutor = createTestGameExecutor(["p1", "p2"]);
   const state = gameExecutor.createInitialState();
 
@@ -170,19 +175,13 @@ test("splendor discovers noble selection when a purchase leaves multiple nobles 
   });
 
   expect(discovery).toMatchObject({
-    complete: false,
-    step: "select_noble",
+    complete: true,
   });
-  if (!discovery || discovery.complete) {
-    throw new Error("expected_incomplete_discovery");
+  if (!discovery || !discovery.complete) {
+    throw new Error("expected_complete_discovery");
   }
-  expect(discovery.options).toHaveLength(2);
-  expect(discovery.options[0]).toMatchObject({
-    id: expect.any(String),
-    nextInput: {
-      selectedCardId: 45,
-      chosenNobleId: expect.any(Number),
-    },
+  expect(discovery.input).toEqual({
+    cardId: 45,
   });
 });
 
@@ -216,13 +215,22 @@ test("taking three distinct gems updates tokens and advances the turn", () => {
     blue: 3,
     green: 3,
   });
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe("p2");
+  expect(result.state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p2",
+  });
+  expect(result.state.runtime.progression.lastActingStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p1",
+  });
   expect(result.events[0]).toMatchObject({
     category: "domain",
     type: "gems_taken",
   });
-  expect(result.events.map((event) => event.type)).toContain("segment_exited");
-  expect(result.events.map((event) => event.type)).toContain("segment_entered");
+  expect(result.events.map((event) => event.type)).toContain("stage_exited");
+  expect(result.events.map((event) => event.type)).toContain("stage_entered");
 });
 
 test("taking two gems of the same color requires at least four in the bank", () => {
@@ -318,7 +326,16 @@ test("reserving a face-up card grants gold and refills the market", () => {
   expect(result.state.game.bank.gold).toBe(4);
   expect(result.state.game.board.faceUpByLevel[1]).toEqual([2, 3, 4, 5]);
   expect(result.state.game.board.deckByLevel[1]).toEqual([6]);
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe("p2");
+  expect(result.state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p2",
+  });
+  expect(result.state.runtime.progression.lastActingStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p1",
+  });
 });
 
 test("buying a reserved card uses discounts and can claim a noble automatically", () => {
@@ -356,6 +373,108 @@ test("buying a reserved card uses discounts and can claim a noble automatically"
   expect(result.state.game.players.p1?.nobleIds).toEqual([1]);
   expect(result.state.game.board.nobleIds).toEqual([]);
   expect(result.events.map((event) => event.type)).toContain("noble_claimed");
+});
+
+test("buying with multiple eligible nobles moves into the choose-noble stage", () => {
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
+
+  state.game.board.nobleIds = [6, 7];
+  state.game.players.p1!.tokens.white = 0;
+  state.game.players.p1!.tokens.blue = 0;
+  state.game.players.p1!.tokens.green = 0;
+  state.game.players.p1!.tokens.red = 0;
+  state.game.players.p1!.tokens.black = 0;
+  state.game.players.p1!.tokens.gold = 20;
+  state.game.players.p1!.reservedCardIds = [45];
+  state.game.players.p1!.purchasedCardIds = [
+    17, 18, 19, 20, 33, 34, 35, 36, 1, 2, 3,
+  ];
+  state.game.players.p1!.nobleIds = [];
+
+  const result = gameExecutor.executeCommand(state, {
+    type: "buy_reserved_card",
+    actorId: "p1",
+    input: {
+      cardId: 45,
+    },
+  });
+
+  expect(result.ok).toBe(true);
+
+  if (!result.ok) {
+    throw new Error("expected reserved buy to succeed");
+  }
+
+  expect(result.state.runtime.progression.currentStage).toEqual({
+    id: "chooseNoble",
+    kind: "activePlayer",
+    activePlayerId: "p1",
+  });
+  expect(result.state.game.players.p1?.nobleIds).toEqual([]);
+  expect(result.events.map((event) => event.type)).not.toContain(
+    "noble_claimed",
+  );
+  expect(
+    gameExecutor.listAvailableCommands(result.state, {
+      actorId: "p1",
+    }),
+  ).toEqual(["choose_noble"]);
+});
+
+test("choosing a noble claims it and then advances to the next player", () => {
+  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
+  const state = gameExecutor.createInitialState();
+
+  state.game.board.nobleIds = [6, 7];
+  state.game.players.p1!.tokens.white = 0;
+  state.game.players.p1!.tokens.blue = 0;
+  state.game.players.p1!.tokens.green = 0;
+  state.game.players.p1!.tokens.red = 0;
+  state.game.players.p1!.tokens.black = 0;
+  state.game.players.p1!.tokens.gold = 20;
+  state.game.players.p1!.reservedCardIds = [45];
+  state.game.players.p1!.purchasedCardIds = [
+    17, 18, 19, 20, 33, 34, 35, 36, 1, 2, 3,
+  ];
+  state.game.players.p1!.nobleIds = [];
+
+  const buyResult = gameExecutor.executeCommand(state, {
+    type: "buy_reserved_card",
+    actorId: "p1",
+    input: {
+      cardId: 45,
+    },
+  });
+
+  if (!buyResult.ok) {
+    throw new Error("expected reserved buy to succeed");
+  }
+
+  const chooseResult = gameExecutor.executeCommand(buyResult.state, {
+    type: "choose_noble",
+    actorId: "p1",
+    input: {
+      nobleId: 6,
+    },
+  });
+
+  expect(chooseResult.ok).toBe(true);
+
+  if (!chooseResult.ok) {
+    throw new Error("expected choose_noble to succeed");
+  }
+
+  expect(chooseResult.state.game.players.p1?.nobleIds).toEqual([6]);
+  expect(chooseResult.state.game.board.nobleIds).toEqual([7]);
+  expect(chooseResult.state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p2",
+  });
+  expect(chooseResult.events.map((event) => event.type)).toContain(
+    "noble_claimed",
+  );
 });
 
 test("endgame finishes after the final player in turn order and breaks ties by fewest cards", () => {
@@ -400,9 +519,16 @@ test("endgame finishes after the final player in turn order and breaks ties by f
     endsAfterPlayerId: "p2",
   });
   expect(firstResult.state.game.winnerIds).toBeNull();
-  expect(firstResult.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "p2",
-  );
+  expect(firstResult.state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p2",
+  });
+  expect(firstResult.state.runtime.progression.lastActingStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p1",
+  });
 
   const secondResult = gameExecutor.executeCommand(firstResult.state, {
     type: "buy_reserved_card",

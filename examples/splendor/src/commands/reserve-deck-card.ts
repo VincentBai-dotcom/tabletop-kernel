@@ -108,10 +108,6 @@ const reserveDeckCardCommand = defineSplendorCommand({
         return { ok: false, reason: "reserved_limit_reached" };
       }
 
-      if (!input) {
-        return { ok: false, reason: "level_required" };
-      }
-
       const level = input.level;
 
       if (!isDevelopmentLevel(level)) {

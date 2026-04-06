@@ -100,10 +100,6 @@ const takeTwoSameGemsCommand = defineSplendorCommand({
       const actorId = assertActivePlayer(runtime, command.actorId);
       const input = command.input;
 
-      if (!input) {
-        return { ok: false, reason: "color_required" };
-      }
-
       const color = input.color;
 
       if (!isGemTokenColor(color)) {

@@ -1,5 +1,6 @@
 export { GameDefinitionBuilder } from "./game-definition";
 export { createCommandFactory } from "./command-factory";
+export { createStageFactory } from "./stage-factory";
 export { createGameExecutor } from "./runtime/game-executor";
 export { generateAsyncApi } from "./protocol/asyncapi";
 export { describeGameProtocol } from "./protocol/describe";
@@ -62,6 +63,11 @@ export type {
   ValidationContext,
 } from "./types/command";
 export type { CommandFactory } from "./command-factory";
+export type {
+  AutomaticStageBuilder,
+  SingleActivePlayerStageBuilder,
+  StageFactory,
+} from "./stage-factory";
 export type { GameEvent } from "./types/event";
 export type {
   ExecutionFailure,
@@ -85,19 +91,16 @@ export type {
   VisibleState,
 } from "./types/visibility";
 export type {
-  BuiltInProgressionCompletionPolicy,
-  ProgressionCompletionCallback,
-  ProgressionCompletionContext,
-  ProgressionCompletionPolicy,
-  ProgressionDefinition,
-  ProgressionLifecycleHook,
-  ProgressionLifecycleHookContext,
-  ProgressionNavigation,
-  ProgressionResolveNext,
-  ProgressionResolveNextResult,
-  ProgressionSegmentDefinition,
-  ProgressionSegmentState,
+  AutomaticStageDefinition,
+  AutomaticStageState,
   ProgressionState,
+  SingleActivePlayerSelectionContext,
+  SingleActivePlayerStageState,
+  SingleActivePlayerStageDefinition,
+  SingleActivePlayerTransitionContext,
+  StageState,
+  StageDefinition,
+  StageDefinitionMap,
 } from "./types/progression";
 export type { RNGApi, RNGState } from "./types/rng";
 export type { ReplayRecord, Snapshot } from "./types/snapshot";

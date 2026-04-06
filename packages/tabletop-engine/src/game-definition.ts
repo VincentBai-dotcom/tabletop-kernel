@@ -1,5 +1,5 @@
-import type { CommandDefinition, DefinedCommand } from "./types/command";
-import type { ProgressionDefinition } from "./types/progression";
+import type { CommandDefinition } from "./types/command";
+import type { StageDefinition, StageDefinitionMap } from "./types/progression";
 import type { RuntimeState } from "./types/state";
 import type { RNGApi } from "./types/rng";
 import {
@@ -11,21 +11,12 @@ import type { StateClass } from "./state-facade/metadata";
 type AnyCommandDefinition<FacadeGameState extends object> =
   CommandDefinition<FacadeGameState>;
 
-type AuthoredCommandDefinition<FacadeGameState extends object> =
-  DefinedCommand<FacadeGameState>;
-
 type CommandDefinitionMap<FacadeGameState extends object = object> = Record<
   string,
   AnyCommandDefinition<FacadeGameState>
 >;
 
-type AuthoredCommandDefinitionMap<FacadeGameState extends object> = Record<
-  string,
-  AuthoredCommandDefinition<FacadeGameState>
->;
-
-type CommandDefinitionList<FacadeGameState extends object> =
-  readonly AuthoredCommandDefinition<FacadeGameState>[];
+type AnyStageDefinition = StageDefinition<object>;
 
 export interface GameSetupContext<GameState extends object = object> {
   game: GameState;
@@ -44,7 +35,8 @@ export interface GameDefinition<
   initialState: () => CanonicalGameState;
   commands: Commands;
   stateFacade?: CompiledStateFacadeDefinition;
-  progression?: ProgressionDefinition<FacadeGameState>;
+  initialStage: AnyStageDefinition;
+  stages: Record<string, AnyStageDefinition>;
   rngSeed?: string | number;
   setup?: (context: GameSetupContext<CanonicalGameState>) => void;
 }
@@ -70,8 +62,8 @@ interface GameDefinitionBuilderState<
   GameDefinition<CanonicalGameState, FacadeGameState, Commands>
 > {
   name: string;
-  commandList?: CommandDefinitionList<FacadeGameState>;
   rootState?: StateClass;
+  initialStage?: AnyStageDefinition;
 }
 
 export class GameDefinitionBuilder<
@@ -132,58 +124,6 @@ export class GameDefinitionBuilder<
     >;
   }
 
-  commands(
-    commands: AuthoredCommandDefinitionMap<FacadeGameState>,
-  ): GameDefinitionBuilder<
-    CanonicalGameState,
-    FacadeGameState,
-    CommandDefinitionMap<FacadeGameState>
-  >;
-  commands(
-    commands: CommandDefinitionList<FacadeGameState>,
-  ): GameDefinitionBuilder<
-    CanonicalGameState,
-    FacadeGameState,
-    CommandDefinitionMap<FacadeGameState>
-  >;
-  commands(
-    commands:
-      | AuthoredCommandDefinitionMap<FacadeGameState>
-      | CommandDefinitionList<FacadeGameState>,
-  ):
-    | GameDefinitionBuilder<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitionMap<FacadeGameState>
-      >
-    | GameDefinitionBuilder<CanonicalGameState, FacadeGameState, Commands> {
-    if (Array.isArray(commands)) {
-      this.config.commandList = commands;
-      delete this.config.commands;
-
-      return this as unknown as GameDefinitionBuilder<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitionMap<FacadeGameState>
-      >;
-    }
-
-    (
-      this.config as unknown as GameDefinitionBuilderState<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitionMap<FacadeGameState>
-      >
-    ).commands = commands as AuthoredCommandDefinitionMap<FacadeGameState>;
-    delete this.config.commandList;
-
-    return this as unknown as GameDefinitionBuilder<
-      CanonicalGameState,
-      FacadeGameState,
-      CommandDefinitionMap<FacadeGameState>
-    >;
-  }
-
   rootState<NextFacadeGameState extends object>(
     rootState: StateClass<NextFacadeGameState>,
   ): GameDefinitionBuilder<
@@ -199,8 +139,8 @@ export class GameDefinitionBuilder<
     >;
   }
 
-  progression(progression: ProgressionDefinition<FacadeGameState>): this {
-    this.config.progression = progression;
+  initialStage(initialStage: AnyStageDefinition): this {
+    this.config.initialStage = initialStage;
     return this;
   }
 
@@ -219,13 +159,12 @@ export class GameDefinitionBuilder<
       throw new Error("initial_state_required");
     }
 
-    if (!this.config.commands && !this.config.commandList) {
-      throw new Error("commands_required");
+    if (!this.config.initialStage) {
+      throw new Error("initial_stage_required");
     }
 
-    const commands = this.config.commandList
-      ? compileCommandList(this.config.commandList)
-      : this.config.commands;
+    const stages = collectReachableStages(this.config.initialStage);
+    const commands = compileCommandMapFromStages(stages);
     const stateFacade = this.config.rootState
       ? compileStateFacadeDefinition(this.config.rootState)
       : undefined;
@@ -235,24 +174,64 @@ export class GameDefinitionBuilder<
       initialState: this.config.initialState,
       commands: commands as Commands,
       stateFacade,
-      progression: this.config.progression,
+      initialStage: this.config.initialStage,
+      stages,
       rngSeed: this.config.rngSeed,
       setup: this.config.setup,
     };
   }
 }
 
-function compileCommandList<FacadeGameState extends object>(
-  commands: CommandDefinitionList<FacadeGameState>,
-): CommandDefinitionMap<FacadeGameState> {
-  const commandMap: CommandDefinitionMap<FacadeGameState> = {};
+function collectReachableStages<FacadeGameState extends object>(
+  initialStage: StageDefinition<FacadeGameState>,
+): Record<string, StageDefinition<FacadeGameState>> {
+  const stages: Record<string, StageDefinition<FacadeGameState>> = {};
+  const stack = [initialStage];
 
-  for (const command of commands) {
-    if (command.commandId in commandMap) {
-      throw new Error(`duplicate_command_id:${command.commandId}`);
+  while (stack.length > 0) {
+    const stage = stack.pop()!;
+    const existing = stages[stage.id];
+
+    if (existing) {
+      if (existing !== stage) {
+        throw new Error(`duplicate_stage_id:${stage.id}`);
+      }
+
+      continue;
     }
 
-    commandMap[command.commandId] = command;
+    stages[stage.id] = stage;
+
+    for (const nextStage of Object.values(resolveNextStages(stage))) {
+      stack.push(nextStage);
+    }
+  }
+
+  return stages;
+}
+
+function resolveNextStages<FacadeGameState extends object>(
+  stage: StageDefinition<FacadeGameState>,
+): StageDefinitionMap<FacadeGameState> {
+  return stage.nextStages?.() ?? {};
+}
+
+function compileCommandMapFromStages<FacadeGameState extends object>(
+  stages: Record<string, StageDefinition<FacadeGameState>>,
+): CommandDefinitionMap<FacadeGameState> {
+  const commandMap: CommandDefinitionMap<FacadeGameState> = {};
+  for (const stage of Object.values(stages)) {
+    if (stage.kind === "activePlayer") {
+      for (const command of stage.commands) {
+        const existing = commandMap[command.commandId];
+
+        if (existing && existing !== command) {
+          throw new Error(`duplicate_command_id:${command.commandId}`);
+        }
+
+        commandMap[command.commandId] = command;
+      }
+    }
   }
 
   return commandMap;

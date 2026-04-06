@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 import { createGameExecutor } from "../src/runtime/game-executor";
 import { GameDefinitionBuilder } from "../src/game-definition";
 import { createCommandFactory } from "../src/command-factory";
+import { createStageFactory } from "../src/stage-factory";
+import type { SingleActivePlayerStageDefinition } from "../src/types/progression";
 import {
   field,
   OwnedByPlayer,
@@ -11,6 +13,7 @@ import {
 } from "../src/state-facade/metadata";
 
 const emptyCommandSchema = t.object({});
+const defineTestStage = createStageFactory<object>();
 
 @State()
 class TestHandState {
@@ -64,34 +67,23 @@ class OwnedPlayerStateWithoutId {
 }
 
 test("GameDefinitionBuilder preserves the supplied configuration", () => {
+  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+
   const game = new GameDefinitionBuilder<{
     score: number;
   }>("test-game")
     .initialState(() => ({
       score: 0,
     }))
-    .commands({})
-    .progression({
-      root: {
-        id: "round",
-        children: [
-          {
-            id: "main",
-            kind: "phase",
-            children: [],
-          },
-        ],
-      },
-    })
+    .initialStage(gameEndStage)
     .build();
 
   expect(game.name).toBe("test-game");
   expect(game.initialState().score).toBe(0);
   expect(game.commands).toEqual({});
-  expect(game.progression?.root.children[0]?.id).toBe("main");
 });
 
-test("GameDefinitionBuilder compiles command lists into the command map shape", () => {
+test("GameDefinitionBuilder compiles stage command references into the command map shape", () => {
   const defineCommand = createCommandFactory<{ score: number }>();
   const incrementScoreCommand = defineCommand({
     commandId: "increment_score",
@@ -115,6 +107,17 @@ test("GameDefinitionBuilder compiles command lists into the command map shape", 
       game.score -= 1;
     })
     .build();
+  const scoreTurnStage = createScoreTurnStage();
+
+  function createScoreTurnStage(): SingleActivePlayerStageDefinition<object> {
+    return defineTestStage("scoreTurn")
+      .singleActivePlayer()
+      .activePlayer(() => "player-1")
+      .commands([incrementScoreCommand, decrementScoreCommand])
+      .nextStages(() => ({ scoreTurnStage }))
+      .transition(({ nextStages }) => nextStages.scoreTurnStage)
+      .build();
+  }
 
   const game = new GameDefinitionBuilder<{
     score: number;
@@ -122,7 +125,7 @@ test("GameDefinitionBuilder compiles command lists into the command map shape", 
     .initialState(() => ({
       score: 0,
     }))
-    .commands([incrementScoreCommand, decrementScoreCommand])
+    .initialStage(scoreTurnStage)
     .build();
 
   expect(Object.keys(game.commands)).toEqual([
@@ -133,7 +136,7 @@ test("GameDefinitionBuilder compiles command lists into the command map shape", 
   expect(game.commands.decrement_score).toBe(decrementScoreCommand);
 });
 
-test("GameDefinitionBuilder accepts factory-defined command lists", () => {
+test("GameDefinitionBuilder accepts factory-defined commands through stages only", () => {
   const defineCommand = createCommandFactory<{ score: number }>();
 
   const incrementScoreCommand = defineCommand({
@@ -159,6 +162,23 @@ test("GameDefinitionBuilder accepts factory-defined command lists", () => {
       game.score -= 1;
     })
     .build();
+  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+  const scoreTurnStage = createScoreTurnStage();
+
+  function createScoreTurnStage(): SingleActivePlayerStageDefinition<object> {
+    return defineTestStage("scoreTurn")
+      .singleActivePlayer()
+      .activePlayer(() => "player-1")
+      .commands([incrementScoreCommand, decrementScoreCommand])
+      .nextStages(() => ({
+        scoreTurnStage,
+        gameEndStage,
+      }))
+      .transition(({ nextStages }) => {
+        return nextStages.gameEndStage ?? nextStages.scoreTurnStage;
+      })
+      .build();
+  }
 
   const game = new GameDefinitionBuilder<{
     score: number;
@@ -166,16 +186,17 @@ test("GameDefinitionBuilder accepts factory-defined command lists", () => {
     .initialState(() => ({
       score: 0,
     }))
-    .commands([incrementScoreCommand, decrementScoreCommand])
+    .initialStage(scoreTurnStage)
     .build();
 
   expect(Object.keys(game.commands)).toEqual([
     "increment_score",
     "decrement_score",
   ]);
+  expect(Object.keys(game.stages)).toEqual(["scoreTurn", "gameEnd"]);
 });
 
-test("GameDefinitionBuilder rejects duplicate command ids in command lists", () => {
+test("GameDefinitionBuilder rejects duplicate command ids across reachable stages", () => {
   const defineCommand = createCommandFactory<{ score: number }>();
   const incrementScoreCommand = defineCommand({
     commandId: "increment_score",
@@ -188,6 +209,47 @@ test("GameDefinitionBuilder rejects duplicate command ids in command lists", () 
       game.score += 1;
     })
     .build();
+  const duplicateIncrementScoreCommand = defineCommand({
+    commandId: "increment_score",
+    commandSchema: emptyCommandSchema,
+  })
+    .validate(() => {
+      return { ok: true as const };
+    })
+    .execute(({ game }) => {
+      game.score += 2;
+    })
+    .build();
+  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+  const scoreTurnStage = defineTestStage("scoreTurn")
+    .singleActivePlayer()
+    .activePlayer(() => "player-1")
+    .commands([incrementScoreCommand])
+    .nextStages(() => ({
+      gameEndStage,
+    }))
+    .transition(({ nextStages }) => nextStages.gameEndStage)
+    .build();
+  const bonusTurnStage = createBonusTurnStage();
+
+  function createBonusTurnStage(): SingleActivePlayerStageDefinition<object> {
+    return defineTestStage("bonusTurn")
+      .singleActivePlayer()
+      .activePlayer(() => "player-2")
+      .commands([duplicateIncrementScoreCommand])
+      .nextStages(() => ({ bonusTurnStage }))
+      .transition(({ nextStages }) => nextStages.bonusTurnStage)
+      .build();
+  }
+  const rootStage = defineTestStage("root")
+    .automatic()
+    .nextStages(() => ({
+      scoreTurnStage,
+      bonusTurnStage,
+    }))
+    .transition(({ nextStages }) => nextStages.scoreTurnStage)
+    .build();
+  void bonusTurnStage;
 
   expect(() =>
     new GameDefinitionBuilder<{
@@ -196,12 +258,12 @@ test("GameDefinitionBuilder rejects duplicate command ids in command lists", () 
       .initialState(() => ({
         score: 0,
       }))
-      .commands([incrementScoreCommand, incrementScoreCommand])
+      .initialStage(rootStage)
       .build(),
   ).toThrow("duplicate_command_id:increment_score");
 });
 
-test("GameDefinitionBuilder only accepts commands created by the command factory", () => {
+test("GameDefinitionBuilder only accepts commands created by the command factory through stages", () => {
   const legacyCommand = {
     commandId: "legacy",
     commandSchema: emptyCommandSchema,
@@ -217,89 +279,75 @@ test("GameDefinitionBuilder only accepts commands created by the command factory
     score: 0,
   }));
 
-  builder.commands([
-    // @ts-expect-error commands must be created by createCommandFactory
-    legacyCommand,
-  ]);
+  const turnStage = createTurnStage();
+
+  function createTurnStage(): SingleActivePlayerStageDefinition<object> {
+    return defineTestStage("turn")
+      .singleActivePlayer()
+      .activePlayer(() => "player-1")
+      .commands([
+        // @ts-expect-error commands must be created by createCommandFactory
+        legacyCommand,
+      ])
+      .nextStages(() => ({ turnStage }))
+      .transition(({ nextStages }) => nextStages.turnStage)
+      .build();
+  }
+
+  builder.initialStage(turnStage);
 });
 
-test("createGameExecutor normalizes nested progression trees into runtime state", () => {
+test("createGameExecutor creates initial stage-machine runtime state", () => {
+  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+  const playerTurnStage = createPlayerTurnStage();
+
+  function createPlayerTurnStage(): SingleActivePlayerStageDefinition<object> {
+    return defineTestStage("playerTurn")
+      .singleActivePlayer()
+      .activePlayer(() => "player-1")
+      .nextStages(() => ({
+        playerTurnStage,
+        gameEndStage,
+      }))
+      .commands([])
+      .transition(({ nextStages }) => {
+        return nextStages.playerTurnStage;
+      })
+      .build();
+  }
   const game = new GameDefinitionBuilder<{
     score: number;
   }>("progression-game")
     .initialState(() => ({
       score: 0,
     }))
-    .commands({})
-    .progression({
-      root: {
-        id: "round",
-        kind: "round",
-        children: [
-          {
-            id: "turn",
-            kind: "turn",
-            children: [
-              {
-                id: "main",
-                kind: "phase",
-                children: [],
-              },
-            ],
-          },
-        ],
-      },
-    })
+    .initialStage(playerTurnStage)
     .build();
 
   const gameExecutor = createGameExecutor(game);
   const state = gameExecutor.createInitialState();
 
-  expect(state.runtime.progression.rootId).toBe("round");
-  expect(state.runtime.progression.current).toBe("main");
-  expect(state.runtime.progression.segments.round).toMatchObject({
-    id: "round",
-    kind: "round",
-    parentId: undefined,
-    childIds: ["turn"],
-    active: true,
-  });
-  expect(state.runtime.progression.segments.turn).toMatchObject({
-    id: "turn",
-    kind: "turn",
-    parentId: "round",
-    childIds: ["main"],
-    active: true,
-  });
-  expect(state.runtime.progression.segments.main).toMatchObject({
-    id: "main",
-    kind: "phase",
-    parentId: "turn",
-    childIds: [],
-    active: true,
+  expect(state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "player-1",
   });
 });
 
 test("GameDefinitionBuilder builds the same game definition shape", () => {
+  const gameEndStage = defineTestStage("gameEnd").automatic().build();
   const game = new GameDefinitionBuilder<{
     score: number;
   }>("builder-game")
     .initialState(() => ({
       score: 0,
     }))
-    .commands({})
-    .progression({
-      root: {
-        id: "round",
-        children: [],
-      },
-    })
+    .initialStage(gameEndStage)
     .build();
 
   expect(game.name).toBe("builder-game");
   expect(game.initialState().score).toBe(0);
   expect(game.commands).toEqual({});
-  expect(game.progression?.root.id).toBe("round");
 });
 
 test("GameDefinitionBuilder compiles reachable root state metadata", () => {
@@ -316,7 +364,7 @@ test("GameDefinitionBuilder compiles reachable root state metadata", () => {
         size: 0,
       },
     }))
-    .commands({})
+    .initialStage(defineTestStage("gameEnd").automatic().build())
     .build();
 
   expect(game.stateFacade?.root).toBe(TestRootState);
@@ -344,7 +392,7 @@ test("GameDefinitionBuilder rejects undecorated nested state targets", () => {
           cards: [],
         },
       }))
-      .commands({})
+      .initialStage(defineTestStage("gameEnd").automatic().build())
       .build(),
   ).toThrow("state_field_target_must_be_decorated:UndecoratedChildState");
 });
@@ -359,7 +407,7 @@ test("GameDefinitionBuilder compiles nested state references inside array field 
     .initialState(() => ({
       cards: [],
     }))
-    .commands({})
+    .initialStage(defineTestStage("gameEnd").automatic().build())
     .build();
 
   expect(game.stateFacade?.root).toBe(TestCollectionRootState);
@@ -388,7 +436,7 @@ test("GameDefinitionBuilder rejects visibleToSelf fields without a player-owned 
       .initialState(() => ({
         hiddenCards: [],
       }))
-      .commands({})
+      .initialStage(defineTestStage("gameEnd").automatic().build())
       .build(),
   ).toThrow("visible_to_self_requires_owned_player_ancestor:hiddenCards");
 });
@@ -402,7 +450,7 @@ test("GameDefinitionBuilder rejects owned player states without a string id fiel
       .initialState(() => ({
         score: 0,
       }))
-      .commands({})
+      .initialStage(defineTestStage("gameEnd").automatic().build())
       .build(),
   ).toThrow("owned_player_requires_string_id_field:OwnedPlayerStateWithoutId");
 });
