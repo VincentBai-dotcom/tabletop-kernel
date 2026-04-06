@@ -13,6 +13,7 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
+  finishTurn,
 } from "./shared.ts";
 
 const buyFaceUpCardCommandSchema = t.object({
@@ -114,10 +115,6 @@ const buyFaceUpCardCommand = defineSplendorCommand({
       const actorId = assertActivePlayer(runtime, command.actorId);
       const input = command.input;
 
-      if (!input) {
-        return { ok: false, reason: "level_and_card_required" };
-      }
-
       const level = input.level;
 
       if (!isDevelopmentLevel(level)) {
@@ -172,6 +169,7 @@ const buyFaceUpCardCommand = defineSplendorCommand({
     player.buyCard(card.id);
     game.board.removeFaceUpCard(level, card.id);
     game.board.replenishFaceUpCard(level);
+    const claimedNobleId = game.resolveNobleVisit(player, input.chosenNobleId);
     emitEvent({
       category: "domain",
       type: "card_purchased",
@@ -183,6 +181,17 @@ const buyFaceUpCardCommand = defineSplendorCommand({
         payment,
       },
     });
+    if (claimedNobleId !== null) {
+      emitEvent({
+        category: "domain",
+        type: "noble_claimed",
+        payload: {
+          actorId,
+          nobleId: claimedNobleId,
+        },
+      });
+    }
+    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

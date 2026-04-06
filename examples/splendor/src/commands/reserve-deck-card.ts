@@ -13,6 +13,7 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
+  finishTurn,
 } from "./shared.ts";
 
 const reserveDeckCardCommandSchema = t.object({
@@ -108,10 +109,6 @@ const reserveDeckCardCommand = defineSplendorCommand({
         return { ok: false, reason: "reserved_limit_reached" };
       }
 
-      if (!input) {
-        return { ok: false, reason: "level_required" };
-      }
-
       const level = input.level;
 
       if (!isDevelopmentLevel(level)) {
@@ -160,6 +157,7 @@ const reserveDeckCardCommand = defineSplendorCommand({
         returnTokens: input.returnTokens ?? null,
       },
     });
+    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

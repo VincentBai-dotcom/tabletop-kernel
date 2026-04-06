@@ -9,6 +9,7 @@ import {
   assertActivePlayer,
   assertGameActive,
   defineSplendorCommand,
+  finishTurn,
   guardedAvailability,
   guardedValidate,
 } from "./shared.ts";
@@ -96,10 +97,6 @@ const buyReservedCardCommand = defineSplendorCommand({
       const input = command.input;
       const player = game.getPlayer(actorId);
 
-      if (!input) {
-        return { ok: false, reason: "card_required" };
-      }
-
       if (!player.reservedCardIds.includes(input.cardId)) {
         return { ok: false, reason: "card_not_reserved" };
       }
@@ -146,6 +143,7 @@ const buyReservedCardCommand = defineSplendorCommand({
     player.tokens.transferTo(game.bank, payment);
     player.removeReservedCard(card.id);
     player.buyCard(card.id);
+    const claimedNobleId = game.resolveNobleVisit(player, input.chosenNobleId);
     emitEvent({
       category: "domain",
       type: "card_purchased",
@@ -156,6 +154,17 @@ const buyReservedCardCommand = defineSplendorCommand({
         payment,
       },
     });
+    if (claimedNobleId !== null) {
+      emitEvent({
+        category: "domain",
+        type: "noble_claimed",
+        payload: {
+          actorId,
+          nobleId: claimedNobleId,
+        },
+      });
+    }
+    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

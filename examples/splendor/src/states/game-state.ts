@@ -146,24 +146,8 @@ export class SplendorGameState {
     return chosenNoble.id;
   }
 
-  resolveTurnEnd(
-    actorId: string,
-    emitEvent: (event: GameEvent) => void,
-    chosenNobleId?: number,
-  ): void {
+  resolveTurnEnd(actorId: string, emitEvent: (event: GameEvent) => void): void {
     const player = this.getPlayer(actorId);
-    const claimedNobleId = this.resolveNobleVisit(player, chosenNobleId);
-
-    if (claimedNobleId !== null) {
-      emitEvent({
-        category: "domain",
-        type: "noble_claimed",
-        payload: {
-          actorId,
-          nobleId: claimedNobleId,
-        },
-      });
-    }
 
     if (!this.endGame && player.getScore() >= 15) {
       this.endGame = SplendorEndGameState.create(

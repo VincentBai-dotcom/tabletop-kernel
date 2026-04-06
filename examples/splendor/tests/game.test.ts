@@ -27,7 +27,11 @@ test("splendor setup follows official 2-player rules", () => {
   expect(state.game.board.faceUpByLevel[2]).toHaveLength(4);
   expect(state.game.board.faceUpByLevel[3]).toHaveLength(4);
   expect(state.game.board.nobleIds).toHaveLength(3);
-  expect(state.runtime.progression.segments.turn?.ownerId).toBe("p1");
+  expect(state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p1",
+  });
 });
 
 test("splendor game definition compiles a root state facade", () => {
@@ -216,13 +220,17 @@ test("taking three distinct gems updates tokens and advances the turn", () => {
     blue: 3,
     green: 3,
   });
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe("p2");
+  expect(result.state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p2",
+  });
   expect(result.events[0]).toMatchObject({
     category: "domain",
     type: "gems_taken",
   });
-  expect(result.events.map((event) => event.type)).toContain("segment_exited");
-  expect(result.events.map((event) => event.type)).toContain("segment_entered");
+  expect(result.events.map((event) => event.type)).toContain("stage_exited");
+  expect(result.events.map((event) => event.type)).toContain("stage_entered");
 });
 
 test("taking two gems of the same color requires at least four in the bank", () => {
@@ -318,7 +326,11 @@ test("reserving a face-up card grants gold and refills the market", () => {
   expect(result.state.game.bank.gold).toBe(4);
   expect(result.state.game.board.faceUpByLevel[1]).toEqual([2, 3, 4, 5]);
   expect(result.state.game.board.deckByLevel[1]).toEqual([6]);
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe("p2");
+  expect(result.state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p2",
+  });
 });
 
 test("buying a reserved card uses discounts and can claim a noble automatically", () => {
@@ -400,9 +412,11 @@ test("endgame finishes after the final player in turn order and breaks ties by f
     endsAfterPlayerId: "p2",
   });
   expect(firstResult.state.game.winnerIds).toBeNull();
-  expect(firstResult.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "p2",
-  );
+  expect(firstResult.state.runtime.progression.currentStage).toEqual({
+    id: "playerTurn",
+    kind: "activePlayer",
+    activePlayerId: "p2",
+  });
 
   const secondResult = gameExecutor.executeCommand(firstResult.state, {
     type: "buy_reserved_card",

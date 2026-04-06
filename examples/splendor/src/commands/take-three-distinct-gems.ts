@@ -13,6 +13,7 @@ import {
   guardedValidate,
   isGemTokenColor,
   defineSplendorCommand,
+  finishTurn,
 } from "./shared.ts";
 
 const takeThreeDistinctGemsCommandSchema = t.object({
@@ -181,6 +182,7 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
         returnTokens: input.returnTokens ?? null,
       },
     });
+    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

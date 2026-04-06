@@ -13,6 +13,7 @@ import {
   guardedValidate,
   isGemTokenColor,
   defineSplendorCommand,
+  finishTurn,
 } from "./shared.ts";
 
 const takeTwoSameGemsCommandSchema = t.object({
@@ -100,10 +101,6 @@ const takeTwoSameGemsCommand = defineSplendorCommand({
       const actorId = assertActivePlayer(runtime, command.actorId);
       const input = command.input;
 
-      if (!input) {
-        return { ok: false, reason: "color_required" };
-      }
-
       const color = input.color;
 
       if (!isGemTokenColor(color)) {
@@ -147,6 +144,7 @@ const takeTwoSameGemsCommand = defineSplendorCommand({
         returnTokens: input.returnTokens ?? null,
       },
     });
+    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

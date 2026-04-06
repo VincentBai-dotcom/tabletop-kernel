@@ -1,13 +1,9 @@
 import {
+  createStageFactory,
   GameDefinitionBuilder,
-  type Command,
   type GameDefinition,
 } from "tabletop-engine";
-import {
-  createCommands,
-  type BuyFaceUpCardInput,
-  type BuyReservedCardInput,
-} from "./commands/index.ts";
+import { createCommands } from "./commands/index.ts";
 import { createInitialGameState, setupSplendorGame } from "./setup.ts";
 import type { SplendorGameState } from "./state.ts";
 import { SplendorGameState as SplendorRootState } from "./state.ts";
@@ -26,55 +22,35 @@ export function createSplendorGame(
     throw new Error("splendor_requires_2_to_4_players");
   }
 
+  const defineStage = createStageFactory<SplendorGameState>();
+  const commands = createCommands();
+  const gameEndStage = defineStage("gameEnd").automatic().build();
+  const playerTurnStage = defineStage("playerTurn")
+    .singleActivePlayer()
+    .activePlayer(({ game, runtime }) => {
+      const previousActorId =
+        runtime.history.entries[runtime.history.entries.length - 1]?.actorId;
+
+      return previousActorId
+        ? game.getNextPlayerId(previousActorId)
+        : game.playerOrder[0]!;
+    })
+    .commands(commands)
+    .nextStages({
+      gameEndStage,
+    })
+    .transition(({ game, self, nextStages }) => {
+      return game.winnerIds ? nextStages.gameEndStage : self;
+    })
+    .build();
+
   return new GameDefinitionBuilder<SplendorGameState>("splendor")
     .rootState(SplendorRootState)
     .rngSeed(seed)
-    .progression({
-      root: {
-        id: "turn",
-        kind: "turn",
-        completionPolicy: "after_successful_command",
-        onExit: ({ command, emitEvent, game }) => {
-          const actorId = command.actorId;
-
-          if (!actorId) {
-            throw new Error("actor_id_required");
-          }
-
-          game.resolveTurnEnd(actorId, emitEvent, readChosenNobleId(command));
-        },
-        resolveNext: ({ command, game }) => {
-          const actorId = command.actorId;
-
-          if (!actorId || game.winnerIds) {
-            return {
-              nextSegmentId: null,
-            };
-          }
-
-          return {
-            nextSegmentId: "turn",
-            ownerId: game.getNextPlayerId(actorId),
-          };
-        },
-        children: [],
-      },
-    })
     .initialState(() => createInitialGameState(playerIds))
     .setup(({ game, runtime, rng }) => {
       setupSplendorGame(game, runtime, rng, playerIds);
     })
-    .commands(createCommands())
+    .initialStage(playerTurnStage)
     .build();
-}
-
-function readChosenNobleId(command: Command): number | undefined {
-  const input = command.input as
-    | BuyFaceUpCardInput
-    | BuyReservedCardInput
-    | undefined;
-
-  return typeof input?.chosenNobleId === "number"
-    ? input.chosenNobleId
-    : undefined;
 }

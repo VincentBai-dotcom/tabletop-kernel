@@ -23,6 +23,7 @@ export function setupSplendorGame(
   rng: RNGApi,
   playerIds: readonly string[],
 ): void {
+  void runtime;
   game.bank = TokenCountsState.createBank(playerIds.length);
 
   for (const level of [1, 2, 3] as const) {
@@ -38,5 +39,4 @@ export function setupSplendorGame(
       .shuffle(nobleTiles.map((noble) => noble.id))
       .slice(0, playerIds.length + 1),
   ];
-  runtime.progression.segments.turn!.ownerId = playerIds[0];
 }
