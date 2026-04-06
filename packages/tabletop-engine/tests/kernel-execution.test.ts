@@ -1,14 +1,8 @@
 import { expect, test } from "bun:test";
 import { createCommandFactory } from "../src/command-factory";
+import { createStageFactory } from "../src/stage-factory";
 import { createGameExecutor } from "../src/runtime/game-executor";
 import { GameDefinitionBuilder } from "../src/game-definition";
-import { evaluateCompletionPolicy } from "../src/runtime/progression-lifecycle";
-import {
-  createProgressionCompletionContext,
-  createProgressionLifecycleHookContext,
-} from "../src/runtime/contexts";
-import { createEventCollector } from "../src/runtime/events";
-import { createRNGService } from "../src/rng/service";
 import {
   field,
   hidden,
@@ -756,404 +750,233 @@ test("createGameExecutor rejects discovery missing input at runtime", () => {
   expect(result).toBeNull();
 });
 
-test("built-in progression completion policies evaluate through lifecycle contexts", () => {
-  const state = {
-    game: {
-      counter: 0,
-    },
-    runtime: {
-      progression: {
-        currentStage: {
-          id: "turn",
-          kind: "activePlayer" as const,
-          activePlayerId: "player-1",
-        },
-        current: "turn",
-        rootId: "turn",
-        segments: {
-          turn: {
-            id: "turn",
-            childIds: [],
-            active: true,
-            ownerId: "player-1",
-          },
-        },
-      },
-      rng: {
-        seed: "seed",
-        cursor: 0,
-      },
-      history: {
-        entries: [],
-      },
-    },
-  };
-  const command = {
-    type: "take_action",
-    actorId: "player-1",
-    input: {},
-  };
-  const completionContext = createProgressionCompletionContext(
-    state,
-    state.game,
-    command,
-    state.runtime.progression.segments.turn!,
-  );
-  const collector = createEventCollector();
-  const lifecycleContext = createProgressionLifecycleHookContext(
-    state,
-    state.game,
-    command,
-    state.runtime.progression.segments.turn!,
-    createRNGService(state.runtime.rng),
-    collector.emit,
-  );
-
-  expect(
-    evaluateCompletionPolicy("after_successful_command", completionContext),
-  ).toBe(true);
-  expect(evaluateCompletionPolicy("manual_only", completionContext)).toBe(
-    false,
-  );
-  expect(completionContext.progression.current()?.id).toBe("turn");
-  expect(completionContext.progression.parent()?.id).toBeUndefined();
-  expect(
-    lifecycleContext.progression.activePath().map((segment) => segment.id),
-  ).toEqual(["turn"]);
-});
-
-test("successful commands trigger automatic progression lifecycle and emit lifecycle events", () => {
-  const defineCommand = createCommandFactory<{ actions: number }>();
-  const game = new GameDefinitionBuilder<{
-    actions: number;
-  }>("auto-turn-game")
-    .initialState(() => ({
-      actions: 0,
-    }))
-    .progression({
-      root: {
-        id: "turn",
-        kind: "turn",
-        completionPolicy: "after_successful_command",
-        onExit: ({ emitEvent, game }) => {
-          const turnGame = game as { actions: number };
-
-          emitEvent({
-            category: "runtime",
-            type: "turn_cleanup",
-            payload: {
-              actions: turnGame.actions,
-            },
-          });
-        },
-        resolveNext: ({ segment }) => ({
-          nextSegmentId: "turn",
-          ownerId: segment.ownerId === "player-1" ? "player-2" : "player-1",
-        }),
-        children: [],
-      },
+test("initial automatic stages run before the initial state is returned", () => {
+  const defineStage = createStageFactory<RootCounterStateFacade>();
+  const gameEndStage = defineStage("gameEnd").automatic().build();
+  const bootstrapStage = defineStage("bootstrap")
+    .automatic()
+    .run(({ game }) => {
+      game.incrementCounter(2);
     })
-    .setup(({ runtime }) => {
-      runtime.progression.segments.turn!.ownerId = "player-1";
+    .nextStages({
+      gameEndStage,
     })
-    .commands({
-      take_action: defineCommand({
-        commandId: "take_action",
-        commandSchema: emptyCommandSchema,
-      })
-        .validate(() => ({ ok: true as const }))
-        .execute(({ game, emitEvent }) => {
-          game.actions += 1;
-          emitEvent({
-            category: "domain",
-            type: "action_taken",
-            payload: {
-              amount: 1,
-            },
-          });
-        })
-        .build(),
-    })
+    .transition(({ nextStages }) => nextStages.gameEndStage)
     .build();
 
-  const gameExecutor = createGameExecutor(game);
-  const initialState = gameExecutor.createInitialState();
-  const result = gameExecutor.executeCommand(initialState, {
-    type: "take_action",
-    actorId: "player-1",
-    input: {},
-  });
-
-  expect(result.ok).toBe(true);
-
-  if (!result.ok) {
-    throw new Error("expected automatic lifecycle progression");
-  }
-
-  expect(result.state.game.actions).toBe(1);
-  expect(result.state.runtime.progression.current).toBe("turn");
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "player-2",
-  );
-  expect(result.events.map((event) => event.type)).toEqual([
-    "action_taken",
-    "turn_cleanup",
-    "segment_exited",
-    "segment_entered",
-  ]);
-  expect(result.events[3]).toMatchObject({
-    category: "runtime",
-    type: "segment_entered",
-    payload: {
-      segmentId: "turn",
-      ownerId: "player-2",
-    },
-  });
-});
-
-test("progression lifecycle hooks hydrate decorated state facades", () => {
-  const defineCommand = createCommandFactory<RootCounterStateFacade>();
   const game = new GameDefinitionBuilder<{
     counter: {
       value: number;
     };
-  }>("facade-progression-game")
+  }>("bootstrap-stage-game")
     .rootState(RootCounterStateFacade)
     .initialState(() => ({
       counter: {
         value: 0,
       },
     }))
-    .progression({
-      root: {
-        id: "turn",
-        kind: "turn",
-        completionPolicy: "after_successful_command",
-        onExit: ({ game }) => {
-          (game as RootCounterStateFacade).incrementCounter(2);
-        },
-        resolveNext: ({ game }) => ({
-          nextSegmentId: "turn",
-          ownerId: (game as RootCounterStateFacade).hasCounterValueAtLeast(3)
-            ? "player-2"
-            : "player-1",
-        }),
-        children: [],
-      },
+    .initialStage(bootstrapStage)
+    .build();
+
+  const executor = createGameExecutor(game);
+  const initialState = executor.createInitialState();
+
+  expect(initialState.game.counter.value).toBe(2);
+  expect(initialState.runtime.progression.currentStage).toEqual({
+    id: "gameEnd",
+    kind: "automatic",
+  });
+});
+
+test("single-active stages reject commands from inactive players", () => {
+  const defineCommand = createCommandFactory<{ actions: number }>();
+  const defineStage = createStageFactory<{ actions: number }>();
+  const takeActionCommand = defineCommand({
+    commandId: "take_action",
+    commandSchema: emptyCommandSchema,
+  })
+    .validate(() => ({ ok: true as const }))
+    .execute(({ game }) => {
+      game.actions += 1;
     })
-    .setup(({ runtime }) => {
-      runtime.progression.segments.turn!.ownerId = "player-1";
-    })
-    .commands({
-      increment_counter: defineCommand({
-        commandId: "increment_counter",
-        commandSchema: emptyCommandSchema,
-      })
-        .validate(() => ({ ok: true as const }))
-        .execute(({ game }) => {
-          (game as RootCounterStateFacade).incrementCounter(1);
-        })
-        .build(),
-    })
+    .build();
+  const playerTurnStage = defineStage("playerTurn")
+    .singleActivePlayer()
+    .activePlayer(() => "player-1")
+    .commands([takeActionCommand])
+    .transition(({ self }) => self)
+    .build();
+
+  const game = new GameDefinitionBuilder<{
+    actions: number;
+  }>("inactive-player-stage-game")
+    .initialState(() => ({
+      actions: 0,
+    }))
+    .initialStage(playerTurnStage)
     .build();
 
   const executor = createGameExecutor(game);
   const initialState = executor.createInitialState();
   const result = executor.executeCommand(initialState, {
-    type: "increment_counter",
-    actorId: "player-1",
+    type: "take_action",
+    actorId: "player-2",
     input: {},
   });
 
-  expect(result.ok).toBe(true);
+  expect(result.ok).toBe(false);
 
-  if (!result.ok) {
-    throw new Error("expected lifecycle progression to succeed");
+  if (result.ok) {
+    throw new Error("expected inactive-player rejection");
   }
 
-  expect(result.state.game.counter.value).toBe(3);
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "player-2",
-  );
+  expect(result.reason).toBe("not_active_player");
 });
 
-test("nested progression can cascade through multiple segment transitions", () => {
-  const defineCommand = createCommandFactory<{ resolved: number }>();
-  const game = new GameDefinitionBuilder<{
-    resolved: number;
-  }>("nested-progression-game")
-    .initialState(() => ({
-      resolved: 0,
-    }))
-    .progression({
-      root: {
-        id: "round",
-        kind: "round",
-        children: [
-          {
-            id: "turn",
-            kind: "turn",
-            completionPolicy: "after_successful_command",
-            resolveNext: ({ segment }) => ({
-              nextSegmentId: "turn",
-              ownerId: segment.ownerId === "player-1" ? "player-2" : "player-1",
-            }),
-            children: [
-              {
-                id: "step",
-                kind: "step",
-                completionPolicy: "after_successful_command",
-                children: [],
-              },
-            ],
-          },
-        ],
-      },
-    })
-    .setup(({ runtime }) => {
-      runtime.progression.segments.turn!.ownerId = "player-1";
-    })
-    .commands({
-      resolve_step: defineCommand({
-        commandId: "resolve_step",
-        commandSchema: emptyCommandSchema,
-      })
-        .validate(() => ({ ok: true as const }))
-        .execute(({ game }) => {
-          game.resolved += 1;
-        })
-        .build(),
-    })
-    .build();
-
-  const gameExecutor = createGameExecutor(game);
-  const initialState = gameExecutor.createInitialState();
-  const result = gameExecutor.executeCommand(initialState, {
-    type: "resolve_step",
-    actorId: "player-1",
-    input: {},
-  });
-
-  expect(result.ok).toBe(true);
-
-  if (!result.ok) {
-    throw new Error("expected nested lifecycle progression");
-  }
-
-  expect(result.state.runtime.progression.current).toBe("step");
-  expect(result.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "player-2",
-  );
-  expect(result.state.runtime.progression.segments.round?.active).toBe(true);
-  expect(result.state.runtime.progression.segments.turn?.active).toBe(true);
-  expect(result.state.runtime.progression.segments.step?.active).toBe(true);
-  expect(
-    result.events.filter((event) => event.type === "segment_exited"),
-  ).toHaveLength(2);
-  expect(
-    result.events.filter((event) => event.type === "segment_entered"),
-  ).toHaveLength(2);
-});
-
-test("manual progression paths can avoid auto-advancing ordinary commands and still end explicitly", () => {
+test("successful stage-machine commands transition through automatic stages and emit stage events", () => {
   const defineCommand = createCommandFactory<{
     actions: number;
-    requestedTurnEnd: boolean;
+    cleaned: number;
   }>();
-  const game = new GameDefinitionBuilder<{
+  const defineStage = createStageFactory<{
     actions: number;
-    requestedTurnEnd: boolean;
-  }>("manual-turn-game")
-    .initialState(() => ({
-      actions: 0,
-      requestedTurnEnd: false,
-    }))
-    .progression({
-      root: {
-        id: "turn",
-        kind: "turn",
-        completionPolicy: ({ game, command }) => {
-          const manualGame = game as { requestedTurnEnd: boolean };
-
-          return command.type === "end_turn" && manualGame.requestedTurnEnd;
-        },
-        resolveNext: ({ segment }) => ({
-          nextSegmentId: "turn",
-          ownerId: segment.ownerId === "player-1" ? "player-2" : "player-1",
-        }),
-        children: [],
-      },
-    })
-    .setup(({ runtime }) => {
-      runtime.progression.segments.turn!.ownerId = "player-1";
-    })
-    .commands({
-      take_action: defineCommand({
-        commandId: "take_action",
-        commandSchema: emptyCommandSchema,
-      })
-        .validate(() => ({ ok: true as const }))
-        .execute(({ game }) => {
-          game.actions += 1;
-        })
-        .build(),
-      end_turn: defineCommand({
-        commandId: "end_turn",
-        commandSchema: emptyCommandSchema,
-      })
-        .validate(() => ({ ok: true as const }))
-        .execute(({ game }) => {
-          game.requestedTurnEnd = true;
-        })
-        .build(),
+    cleaned: number;
+  }>();
+  const takeActionCommand = defineCommand({
+    commandId: "take_action",
+    commandSchema: emptyCommandSchema,
+  })
+    .validate(() => ({ ok: true as const }))
+    .execute(({ game, emitEvent }) => {
+      game.actions += 1;
+      emitEvent({
+        category: "domain",
+        type: "action_taken",
+        payload: { amount: 1 },
+      });
     })
     .build();
+  const gameEndStage = defineStage("gameEnd").automatic().build();
+  const cleanupStage = defineStage("cleanup")
+    .automatic()
+    .run(({ game, emitEvent }) => {
+      game.cleaned += 1;
+      emitEvent({
+        category: "runtime",
+        type: "cleanup_ran",
+        payload: { cleaned: game.cleaned },
+      });
+    })
+    .nextStages({
+      gameEndStage,
+    })
+    .transition(({ nextStages }) => nextStages.gameEndStage)
+    .build();
+  const playerTurnStage = defineStage("playerTurn")
+    .singleActivePlayer()
+    .activePlayer(() => "player-1")
+    .commands([takeActionCommand])
+    .nextStages({
+      cleanupStage,
+    })
+    .transition(({ nextStages }) => nextStages.cleanupStage)
+    .build();
 
-  const gameExecutor = createGameExecutor(game);
-  const initialState = gameExecutor.createInitialState();
-  const actionResult = gameExecutor.executeCommand(initialState, {
+  const game = new GameDefinitionBuilder<{
+    actions: number;
+    cleaned: number;
+  }>("stage-transition-game")
+    .initialState(() => ({
+      actions: 0,
+      cleaned: 0,
+    }))
+    .initialStage(playerTurnStage)
+    .build();
+
+  const executor = createGameExecutor(game);
+  const initialState = executor.createInitialState();
+  const result = executor.executeCommand(initialState, {
     type: "take_action",
     actorId: "player-1",
     input: {},
   });
 
-  expect(actionResult.ok).toBe(true);
+  expect(result.ok).toBe(true);
 
-  if (!actionResult.ok) {
-    throw new Error("expected ordinary action to succeed");
+  if (!result.ok) {
+    throw new Error("expected stage-machine transition");
   }
 
-  expect(actionResult.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "player-1",
-  );
-  expect(
-    actionResult.events.filter((event) => event.type === "segment_entered"),
-  ).toHaveLength(0);
-  expect(
-    actionResult.events.filter((event) => event.type === "segment_exited"),
-  ).toHaveLength(0);
-
-  const endTurnResult = gameExecutor.executeCommand(actionResult.state, {
-    type: "end_turn",
-    actorId: "player-1",
-    input: {},
+  expect(result.state.game).toEqual({
+    actions: 1,
+    cleaned: 1,
   });
+  expect(result.state.runtime.progression.currentStage).toEqual({
+    id: "gameEnd",
+    kind: "automatic",
+  });
+  expect(result.events.map((event) => event.type)).toEqual([
+    "action_taken",
+    "stage_exited",
+    "stage_entered",
+    "cleanup_ran",
+    "stage_exited",
+    "stage_entered",
+  ]);
+  expect(result.events[2]).toMatchObject({
+    category: "runtime",
+    type: "stage_entered",
+    payload: {
+      stageId: "cleanup",
+      kind: "automatic",
+    },
+  });
+  expect(result.events[5]).toMatchObject({
+    category: "runtime",
+    type: "stage_entered",
+    payload: {
+      stageId: "gameEnd",
+      kind: "automatic",
+    },
+  });
+});
 
-  expect(endTurnResult.ok).toBe(true);
+test("automatic stages hydrate decorated state facades during run", () => {
+  const defineStage = createStageFactory<RootCounterStateFacade>();
+  const gameEndStage = defineStage("gameEnd").automatic().build();
+  const cleanupStage = defineStage("cleanup")
+    .automatic()
+    .run(({ game }) => {
+      game.incrementCounter(3);
+    })
+    .nextStages({
+      gameEndStage,
+    })
+    .transition(({ nextStages }) => nextStages.gameEndStage)
+    .build();
 
-  if (!endTurnResult.ok) {
-    throw new Error("expected explicit end-turn to succeed");
-  }
+  const game = new GameDefinitionBuilder<{
+    counter: {
+      value: number;
+    };
+  }>("automatic-facade-game")
+    .rootState(RootCounterStateFacade)
+    .initialState(() => ({
+      counter: {
+        value: 0,
+      },
+    }))
+    .initialStage(cleanupStage)
+    .build();
 
-  expect(endTurnResult.state.runtime.progression.segments.turn?.ownerId).toBe(
-    "player-2",
-  );
-  expect(
-    endTurnResult.events.filter((event) => event.type === "segment_exited"),
-  ).toHaveLength(1);
-  expect(
-    endTurnResult.events.filter((event) => event.type === "segment_entered"),
-  ).toHaveLength(1);
+  const executor = createGameExecutor(game);
+  const initialState = executor.createInitialState();
+
+  expect(initialState.game.counter.value).toBe(3);
+  expect(initialState.runtime.progression.currentStage).toEqual({
+    id: "gameEnd",
+    kind: "automatic",
+  });
 });
 
 test("game executor can list available commands through per-command availability hooks", () => {

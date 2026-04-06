@@ -50,6 +50,7 @@ export interface GameDefinition<
   commands: Commands;
   stateFacade?: CompiledStateFacadeDefinition;
   initialStage?: AnyStageDefinition;
+  stages?: Record<string, AnyStageDefinition>;
   progression?: ProgressionDefinition<FacadeGameState>;
   rngSeed?: string | number;
   setup?: (context: GameSetupContext<CanonicalGameState>) => void;
@@ -239,8 +240,11 @@ export class GameDefinitionBuilder<
       throw new Error("commands_required");
     }
 
-    const commands = this.config.initialStage
-      ? compileCommandMapFromStages(this.config.initialStage)
+    const stages = this.config.initialStage
+      ? collectReachableStages(this.config.initialStage)
+      : undefined;
+    const commands = stages
+      ? compileCommandMapFromStages(stages)
       : this.config.commandList
         ? compileCommandList(this.config.commandList)
         : this.config.commands;
@@ -254,6 +258,7 @@ export class GameDefinitionBuilder<
       commands: commands as Commands,
       stateFacade,
       initialStage: this.config.initialStage,
+      stages,
       progression: this.config.progression,
       rngSeed: this.config.rngSeed,
       setup: this.config.setup,
@@ -277,27 +282,39 @@ function compileCommandList<FacadeGameState extends object>(
   return commandMap;
 }
 
-function compileCommandMapFromStages<FacadeGameState extends object>(
+function collectReachableStages<FacadeGameState extends object>(
   initialStage: StageDefinition<FacadeGameState>,
-): CommandDefinitionMap<FacadeGameState> {
-  const commandMap: CommandDefinitionMap<FacadeGameState> = {};
-  const visitedStages = new Map<string, StageDefinition<FacadeGameState>>();
+): Record<string, StageDefinition<FacadeGameState>> {
+  const stages: Record<string, StageDefinition<FacadeGameState>> = {};
   const stack = [initialStage];
 
   while (stack.length > 0) {
     const stage = stack.pop()!;
-    const previous = visitedStages.get(stage.id);
+    const existing = stages[stage.id];
 
-    if (previous) {
-      if (previous !== stage) {
+    if (existing) {
+      if (existing !== stage) {
         throw new Error(`duplicate_stage_id:${stage.id}`);
       }
 
       continue;
     }
 
-    visitedStages.set(stage.id, stage);
+    stages[stage.id] = stage;
 
+    for (const nextStage of Object.values(stage.nextStages ?? {})) {
+      stack.push(nextStage);
+    }
+  }
+
+  return stages;
+}
+
+function compileCommandMapFromStages<FacadeGameState extends object>(
+  stages: Record<string, StageDefinition<FacadeGameState>>,
+): CommandDefinitionMap<FacadeGameState> {
+  const commandMap: CommandDefinitionMap<FacadeGameState> = {};
+  for (const stage of Object.values(stages)) {
     if (stage.kind === "activePlayer") {
       for (const command of stage.commands) {
         const existing = commandMap[command.commandId];
@@ -308,10 +325,6 @@ function compileCommandMapFromStages<FacadeGameState extends object>(
 
         commandMap[command.commandId] = command;
       }
-    }
-
-    for (const nextStage of Object.values(stage.nextStages ?? {})) {
-      stack.push(nextStage);
     }
   }
 
