@@ -1,9 +1,5 @@
 import { t } from "tabletop-engine";
-import {
-  completeDiscovery,
-  createNobleDiscovery,
-  SPLENDOR_DISCOVERY_STEPS,
-} from "../discovery.ts";
+import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
   assertAvailableActor,
@@ -13,13 +9,11 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
-  finishTurn,
 } from "./shared.ts";
 
 const buyFaceUpCardCommandSchema = t.object({
   level: t.number(),
   cardId: t.number(),
-  chosenNobleId: t.optional(t.number()),
 });
 
 export type BuyFaceUpCardInput = typeof buyFaceUpCardCommandSchema.static;
@@ -27,7 +21,6 @@ export type BuyFaceUpCardInput = typeof buyFaceUpCardCommandSchema.static;
 const buyFaceUpCardDiscoverySchema = t.object({
   selectedLevel: t.optional(t.number()),
   selectedCardId: t.optional(t.number()),
-  chosenNobleId: t.optional(t.number()),
 });
 
 const buyFaceUpCardCommand = defineSplendorCommand({
@@ -73,19 +66,10 @@ const buyFaceUpCardCommand = defineSplendorCommand({
         };
       }
 
-      const hypotheticalPlayer = player.clone();
-      hypotheticalPlayer.buyCard(draft.selectedCardId);
-      const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
-      const nobleDiscovery = createNobleDiscovery(draft, eligibleNobles);
-
-      return (
-        nobleDiscovery ??
-        completeDiscovery({
-          level: draft.selectedLevel,
-          cardId: draft.selectedCardId,
-          chosenNobleId: draft.chosenNobleId,
-        })
-      );
+      return completeDiscovery({
+        level: draft.selectedLevel,
+        cardId: draft.selectedCardId,
+      });
     },
   })
   .isAvailable((context) => {
@@ -132,24 +116,6 @@ const buyFaceUpCardCommand = defineSplendorCommand({
         return { ok: false, reason: "card_not_affordable" };
       }
 
-      const hypotheticalPlayer = player.clone();
-      hypotheticalPlayer.buyCard(input.cardId);
-
-      const eligibleNobles = game.getEligibleNobles(hypotheticalPlayer);
-
-      if (eligibleNobles.length > 1 && !input.chosenNobleId) {
-        return { ok: false, reason: "chosen_noble_required" };
-      }
-
-      if (
-        input.chosenNobleId &&
-        !eligibleNobles.some(
-          (noble: { id: number }) => noble.id === input.chosenNobleId,
-        )
-      ) {
-        return { ok: false, reason: "invalid_chosen_noble" };
-      }
-
       return { ok: true };
     });
   })
@@ -169,7 +135,6 @@ const buyFaceUpCardCommand = defineSplendorCommand({
     player.buyCard(card.id);
     game.board.removeFaceUpCard(level, card.id);
     game.board.replenishFaceUpCard(level);
-    const claimedNobleId = game.resolveNobleVisit(player, input.chosenNobleId);
     emitEvent({
       category: "domain",
       type: "card_purchased",
@@ -181,17 +146,6 @@ const buyFaceUpCardCommand = defineSplendorCommand({
         payment,
       },
     });
-    if (claimedNobleId !== null) {
-      emitEvent({
-        category: "domain",
-        type: "noble_claimed",
-        payload: {
-          actorId,
-          nobleId: claimedNobleId,
-        },
-      });
-    }
-    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

@@ -1,7 +1,6 @@
 import type {
   CommandAvailabilityContext,
   DefinedCommand,
-  GameEvent,
   ValidationOutcome,
 } from "tabletop-engine";
 import { createCommandFactory } from "tabletop-engine";
@@ -23,6 +22,10 @@ type ProgressionRuntime = {
       | {
           kind: "automatic";
         };
+    lastActingStage: {
+      kind: "activePlayer";
+      activePlayerId: string;
+    } | null;
   };
 };
 
@@ -81,14 +84,6 @@ export function guardedAvailability(run: () => boolean): boolean {
   }
 }
 
-export function finishTurn(
-  game: SplendorGameState,
-  actorId: string,
-  emitEvent: (event: GameEvent) => void,
-): void {
-  game.resolveTurnEnd(actorId, emitEvent);
-}
-
 export function assertGameActive(game: Readonly<SplendorGameState>): void {
   if (game.winnerIds) {
     throw new Error("game_finished");
@@ -116,4 +111,14 @@ export function assertAvailableActor(
 ): string {
   assertGameActive(context.game);
   return assertActivePlayer(context.runtime, context.actorId ?? "");
+}
+
+export function assertLastActingPlayer(runtime: ProgressionRuntime): string {
+  const lastActingStage = runtime.progression.lastActingStage;
+
+  if (!lastActingStage) {
+    throw new Error("last_acting_player_missing");
+  }
+
+  return lastActingStage.activePlayerId;
 }

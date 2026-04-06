@@ -13,7 +13,6 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
-  finishTurn,
 } from "./shared.ts";
 
 const reserveFaceUpCardCommandSchema = t.object({
@@ -165,7 +164,6 @@ const reserveFaceUpCardCommand = defineSplendorCommand({
         returnTokens: input.returnTokens ?? null,
       },
     });
-    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

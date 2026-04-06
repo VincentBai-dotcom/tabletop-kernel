@@ -13,7 +13,6 @@ import {
   guardedValidate,
   isGemTokenColor,
   defineSplendorCommand,
-  finishTurn,
 } from "./shared.ts";
 
 const takeTwoSameGemsCommandSchema = t.object({
@@ -144,7 +143,6 @@ const takeTwoSameGemsCommand = defineSplendorCommand({
         returnTokens: input.returnTokens ?? null,
       },
     });
-    finishTurn(game, actorId, emitEvent);
   })
   .build();
 

@@ -13,7 +13,6 @@ import {
   guardedValidate,
   isDevelopmentLevel,
   defineSplendorCommand,
-  finishTurn,
 } from "./shared.ts";
 
 const reserveDeckCardCommandSchema = t.object({
@@ -157,7 +156,6 @@ const reserveDeckCardCommand = defineSplendorCommand({
         returnTokens: input.returnTokens ?? null,
       },
     });
-    finishTurn(game, actorId, emitEvent);
   })
   .build();
 
