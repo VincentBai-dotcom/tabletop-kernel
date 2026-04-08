@@ -30,7 +30,7 @@ async function main(): Promise<void> {
       if (session.isFinished()) {
         drawScreen(
           session,
-          `Game finished. Winner(s): ${session.getState().game.winnerIds?.join(", ") ?? "none"}`,
+          `Game finished. Winner(s): ${session.getWinnerIds()?.join(", ") ?? "none"}`,
         );
         break;
       }
@@ -129,8 +129,9 @@ function drawScreen(
   session: ReturnType<typeof createLocalSplendorSession>,
   banner: string,
 ): void {
+  const visibleState = session.getVisibleState();
   const screen = renderGameScreen({
-    game: session.getState().game,
+    game: visibleState.game,
     activePlayerId: session.getActivePlayerId(),
     activity: session.getActivity(),
     banner,

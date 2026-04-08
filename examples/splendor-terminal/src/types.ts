@@ -4,6 +4,8 @@ import type {
   CommandDiscoveryResult,
   Discovery,
   GameEvent,
+  HiddenValue,
+  VisibleState,
 } from "tabletop-engine";
 import type {
   SplendorDiscoveryOption,
@@ -11,6 +13,54 @@ import type {
 } from "splendor-example";
 
 export type SplendorState = CanonicalState<SplendorGameState>;
+export type HiddenCountSummary = HiddenValue<{
+  count: number;
+}>;
+export type HiddenDeckSummary = HiddenValue<{
+  1: number;
+  2: number;
+  3: number;
+}>;
+
+export interface SplendorVisiblePlayer {
+  id: string;
+  tokens: {
+    white: number;
+    blue: number;
+    green: number;
+    red: number;
+    black: number;
+    gold: number;
+  };
+  reservedCardIds: number[] | HiddenCountSummary;
+  purchasedCardIds: number[];
+  nobleIds: number[];
+}
+
+export interface SplendorVisibleGame {
+  playerOrder: string[];
+  players: Record<string, SplendorVisiblePlayer>;
+  bank: {
+    white: number;
+    blue: number;
+    green: number;
+    red: number;
+    black: number;
+    gold: number;
+  };
+  board: {
+    faceUpByLevel: Record<number, number[]>;
+    deckByLevel: HiddenDeckSummary;
+    nobleIds: number[];
+  };
+  endGame: {
+    triggeringPlayerId: string;
+    endsAfterPlayerId: string;
+  } | null;
+  winnerIds: string[] | null;
+}
+
+export type SplendorVisibleState = VisibleState<SplendorVisibleGame>;
 export type SplendorCommandData = Record<string, unknown>;
 export type SplendorTerminalCommand = Command<SplendorCommandData>;
 export type SplendorTerminalDiscoveryRequest = Discovery<SplendorCommandData>;

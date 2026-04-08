@@ -11,11 +11,13 @@ import type {
   SplendorTerminalCommand,
   SplendorTerminalDiscoveryRequest,
   SplendorTerminalDiscoveryResult,
+  SplendorVisibleState,
 } from "./types.ts";
 
 type SplendorGameExecutorApi = Pick<
   GameExecutor<SplendorGameState>,
   | "createInitialState"
+  | "getView"
   | "listAvailableCommands"
   | "discoverCommand"
   | "executeCommand"
@@ -35,12 +37,16 @@ export class SplendorTerminalSession {
   constructor(
     private readonly gameExecutor: SplendorGameExecutorApi,
     initialState: SplendorState,
+    private readonly viewerId: string,
   ) {
     this.state = initialState;
   }
 
-  getState(): SplendorState {
-    return this.state;
+  getVisibleState(): SplendorVisibleState {
+    return this.gameExecutor.getView(this.state, {
+      kind: "player",
+      playerId: this.viewerId,
+    }) as SplendorVisibleState;
   }
 
   getActivity(): SessionActivity {
@@ -48,7 +54,7 @@ export class SplendorTerminalSession {
   }
 
   getActivePlayerId(): string | null {
-    const currentStage = this.state.runtime.progression.currentStage;
+    const currentStage = this.getVisibleState().progression.currentStage;
 
     if (currentStage.kind !== "activePlayer") {
       return null;
@@ -58,7 +64,11 @@ export class SplendorTerminalSession {
   }
 
   isFinished(): boolean {
-    return this.state.game.winnerIds !== null;
+    return this.getVisibleState().game.winnerIds !== null;
+  }
+
+  getWinnerIds(): string[] | null {
+    return this.getVisibleState().game.winnerIds;
   }
 
   listAvailableCommands(actorId: string): string[] {
@@ -114,5 +124,5 @@ export function createLocalSplendorSession(options?: {
     playerIds: [...DEFAULT_PLAYER_IDS],
   });
 
-  return new SplendorTerminalSession(gameExecutor, initialState);
+  return new SplendorTerminalSession(gameExecutor, initialState, "you");
 }
