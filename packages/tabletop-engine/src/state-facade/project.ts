@@ -1,6 +1,10 @@
 import type { CompiledStateFacadeDefinition } from "./compile";
 import type { FieldType } from "../schema";
-import type { StateClass, VisibilityMode } from "./metadata";
+import type {
+  FieldVisibilityMetadata,
+  StateClass,
+  VisibilityMode,
+} from "./metadata";
 import { hydrateStateNode } from "./hydrate";
 import type { CanonicalState } from "../types/state";
 import type { HiddenValue, Viewer, VisibleState } from "../types/visibility";
@@ -66,7 +70,10 @@ function projectStateNode(
     const fieldValue = (backing as Record<string, unknown>)[fieldName];
 
     if (visibility && shouldHideField(visibility, viewer, nextOwnerPlayerId)) {
-      projected[fieldName] = createHiddenValue();
+      projected[fieldName] = createHiddenValue(
+        definition.fieldVisibility[fieldName],
+        fieldValue,
+      );
       continue;
     }
 
@@ -219,8 +226,20 @@ function readOwnerPlayerId(
   );
 }
 
-function createHiddenValue(): HiddenValue {
+function createHiddenValue(
+  visibility: FieldVisibilityMetadata | undefined,
+  value: unknown,
+): HiddenValue {
+  const summaryValue = visibility?.projectHiddenSummary?.(value);
+
+  if (summaryValue === undefined) {
+    return {
+      __hidden: true,
+    };
+  }
+
   return {
     __hidden: true,
+    value: summaryValue,
   };
 }

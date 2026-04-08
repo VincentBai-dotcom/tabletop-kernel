@@ -196,7 +196,7 @@ test("describeGameProtocol returns command payload schemas", () => {
   expect(playerSchema.type).toBe("object");
   expect(playerSchema.properties.id.type).toBe("string");
   expect(playerSchema.properties.hand.anyOf).toHaveLength(2);
-  expect(playerSchema.properties.hand.anyOf[1]).toEqual({
+  expect(playerSchema.properties.hand.anyOf[1]).toMatchObject({
     type: "object",
     properties: {
       __hidden: {
