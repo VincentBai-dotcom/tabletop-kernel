@@ -953,6 +953,19 @@ test("multi-active stages stay active until completion and recompute active play
     id: "gameEnd",
     kind: "automatic",
   });
+  expect(
+    afterSecondSubmission.state.runtime.progression.lastActingStage,
+  ).toEqual({
+    id: "coordinatedStage",
+    kind: "multiActivePlayer",
+    activePlayerIds: [],
+    memory: {
+      submittedByPlayerId: {
+        "player-1": "first",
+        "player-2": "second",
+      },
+    },
+  });
 });
 
 test("successful stage-machine commands transition through automatic stages and emit stage events", () => {
