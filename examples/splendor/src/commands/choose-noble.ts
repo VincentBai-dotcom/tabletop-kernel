@@ -1,9 +1,6 @@
 import { t } from "tabletop-engine";
 import { completeDiscovery, createNobleDiscovery } from "../discovery.ts";
 import {
-  assertActivePlayer,
-  assertAvailableActor,
-  assertGameActive,
   defineSplendorCommand,
   guardedAvailability,
   guardedValidate,
@@ -26,7 +23,7 @@ const chooseNobleCommand = defineSplendorCommand({
   .discoverable({
     discoverySchema: chooseNobleDiscoverySchema,
     discover(context) {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const player = context.game.getPlayer(actorId);
       const draft = context.discovery.input;
       const eligibleNobles = context.game.getEligibleNobles(player);
@@ -42,16 +39,15 @@ const chooseNobleCommand = defineSplendorCommand({
   })
   .isAvailable((context) => {
     return guardedAvailability(() => {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const player = context.game.getPlayer(actorId);
 
       return context.game.getEligibleNobles(player).length > 1;
     });
   })
-  .validate(({ runtime, game, command }) => {
+  .validate(({ game, command }) => {
     return guardedValidate(() => {
-      assertGameActive(game);
-      const actorId = assertActivePlayer(runtime, command.actorId);
+      const actorId = command.actorId;
       const player = game.getPlayer(actorId);
       const eligibleNobles = game.getEligibleNobles(player);
 
@@ -66,8 +62,8 @@ const chooseNobleCommand = defineSplendorCommand({
       return { ok: true };
     });
   })
-  .execute(({ game, runtime, command, emitEvent }) => {
-    const actorId = assertActivePlayer(runtime, command.actorId);
+  .execute(({ game, command, emitEvent }) => {
+    const actorId = command.actorId;
     const player = game.getPlayer(actorId);
     const claimedNobleId = game.resolveNobleVisit(
       player,

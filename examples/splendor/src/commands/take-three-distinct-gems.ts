@@ -6,9 +6,6 @@ import {
 } from "../discovery.ts";
 import {
   assertGemTokenColor,
-  assertAvailableActor,
-  assertActivePlayer,
-  assertGameActive,
   guardedAvailability,
   guardedValidate,
   isGemTokenColor,
@@ -35,7 +32,7 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
   .discoverable({
     discoverySchema: takeThreeDistinctGemsDiscoverySchema,
     discover(context) {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const game = context.game;
       const draft = context.discovery.input;
       const selectedColors = draft?.selectedColors
@@ -100,7 +97,6 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
   })
   .isAvailable((context) => {
     return guardedAvailability(() => {
-      assertAvailableActor(context);
       const game = context.game;
       const bankEntries = Object.entries(game.bank) as Array<[string, number]>;
 
@@ -110,10 +106,9 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
       );
     });
   })
-  .validate(({ runtime, game, command }) => {
+  .validate(({ game, command }) => {
     return guardedValidate(() => {
-      assertGameActive(game);
-      const actorId = assertActivePlayer(runtime, command.actorId);
+      const actorId = command.actorId;
       const input = command.input;
 
       if (input.colors.length !== 3) {

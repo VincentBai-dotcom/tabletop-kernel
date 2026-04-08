@@ -16,7 +16,10 @@ import type {
   InternalCommandDefinition,
   InternalExecuteContext,
 } from "../src/types/command";
-import type { SingleActivePlayerStageDefinition } from "../src/types/progression";
+import type {
+  MultiActivePlayerStageDefinition,
+  SingleActivePlayerStageDefinition,
+} from "../src/types/progression";
 import type { RuntimeState } from "../src/types/state";
 import { GameDefinitionBuilder } from "../src/game-definition";
 
@@ -75,7 +78,17 @@ test("foundational runtime types compose", () => {
 
 test("stage machine types support single-active and automatic stage authoring", () => {
   const defineStage = createStageFactory<{ score: number }>();
+  const defineCommand = createCommandFactory<{ score: number }>();
   const gameEndStage = defineStage("gameEnd").automatic().build();
+  const drawCardCommand = defineCommand({
+    commandId: "draw_card",
+    commandSchema: t.object({
+      count: t.number(),
+    }),
+  })
+    .validate(() => ({ ok: true as const }))
+    .execute(() => {})
+    .build();
 
   const playerTurnStage = createPlayerTurnStage();
 
@@ -93,13 +106,14 @@ test("stage machine types support single-active and automatic stage authoring", 
 
         return "player-1";
       })
-      .commands([])
+      .commands([drawCardCommand])
       .nextStages(() => ({
         playerTurnStage,
         gameEndStage,
       }))
       .transition(({ nextStages, command }) => {
         expect(command.actorId).toBe("player-1");
+        expect(command.input.count).toBeNumber();
         return command.type === "end_game"
           ? nextStages.gameEndStage
           : nextStages.playerTurnStage;
@@ -126,6 +140,110 @@ test("stage machine types support single-active and automatic stage authoring", 
   expect(currentStage.kind).toBe("activePlayer");
   if (currentStage.kind === "activePlayer") {
     expect(currentStage.activePlayerId).toBe("player-1");
+  }
+  expect(gameEndStage.id).toBe("gameEnd");
+});
+
+test("stage machine types support multi-active stage authoring", () => {
+  const defineStage = createStageFactory<{ actions: string[] }>();
+  const defineCommand = createCommandFactory<{ actions: string[] }>();
+  const gameEndStage = defineStage("gameEnd").automatic().build();
+  const submitCommand = defineCommand({
+    commandId: "submit",
+    commandSchema: t.object({
+      value: t.string(),
+    }),
+  })
+    .validate(() => ({ ok: true as const }))
+    .execute(({ game, command }) => {
+      game.actions.push(command.input.value);
+    })
+    .build();
+
+  const stage = createMultiActiveStage();
+
+  function createMultiActiveStage(): MultiActivePlayerStageDefinition<
+    { actions: string[] },
+    RuntimeState,
+    {
+      submittedByPlayerId: Record<string, string>;
+    }
+  > {
+    return defineStage("simultaneousTurn")
+      .multiActivePlayer()
+      .memory<{
+        submittedByPlayerId: Record<string, string>;
+      }>(() => ({
+        submittedByPlayerId: {},
+      }))
+      .activePlayers(({ memory }) => {
+        return ["p1", "p2"].filter((playerId) => {
+          return memory.submittedByPlayerId[playerId] === undefined;
+        });
+      })
+      .commands([submitCommand])
+      .onSubmit(({ command, execute, memory }) => {
+        memory.submittedByPlayerId[command.actorId] = command.input.value;
+        execute(command);
+      })
+      .isComplete(({ memory }) => {
+        return Object.keys(memory.submittedByPlayerId).length === 2;
+      })
+      .nextStages(() => ({
+        gameEndStage,
+      }))
+      .transition(({ nextStages, memory }) => {
+        expect(memory.submittedByPlayerId.p1).toBeDefined();
+        return nextStages.gameEndStage;
+      })
+      .build();
+  }
+
+  const currentStage:
+    | {
+        id: string;
+        kind: "activePlayer";
+        activePlayerId: string;
+      }
+    | {
+        id: string;
+        kind: "automatic";
+      }
+    | {
+        id: string;
+        kind: "multiActivePlayer";
+        activePlayerIds: string[];
+        memory: {
+          submittedByPlayerId: Record<string, string>;
+        };
+      } = {
+    id: "simultaneousTurn",
+    kind: "multiActivePlayer",
+    activePlayerIds: ["p1", "p2"],
+    memory: {
+      submittedByPlayerId: {},
+    },
+  };
+
+  const baseBuilder = defineStage("draft").multiActivePlayer();
+
+  // @ts-expect-error build should not exist before multi-active stage requirements are set
+  void baseBuilder.build;
+
+  const memoryBuilder = baseBuilder.memory<{
+    submittedByPlayerId: Record<string, string>;
+  }>(() => ({
+    submittedByPlayerId: {},
+  }));
+
+  // @ts-expect-error build should not exist before activePlayers, commands, onSubmit, isComplete, nextStages, and transition are set
+  void memoryBuilder.build;
+
+  expect(stage.id).toBe("simultaneousTurn");
+  expect(currentStage.kind).toBe("multiActivePlayer");
+  if (currentStage.kind === "multiActivePlayer") {
+    expect(currentStage.activePlayerIds).toEqual(["p1", "p2"]);
+    expect(currentStage.memory.submittedByPlayerId).toEqual({});
   }
   expect(gameEndStage.id).toBe("gameEnd");
 });

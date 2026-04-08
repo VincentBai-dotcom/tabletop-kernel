@@ -20,6 +20,7 @@ import type {
 import type { CommandDiscoveryResult } from "../types/command";
 import type { GameEvent } from "../types/event";
 import type {
+  MultiActivePlayerStageState,
   SingleActivePlayerStageState,
   StageDefinition,
   StageState,
@@ -171,6 +172,21 @@ function initializeStageMachine<
       return;
     }
 
+    if (currentStage.kind === "multiActivePlayer") {
+      const memory = currentStage.memory();
+      state.runtime.progression.currentStage = {
+        id: currentStage.id,
+        kind: "multiActivePlayer",
+        activePlayerIds: currentStage.activePlayers({
+          game: createCommandGameView(game, state, { readonly: true }),
+          runtime: state.runtime,
+          memory,
+        }),
+        memory,
+      };
+      return;
+    }
+
     state.runtime.progression.currentStage = {
       id: currentStage.id,
       kind: "automatic",
@@ -220,6 +236,23 @@ function advanceStageMachine<
           game: createCommandGameView(game, state, { readonly: true }),
           runtime: state.runtime,
         }),
+      };
+      state.runtime.progression.currentStage = stageState;
+      emitEvent(createStageEnteredEvent(stageState));
+      return;
+    }
+
+    if (currentStage.kind === "multiActivePlayer") {
+      const memory = currentStage.memory();
+      const stageState: StageState = {
+        id: currentStage.id,
+        kind: "multiActivePlayer",
+        activePlayerIds: currentStage.activePlayers({
+          game: createCommandGameView(game, state, { readonly: true }),
+          runtime: state.runtime,
+          memory,
+        }),
+        memory,
       };
       state.runtime.progression.currentStage = stageState;
       emitEvent(createStageEnteredEvent(stageState));
@@ -316,17 +349,39 @@ export function createGameExecutor<
         state,
       );
 
-      if (
-        !currentStage ||
-        currentStage.kind !== "activePlayer" ||
-        currentStageState.kind !== "activePlayer" ||
-        (options?.actorId !== undefined &&
-          options.actorId !== currentStageState.activePlayerId)
-      ) {
+      if (!currentStage) {
         return [];
       }
 
-      const actorId = options?.actorId ?? currentStageState.activePlayerId;
+      let actorId: string;
+
+      if (
+        currentStage.kind === "activePlayer" &&
+        currentStageState.kind === "activePlayer"
+      ) {
+        if (
+          options?.actorId !== undefined &&
+          options.actorId !== currentStageState.activePlayerId
+        ) {
+          return [];
+        }
+
+        actorId = options?.actorId ?? currentStageState.activePlayerId;
+      } else if (
+        currentStage.kind === "multiActivePlayer" &&
+        currentStageState.kind === "multiActivePlayer"
+      ) {
+        if (
+          options?.actorId === undefined ||
+          !currentStageState.activePlayerIds.includes(options.actorId)
+        ) {
+          return [];
+        }
+
+        actorId = options.actorId;
+      } else {
+        return [];
+      }
 
       return currentStage.commands
         .filter((definition) => {
@@ -366,10 +421,12 @@ export function createGameExecutor<
 
       if (
         !currentStage ||
-        currentStage.kind !== "activePlayer" ||
-        state.runtime.progression.currentStage.kind !== "activePlayer" ||
-        discovery.actorId !==
-          state.runtime.progression.currentStage.activePlayerId ||
+        (currentStage.kind !== "activePlayer" &&
+          currentStage.kind !== "multiActivePlayer") ||
+        !isActorAllowedInCurrentStage(
+          state.runtime.progression.currentStage,
+          discovery.actorId,
+        ) ||
         !currentStage.commands.some(
           (command) => command.commandId === discovery.type,
         )
@@ -490,7 +547,11 @@ export function createGameExecutor<
         state,
       );
 
-      if (!currentStage || currentStage.kind !== "activePlayer") {
+      if (
+        !currentStage ||
+        (currentStage.kind !== "activePlayer" &&
+          currentStage.kind !== "multiActivePlayer")
+      ) {
         return {
           ok: false,
           state,
@@ -500,10 +561,7 @@ export function createGameExecutor<
         } as ExecutionFailure<CanonicalState<CanonicalGameState>>;
       }
 
-      if (
-        currentStageState.kind !== "activePlayer" ||
-        command.actorId !== currentStageState.activePlayerId
-      ) {
+      if (!isActorAllowedInCurrentStage(currentStageState, command.actorId)) {
         return {
           ok: false,
           state,
@@ -513,6 +571,10 @@ export function createGameExecutor<
             activePlayerId:
               currentStageState.kind === "activePlayer"
                 ? currentStageState.activePlayerId
+                : null,
+            activePlayerIds:
+              currentStageState.kind === "multiActivePlayer"
+                ? currentStageState.activePlayerIds
                 : null,
           },
           events: [],
@@ -568,58 +630,83 @@ export function createGameExecutor<
       const collector = createEventCollector();
       const rng = createRNGService(workingState.runtime.rng);
 
-      definition.execute(
-        createExecuteContext(
+      if (
+        currentStage.kind === "activePlayer" &&
+        currentStageState.kind === "activePlayer"
+      ) {
+        executeCommandAgainstState(
           workingState,
-          createCommandGameView(
-            game as GameDefinition<
-              CanonicalGameState,
-              FacadeGameState,
-              CommandDefinitions<CanonicalGameState, FacadeGameState>
-            >,
-            workingState,
-          ),
+          game as GameDefinition<
+            CanonicalGameState,
+            FacadeGameState,
+            CommandDefinitions<CanonicalGameState, FacadeGameState>
+          >,
+          definition,
           command,
           rng,
           collector.emit,
-        ),
-      );
-      workingState.runtime.progression.lastActingStage = {
-        id: currentStageState.id,
-        kind: "activePlayer",
-        activePlayerId: currentStageState.activePlayerId,
-      } satisfies SingleActivePlayerStageState;
-      workingState.runtime.history.entries.push({
-        id: String(workingState.runtime.history.entries.length + 1),
-        commandType: command.type,
-        actorId: command.actorId,
-      });
+        );
+        workingState.runtime.progression.lastActingStage = {
+          id: currentStageState.id,
+          kind: "activePlayer",
+          activePlayerId: currentStageState.activePlayerId,
+        } satisfies SingleActivePlayerStageState;
 
-      const nextCurrentStage = getCurrentStageDefinition(
-        game as GameDefinition<
-          CanonicalGameState,
-          FacadeGameState,
-          CommandDefinitions<CanonicalGameState, FacadeGameState>
-        >,
-        workingState,
-      );
+        const nextCurrentStage = getCurrentStageDefinition(
+          game as GameDefinition<
+            CanonicalGameState,
+            FacadeGameState,
+            CommandDefinitions<CanonicalGameState, FacadeGameState>
+          >,
+          workingState,
+        );
 
-      if (!nextCurrentStage || nextCurrentStage.kind !== "activePlayer") {
-        throw new Error("active_player_stage_required_after_command_execution");
-      }
+        if (!nextCurrentStage || nextCurrentStage.kind !== "activePlayer") {
+          throw new Error(
+            "active_player_stage_required_after_command_execution",
+          );
+        }
 
-      collector.emit(
-        createStageExitedEvent(workingState.runtime.progression.currentStage),
-      );
+        collector.emit(
+          createStageExitedEvent(workingState.runtime.progression.currentStage),
+        );
 
-      advanceStageMachine(
-        workingState,
-        game as GameDefinition<
-          CanonicalGameState,
-          FacadeGameState,
-          CommandDefinitions<CanonicalGameState, FacadeGameState>
-        >,
-        nextCurrentStage.transition({
+        advanceStageMachine(
+          workingState,
+          game as GameDefinition<
+            CanonicalGameState,
+            FacadeGameState,
+            CommandDefinitions<CanonicalGameState, FacadeGameState>
+          >,
+          nextCurrentStage.transition({
+            game: createCommandGameView(
+              game as GameDefinition<
+                CanonicalGameState,
+                FacadeGameState,
+                CommandDefinitions<CanonicalGameState, FacadeGameState>
+              >,
+              workingState,
+              { readonly: true },
+            ),
+            runtime: workingState.runtime,
+            command: command as Parameters<
+              typeof nextCurrentStage.transition
+            >[0]["command"],
+            nextStages: resolveStageNextStages(nextCurrentStage),
+          }),
+          rng,
+          collector.emit,
+        );
+      } else if (
+        currentStage.kind === "multiActivePlayer" &&
+        currentStageState.kind === "multiActivePlayer"
+      ) {
+        const memory = (
+          workingState.runtime.progression
+            .currentStage as MultiActivePlayerStageState<object>
+        ).memory;
+
+        currentStage.onSubmit({
           game: createCommandGameView(
             game as GameDefinition<
               CanonicalGameState,
@@ -630,12 +717,109 @@ export function createGameExecutor<
             { readonly: true },
           ),
           runtime: workingState.runtime,
-          command,
-          nextStages: resolveStageNextStages(nextCurrentStage),
-        }),
-        rng,
-        collector.emit,
-      );
+          memory,
+          command: command as Parameters<
+            typeof currentStage.onSubmit
+          >[0]["command"],
+          execute: (submittedCommand) => {
+            const submittedDefinition = game.commands[submittedCommand.type];
+
+            if (!submittedDefinition) {
+              throw new Error(
+                `unknown_command_in_multi_active_execute:${submittedCommand.type}`,
+              );
+            }
+
+            executeCommandAgainstState(
+              workingState,
+              game as GameDefinition<
+                CanonicalGameState,
+                FacadeGameState,
+                CommandDefinitions<CanonicalGameState, FacadeGameState>
+              >,
+              submittedDefinition,
+              submittedCommand,
+              rng,
+              collector.emit,
+            );
+          },
+        });
+
+        const nextActivePlayerIds = currentStage.activePlayers({
+          game: createCommandGameView(
+            game as GameDefinition<
+              CanonicalGameState,
+              FacadeGameState,
+              CommandDefinitions<CanonicalGameState, FacadeGameState>
+            >,
+            workingState,
+            { readonly: true },
+          ),
+          runtime: workingState.runtime,
+          memory,
+        });
+
+        workingState.runtime.progression.currentStage = {
+          id: currentStage.id,
+          kind: "multiActivePlayer",
+          activePlayerIds: nextActivePlayerIds,
+          memory,
+        } satisfies MultiActivePlayerStageState;
+
+        if (
+          currentStage.isComplete({
+            game: createCommandGameView(
+              game as GameDefinition<
+                CanonicalGameState,
+                FacadeGameState,
+                CommandDefinitions<CanonicalGameState, FacadeGameState>
+              >,
+              workingState,
+              { readonly: true },
+            ),
+            runtime: workingState.runtime,
+            memory,
+          })
+        ) {
+          workingState.runtime.progression.lastActingStage = {
+            id: currentStage.id,
+            kind: "multiActivePlayer",
+            activePlayerIds: nextActivePlayerIds,
+            memory,
+          } satisfies MultiActivePlayerStageState<object>;
+
+          collector.emit(
+            createStageExitedEvent(
+              workingState.runtime.progression.currentStage,
+            ),
+          );
+
+          advanceStageMachine(
+            workingState,
+            game as GameDefinition<
+              CanonicalGameState,
+              FacadeGameState,
+              CommandDefinitions<CanonicalGameState, FacadeGameState>
+            >,
+            currentStage.transition({
+              game: createCommandGameView(
+                game as GameDefinition<
+                  CanonicalGameState,
+                  FacadeGameState,
+                  CommandDefinitions<CanonicalGameState, FacadeGameState>
+                >,
+                workingState,
+                { readonly: true },
+              ),
+              runtime: workingState.runtime,
+              memory,
+              nextStages: resolveStageNextStages(currentStage),
+            }),
+            rng,
+            collector.emit,
+          );
+        }
+      }
 
       const success: ExecutionSuccess<CanonicalState<CanonicalGameState>> = {
         ok: true,
@@ -646,4 +830,55 @@ export function createGameExecutor<
       return success;
     },
   };
+}
+
+function isActorAllowedInCurrentStage(
+  currentStageState: StageState,
+  actorId: string,
+): boolean {
+  if (currentStageState.kind === "activePlayer") {
+    return actorId === currentStageState.activePlayerId;
+  }
+
+  if (currentStageState.kind === "multiActivePlayer") {
+    return currentStageState.activePlayerIds.includes(actorId);
+  }
+
+  return false;
+}
+
+function executeCommandAgainstState<
+  CanonicalGameState extends object,
+  FacadeGameState extends object = CanonicalGameState,
+>(
+  state: CanonicalState<CanonicalGameState>,
+  game: GameDefinition<
+    CanonicalGameState,
+    FacadeGameState,
+    CommandDefinitions<CanonicalGameState, FacadeGameState>
+  >,
+  definition: InternalCommandDefinition<
+    CanonicalGameState,
+    FacadeGameState,
+    RuntimeState
+  >,
+  command: Command,
+  rng: ReturnType<typeof createRNGService>,
+  emitEvent: (event: GameEvent) => void,
+): void {
+  definition.execute(
+    createExecuteContext(
+      state,
+      createCommandGameView(game, state),
+      command,
+      rng,
+      emitEvent,
+    ),
+  );
+
+  state.runtime.history.entries.push({
+    id: String(state.runtime.history.entries.length + 1),
+    commandType: command.type,
+    actorId: command.actorId,
+  });
 }

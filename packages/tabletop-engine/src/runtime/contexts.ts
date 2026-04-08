@@ -41,7 +41,7 @@ export function createCommandAvailabilityContext<
   state: CanonicalState<CanonicalGameState, Runtime>,
   game: Readonly<FacadeGameState>,
   commandType: string,
-  actorId?: string,
+  actorId: string,
 ): InternalCommandAvailabilityContext<
   CanonicalGameState,
   FacadeGameState,

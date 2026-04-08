@@ -1,9 +1,6 @@
 import { t } from "tabletop-engine";
 import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
-  assertAvailableActor,
-  assertActivePlayer,
-  assertGameActive,
   defineSplendorCommand,
   guardedAvailability,
   guardedValidate,
@@ -26,7 +23,7 @@ const buyReservedCardCommand = defineSplendorCommand({
   .discoverable({
     discoverySchema: buyReservedCardDiscoverySchema,
     discover(context) {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const game = context.game;
       const draft = context.discovery.input;
       const player = game.getPlayer(actorId);
@@ -62,7 +59,7 @@ const buyReservedCardCommand = defineSplendorCommand({
   })
   .isAvailable((context) => {
     return guardedAvailability(() => {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const game = context.game;
       const player = game.getPlayer(actorId);
 
@@ -73,10 +70,9 @@ const buyReservedCardCommand = defineSplendorCommand({
       });
     });
   })
-  .validate(({ runtime, game, command }) => {
+  .validate(({ game, command }) => {
     return guardedValidate(() => {
-      assertGameActive(game);
-      const actorId = assertActivePlayer(runtime, command.actorId);
+      const actorId = command.actorId;
       const input = command.input;
       const player = game.getPlayer(actorId);
 
