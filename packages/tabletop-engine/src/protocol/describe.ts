@@ -2,7 +2,10 @@ import { Type, type TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
 import type { FieldType, SerializableSchema } from "../schema";
 import type { CommandDefinition } from "../types/command";
-import type { VisibilityMode } from "../state-facade/metadata";
+import type {
+  FieldVisibilityMetadata,
+  VisibilityMode,
+} from "../state-facade/metadata";
 import type { CompiledStateFacadeDefinition } from "../state-facade/compile";
 
 export interface ProtocolCommandDescriptor {
@@ -117,7 +120,12 @@ function inferStateViewSchema(
 
         return [
           fieldName,
-          inferFieldViewSchema(compiled, fieldType, visibility),
+          inferFieldViewSchema(
+            compiled,
+            fieldType,
+            state.fieldVisibility[fieldName],
+            visibility,
+          ),
         ];
       }),
     ),
@@ -127,16 +135,20 @@ function inferStateViewSchema(
 function inferFieldViewSchema(
   compiled: CompiledStateFacadeDefinition,
   fieldType: FieldType,
+  fieldVisibility: FieldVisibilityMetadata | undefined,
   visibility?: VisibilityMode,
 ): TSchema {
   const visibleSchema = inferVisibleFieldSchema(compiled, fieldType);
+  const hiddenSchema = inferHiddenEnvelopeSchema(
+    fieldVisibility?.hiddenSummarySchema,
+  );
 
   if (visibility === "hidden") {
-    return hiddenEnvelopeSchema;
+    return hiddenSchema;
   }
 
   if (visibility === "visible_to_self") {
-    return Type.Union([visibleSchema, hiddenEnvelopeSchema]);
+    return Type.Union([visibleSchema, hiddenSchema]);
   }
 
   return visibleSchema;
@@ -193,6 +205,17 @@ function toTypeBoxSchema(schema: SerializableSchema | FieldType): TSchema {
   }
 
   return Type.Unknown();
+}
+
+function inferHiddenEnvelopeSchema(schema?: SerializableSchema): TSchema {
+  if (!schema) {
+    return hiddenEnvelopeSchema;
+  }
+
+  return Type.Object({
+    __hidden: Type.Literal(true),
+    value: toTypeBoxSchema(schema),
+  });
 }
 
 const hiddenEnvelopeSchema = Type.Object({

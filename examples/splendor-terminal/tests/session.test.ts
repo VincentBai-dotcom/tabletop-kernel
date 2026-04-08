@@ -9,6 +9,23 @@ test("local splendor session exposes the current active player from stage runtim
   expect(session.getActivePlayerId()).toBe("you");
 });
 
+test("local splendor session exposes player-visible state only", () => {
+  const session = createLocalSplendorSession({
+    seed: "session-seed",
+  });
+
+  const visibleState = session.getVisibleState();
+
+  expect(visibleState.game.board.deckByLevel).toMatchObject({
+    __hidden: true,
+    value: {
+      1: expect.any(Number),
+      2: expect.any(Number),
+      3: expect.any(Number),
+    },
+  });
+});
+
 test("failed commands do not overwrite recent activity summary", () => {
   const session = createLocalSplendorSession({
     seed: "session-seed",

@@ -4,16 +4,18 @@ import {
   developmentCardsById,
   nobleTilesById,
   TOKEN_COLORS,
-  type SplendorGameState,
-  type SplendorPlayerState,
   type TokenColor,
 } from "splendor-example";
-import type { SessionActivity } from "./types.ts";
+import type {
+  SessionActivity,
+  SplendorVisibleGame,
+  SplendorVisiblePlayer,
+} from "./types.ts";
 
 const BONUS_COLOR_KEYS = ["White", "Blue", "Green", "Red", "Black"] as const;
 
 export function renderGameScreen(options: {
-  game: SplendorGameState;
+  game: SplendorVisibleGame;
   activePlayerId: string | null;
   activity: SessionActivity;
   banner: string;
@@ -63,9 +65,9 @@ function renderNobles(nobleIds: readonly number[]): string[] {
   });
 }
 
-function renderMarket(game: SplendorGameState): string[] {
+function renderMarket(game: SplendorVisibleGame): string[] {
   return DEVELOPMENT_LEVELS.flatMap((level) => {
-    const cards = game.board.faceUpByLevel[level]
+    const cards = (game.board.faceUpByLevel[level] ?? [])
       .map((cardId) => {
         const card = developmentCardsById[cardId];
 
@@ -83,16 +85,17 @@ function renderMarket(game: SplendorGameState): string[] {
   });
 }
 
-function renderPlayers(game: SplendorGameState): string[] {
+function renderPlayers(game: SplendorVisibleGame): string[] {
   return game.playerOrder.map((playerId) => {
     const player = game.players[playerId]!;
     const discounts = computeDiscounts(player);
     const score = computeScore(player);
+    const reservedCount = readReservedCardCount(player);
 
     return `  ${player.id}: ${String(score)} pts | tokens ${renderTokenCounts(
       player.tokens,
     )} | bonuses ${renderBonusCounts(discounts)} | reserved ${String(
-      player.reservedCardIds.length,
+      reservedCount,
     )} | purchased ${String(player.purchasedCardIds.length)} | nobles ${String(
       player.nobleIds.length,
     )}`;
@@ -100,9 +103,13 @@ function renderPlayers(game: SplendorGameState): string[] {
 }
 
 function renderReservedCards(
-  player: SplendorPlayerState | undefined,
+  player: SplendorVisiblePlayer | undefined,
 ): string[] {
-  if (!player || player.reservedCardIds.length === 0) {
+  if (!player || !Array.isArray(player.reservedCardIds)) {
+    return ["  hidden"];
+  }
+
+  if (player.reservedCardIds.length === 0) {
     return ["  none"];
   }
 
@@ -173,7 +180,7 @@ function renderCardCost(
 }
 
 function computeDiscounts(
-  player: SplendorPlayerState,
+  player: SplendorVisiblePlayer,
 ): Record<(typeof BONUS_COLOR_KEYS)[number], number> {
   const totals = {
     White: 0,
@@ -195,11 +202,19 @@ function computeDiscounts(
   return totals;
 }
 
-function computeScore(player: SplendorPlayerState): number {
+function computeScore(player: SplendorVisiblePlayer): number {
   const cardScore = player.purchasedCardIds.reduce((total, cardId) => {
     const card = developmentCardsById[cardId];
     return total + (card?.prestigePoints ?? 0);
   }, 0);
 
   return cardScore + player.nobleIds.length * 3;
+}
+
+function readReservedCardCount(player: SplendorVisiblePlayer): number {
+  if (Array.isArray(player.reservedCardIds)) {
+    return player.reservedCardIds.length;
+  }
+
+  return player.reservedCardIds.value?.count ?? 0;
 }

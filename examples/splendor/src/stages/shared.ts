@@ -1,7 +1,11 @@
 import type { RuntimeState } from "tabletop-engine";
 
 export function getLastActingPlayerId(runtime: Readonly<RuntimeState>): string {
-  const actorId = runtime.progression.lastActingStage?.activePlayerId;
+  const lastActingStage = runtime.progression.lastActingStage;
+  const actorId =
+    lastActingStage?.kind === "activePlayer"
+      ? lastActingStage.activePlayerId
+      : undefined;
 
   if (!actorId) {
     throw new Error("last_acting_player_missing");

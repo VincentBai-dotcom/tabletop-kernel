@@ -13,8 +13,15 @@ export { t };
 
 export type VisibilityMode = "hidden" | "visible_to_self";
 
+export interface HiddenSummaryOptions {
+  schema: SerializableSchema;
+  project(value: unknown): unknown;
+}
+
 export interface FieldVisibilityMetadata {
   mode: VisibilityMode;
+  hiddenSummarySchema?: SerializableSchema;
+  projectHiddenSummary?(value: unknown): unknown;
 }
 
 export interface StateMetadata {
@@ -85,19 +92,36 @@ function setFieldVisibility(
   metadata.fieldVisibility[String(propertyKey)] = visibility;
 }
 
-export function hidden(): PropertyDecorator {
-  return (target, propertyKey) => {
-    setFieldVisibility(target, propertyKey, {
-      mode: "hidden",
-    });
+function resolveVisibilityMetadata(
+  mode: VisibilityMode,
+  options?: HiddenSummaryOptions,
+): FieldVisibilityMetadata {
+  return {
+    mode,
+    hiddenSummarySchema: options?.schema,
+    projectHiddenSummary: options?.project,
   };
 }
 
-export function visibleToSelf(): PropertyDecorator {
+export function hidden(options?: HiddenSummaryOptions): PropertyDecorator {
   return (target, propertyKey) => {
-    setFieldVisibility(target, propertyKey, {
-      mode: "visible_to_self",
-    });
+    setFieldVisibility(
+      target,
+      propertyKey,
+      resolveVisibilityMetadata("hidden", options),
+    );
+  };
+}
+
+export function visibleToSelf(
+  options?: HiddenSummaryOptions,
+): PropertyDecorator {
+  return (target, propertyKey) => {
+    setFieldVisibility(
+      target,
+      propertyKey,
+      resolveVisibilityMetadata("visible_to_self", options),
+    );
   };
 }
 
