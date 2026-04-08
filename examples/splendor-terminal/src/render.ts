@@ -67,7 +67,7 @@ function renderNobles(nobleIds: readonly number[]): string[] {
 
 function renderMarket(game: SplendorVisibleGame): string[] {
   return DEVELOPMENT_LEVELS.flatMap((level) => {
-    const cards = game.board.faceUpByLevel[level]
+    const cards = (game.board.faceUpByLevel[level] ?? [])
       .map((cardId) => {
         const card = developmentCardsById[cardId];
 
