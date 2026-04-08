@@ -331,7 +331,7 @@ export interface InternalCommandAvailabilityContext<
   game: Readonly<FacadeGameState>;
   runtime: Readonly<Runtime>;
   commandType: string;
-  actorId?: string;
+  actorId: string;
 }
 
 export type CommandAvailabilityContext<
@@ -340,7 +340,7 @@ export type CommandAvailabilityContext<
   game: Readonly<FacadeGameState>;
   runtime: Readonly<RuntimeState>;
   commandType: string;
-  actorId?: string;
+  actorId: string;
 };
 
 export interface InternalDiscoveryContext<

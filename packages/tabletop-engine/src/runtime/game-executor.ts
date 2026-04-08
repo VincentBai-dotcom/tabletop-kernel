@@ -353,7 +353,7 @@ export function createGameExecutor<
         return [];
       }
 
-      let actorId: string | undefined;
+      let actorId: string;
 
       if (
         currentStage.kind === "activePlayer" &&

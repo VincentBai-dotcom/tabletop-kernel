@@ -2,9 +2,6 @@ import { t } from "tabletop-engine";
 import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
-  assertAvailableActor,
-  assertActivePlayer,
-  assertGameActive,
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
@@ -30,7 +27,7 @@ const buyFaceUpCardCommand = defineSplendorCommand({
   .discoverable({
     discoverySchema: buyFaceUpCardDiscoverySchema,
     discover(context) {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const game = context.game;
       const draft = context.discovery.input;
       const player = game.getPlayer(actorId);
@@ -74,7 +71,7 @@ const buyFaceUpCardCommand = defineSplendorCommand({
   })
   .isAvailable((context) => {
     return guardedAvailability(() => {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const game = context.game;
       const player = game.getPlayer(actorId);
       const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
@@ -93,10 +90,9 @@ const buyFaceUpCardCommand = defineSplendorCommand({
       );
     });
   })
-  .validate(({ runtime, game, command }) => {
+  .validate(({ game, command }) => {
     return guardedValidate(() => {
-      assertGameActive(game);
-      const actorId = assertActivePlayer(runtime, command.actorId);
+      const actorId = command.actorId;
       const input = command.input;
 
       const level = input.level;

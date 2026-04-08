@@ -6,9 +6,6 @@ import {
 } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
-  assertAvailableActor,
-  assertActivePlayer,
-  assertGameActive,
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
@@ -34,7 +31,7 @@ const reserveDeckCardCommand = defineSplendorCommand({
   .discoverable({
     discoverySchema: reserveDeckCardDiscoverySchema,
     discover(context) {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const game = context.game;
       const draft = context.discovery.input;
       const deckEntries = Object.entries(game.board.deckByLevel) as Array<
@@ -85,7 +82,7 @@ const reserveDeckCardCommand = defineSplendorCommand({
   })
   .isAvailable((context) => {
     return guardedAvailability(() => {
-      const actorId = assertAvailableActor(context);
+      const actorId = context.actorId;
       const game = context.game;
       const player = game.getPlayer(actorId);
       const decks = Object.values(game.board.deckByLevel) as number[][];
@@ -97,10 +94,9 @@ const reserveDeckCardCommand = defineSplendorCommand({
       return decks.some((cards) => cards.length > 0);
     });
   })
-  .validate(({ runtime, game, command }) => {
+  .validate(({ game, command }) => {
     return guardedValidate(() => {
-      assertGameActive(game);
-      const actorId = assertActivePlayer(runtime, command.actorId);
+      const actorId = command.actorId;
       const input = command.input;
       const player = game.getPlayer(actorId).clone();
 
