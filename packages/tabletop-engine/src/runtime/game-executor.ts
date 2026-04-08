@@ -781,6 +781,13 @@ export function createGameExecutor<
             memory,
           })
         ) {
+          workingState.runtime.progression.lastActingStage = {
+            id: currentStage.id,
+            kind: "multiActivePlayer",
+            activePlayerIds: nextActivePlayerIds,
+            memory,
+          } satisfies MultiActivePlayerStageState<object>;
+
           collector.emit(
             createStageExitedEvent(
               workingState.runtime.progression.currentStage,

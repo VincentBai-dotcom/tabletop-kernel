@@ -34,7 +34,10 @@ export type StageState =
 
 export interface ProgressionState {
   currentStage: StageState;
-  lastActingStage: SingleActivePlayerStageState | null;
+  lastActingStage:
+    | SingleActivePlayerStageState
+    | MultiActivePlayerStageState<object>
+    | null;
 }
 
 export type StageDefinitionMap<FacadeGameState extends object = object> =
