@@ -142,6 +142,20 @@ still no explicit exported engine helper for:
 
 Consumers still rely mostly on inference rather than a named type surface.
 
+There is also a more specific remaining mismatch in the current `rootState(...)`
+path:
+
+- the common builder path still infers `CanonicalGameState` as the facade/root
+  state class
+- so consumers can still see `state.game` typed like a hydrated state class
+  instead of the synthesized plain canonical data object
+- this means the runtime redesign has moved ahead of the static type surface,
+  and consumers such as `splendor-terminal` still do not get a clean canonical
+  state type from the built game definition alone
+
+This should be fixed as part of the canonical type surface follow-up, not left
+as an implicit inference quirk.
+
 ### 6. Snapshot and fixture validation is still missing
 
 Replay, harness, and snapshot flows now work with the redesigned canonical game
