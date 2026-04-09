@@ -11,6 +11,7 @@ import {
   visibleToSelf,
 } from "../src/state-facade/metadata";
 import { assertSerializableSchema } from "../src/schema";
+import type { CommandSchema } from "../src/types/command";
 
 type ExtendedSchemaApi = typeof t & {
   object: (properties: Record<string, unknown>) => unknown;
@@ -120,13 +121,11 @@ test("command schemas reject nested state transport fields at definition time", 
   const defineCommand = createCommandFactory<object>();
   const invalidTransportSchema = (t as ExtendedSchemaApi).object({
     child: t.state(() => NestedSerializableChildState),
-  }) as never as {
-    static: {
-      child: {
-        count: number;
-      };
+  }) as never as CommandSchema<{
+    child: {
+      count: number;
     };
-  };
+  }>;
 
   expect(() =>
     defineCommand({
@@ -140,13 +139,11 @@ test("discovery schemas reject nested state transport fields at definition time"
   const defineCommand = createCommandFactory<object>();
   const invalidTransportSchema = (t as ExtendedSchemaApi).object({
     child: t.state(() => NestedSerializableChildState),
-  }) as never as {
-    static: {
-      child: {
-        count: number;
-      };
+  }) as never as CommandSchema<{
+    child: {
+      count: number;
     };
-  };
+  }>;
 
   expect(() =>
     defineCommand({

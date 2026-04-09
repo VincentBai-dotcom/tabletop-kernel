@@ -59,7 +59,14 @@ function toTypeBoxSchema(field: FieldType): TSchema {
   return Type.Unknown();
 }
 
-export function assertSerializableSchema(schema: FieldType): void {
+export function assertSerializableSchema(
+  schema:
+    | FieldType
+    | {
+        kind: "object";
+        properties: Record<string, FieldType>;
+      },
+): void {
   if (schema.kind === "state") {
     throw new Error("state_field_not_allowed_in_serializable_schema");
   }

@@ -86,9 +86,7 @@ export function createCommandFactory<FacadeGameState extends object>() {
           TNextDiscoveryInput
         >,
       ) {
-        if ("kind" in config.discoverySchema) {
-          assertSerializableSchema(config.discoverySchema as never);
-        }
+        assertSerializableSchema(config.discoverySchema);
 
         return createBuilder<
           TCommandInput,
@@ -218,9 +216,7 @@ export function createCommandFactory<FacadeGameState extends object>() {
   function defineCommand<TCommandInput extends Record<string, unknown>>(
     config: CommandBuilderBaseConfig<TCommandInput>,
   ): CommandBuilder<FacadeGameState, TCommandInput> {
-    if ("kind" in config.commandSchema) {
-      assertSerializableSchema(config.commandSchema as never);
-    }
+    assertSerializableSchema(config.commandSchema);
 
     return createBuilder({
       commandId: config.commandId,
