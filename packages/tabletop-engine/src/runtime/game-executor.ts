@@ -82,10 +82,6 @@ function createCommandGameView<
     readonly?: boolean;
   },
 ): FacadeGameState {
-  if (!game.stateFacade) {
-    return state.game as unknown as FacadeGameState;
-  }
-
   return hydrateStateFacade(game.stateFacade, state.game, {
     readonly: options?.readonly ?? false,
   });
@@ -298,7 +294,7 @@ export function createGameExecutor<
 ): GameExecutor<CanonicalGameState> {
   return {
     createInitialState(options) {
-      const gameState = game.initialState();
+      const gameState = structuredClone(game.defaultCanonicalGameState);
       const runtime = createInitialRuntimeState(
         game as GameDefinition<
           CanonicalGameState,
@@ -309,7 +305,17 @@ export function createGameExecutor<
       const rng = createRNGService(runtime.rng);
 
       game.setup?.({
-        game: gameState,
+        game: createCommandGameView(
+          game as GameDefinition<
+            CanonicalGameState,
+            FacadeGameState,
+            CommandDefinitions<CanonicalGameState, FacadeGameState>
+          >,
+          {
+            game: gameState,
+            runtime,
+          },
+        ),
         runtime,
         rng,
         playerIds: options?.playerIds ?? [],

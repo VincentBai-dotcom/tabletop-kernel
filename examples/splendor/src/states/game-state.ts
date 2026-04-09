@@ -20,7 +20,7 @@ const TOKEN_COLOR_MAP = {
 @State()
 export class SplendorGameState {
   @field(t.array(t.string()))
-  playerOrder!: string[];
+  playerOrder: string[] = [];
 
   @field(
     t.record(
@@ -28,7 +28,7 @@ export class SplendorGameState {
       t.state(() => SplendorPlayerState),
     ),
   )
-  players!: Record<string, SplendorPlayerState>;
+  players: Record<string, SplendorPlayerState> = {};
 
   @field(t.state(() => TokenCountsState))
   bank!: TokenCountsState;
@@ -36,11 +36,11 @@ export class SplendorGameState {
   @field(t.state(() => SplendorBoardState))
   board!: SplendorBoardState;
 
-  @field(t.state(() => SplendorEndGameState))
-  endGame!: SplendorEndGameState | null;
+  @field(t.optional(t.state(() => SplendorEndGameState)))
+  endGame?: SplendorEndGameState;
 
-  @field(t.array(t.string()))
-  winnerIds!: string[] | null;
+  @field(t.optional(t.array(t.string())))
+  winnerIds?: string[];
 
   static createInitial(playerIds: readonly string[]): SplendorGameState {
     const game = new SplendorGameState();
@@ -53,9 +53,28 @@ export class SplendorGameState {
     ) as Record<string, SplendorPlayerState>;
     game.bank = TokenCountsState.empty();
     game.board = SplendorBoardState.createEmpty();
-    game.endGame = null;
-    game.winnerIds = null;
+    game.endGame = undefined;
+    game.winnerIds = undefined;
     return game;
+  }
+
+  initializePlayers(playerIds: readonly string[]): void {
+    this.playerOrder = [...playerIds];
+    this.players = Object.fromEntries(
+      playerIds.map((playerId) => [
+        playerId,
+        SplendorPlayerState.create(playerId),
+      ]),
+    ) as Record<string, SplendorPlayerState>;
+  }
+
+  initializeBank(playerCount: number): void {
+    this.bank = TokenCountsState.createBank(playerCount);
+  }
+
+  resetEndGame(): void {
+    this.endGame = undefined;
+    this.winnerIds = undefined;
   }
 
   getPlayer(playerId: string): SplendorPlayerState {
