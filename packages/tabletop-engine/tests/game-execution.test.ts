@@ -281,6 +281,16 @@ class InvalidSetupScoreRootState {
 }
 
 @State()
+class InvalidExecutionScoreRootState {
+  @field(t.number())
+  score = 0;
+
+  assignInvalidScore() {
+    this.score = "not a number" as never as number;
+  }
+}
+
+@State()
 class NumericActionsRootState {
   @field(t.number())
   actions = 0;
@@ -345,6 +355,33 @@ test("createGameExecutor hydrates decorated state facades for execution", () => 
   expect(initialState.game.counter.value).toBe(0);
   expect(result.ok).toBe(true);
   expect(result.state.game.counter.value).toBe(3);
+});
+
+test("executeCommand rejects successful commands that produce invalid canonical state", () => {
+  const defineCommand = createCommandFactory<InvalidExecutionScoreRootState>();
+  const assignInvalidCommand = defineCommand({
+    commandId: "assign_invalid",
+    commandSchema: emptyCommandSchema,
+  })
+    .validate(() => ({ ok: true as const }))
+    .execute(({ game }) => {
+      game.assignInvalidScore();
+    })
+    .build();
+  const game = new GameDefinitionBuilder("invalid-execution-state-game")
+    .rootState(InvalidExecutionScoreRootState)
+    .initialStage(createSelfLoopingTurnStage([assignInvalidCommand]))
+    .build();
+  const executor = createGameExecutor(game);
+  const initialState = executor.createInitialState();
+
+  expect(() =>
+    executor.executeCommand(initialState, {
+      type: "assign_invalid",
+      actorId: "player-1",
+      input: {},
+    }),
+  ).toThrow("invalid_schema_value");
 });
 
 test("createGameExecutor can project viewer-safe visible state", () => {

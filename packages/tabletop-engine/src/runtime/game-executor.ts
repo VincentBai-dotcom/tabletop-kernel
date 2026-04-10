@@ -881,6 +881,15 @@ export function createGameExecutor<
         }
       }
 
+      validateCanonicalState(
+        game as GameDefinition<
+          CanonicalGameState,
+          FacadeGameState,
+          CommandDefinitions<CanonicalGameState, FacadeGameState>
+        >,
+        workingState,
+      );
+
       const success: ExecutionSuccess<CanonicalState<CanonicalGameState>> = {
         ok: true,
         state: workingState,
