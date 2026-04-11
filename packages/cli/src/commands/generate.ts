@@ -1,6 +1,7 @@
 import { failure, success, type RunResult } from "../lib/command-result.ts";
 import { createGenerateHelpText } from "../lib/help-text.ts";
 import { isHelpFlag } from "../lib/parse-args.ts";
+import { runGenerateProtocolCommand } from "./generate-protocol.ts";
 import { runGenerateSchemasCommand } from "./generate-schemas.ts";
 
 interface GenerateCommandOptions {
@@ -21,7 +22,11 @@ export async function runGenerateCommand(
     return runGenerateSchemasCommand(args.slice(1), options);
   }
 
-  if (target === "types" || target === "protocol" || target === "client-sdk") {
+  if (target === "protocol") {
+    return runGenerateProtocolCommand(args.slice(1), options);
+  }
+
+  if (target === "types" || target === "client-sdk") {
     return success(`generate target scaffolded:${target}`);
   }
 
