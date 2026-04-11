@@ -1,0 +1,289 @@
+# CLI Artifact Generation Design
+
+## Summary
+
+Add a new workspace package at `packages/cli` that turns runtime-authored game
+metadata into generated developer artifacts.
+
+The CLI command name should be:
+
+- `tabletop-cli`
+
+The CLI exists to solve a structural limitation in the current engine:
+
+- runtime metadata derived from `@field(...)`, `@hidden(...)`,
+  `@visibleToSelf(...)`, `@viewSchema(...)`, progression stages, and command
+  definitions is exact at runtime
+- TypeScript cannot derive equally exact static helper types from decorator
+  metadata alone
+
+Rather than weakening the state-authoring DX or adding increasingly awkward
+type-level approximations inside `tabletop-engine`, the workspace should provide
+a dedicated generator package that loads a game definition and emits exact,
+checked artifacts.
+
+This CLI is a workspace tool, not part of the core runtime package.
+
+## Goals
+
+- keep the current colocated decorator-based game authoring model
+- generate exact canonical and visible state types from engine-owned runtime
+  metadata
+- generate machine-readable schema and protocol artifacts from the same runtime
+  source of truth
+- generate a typed client SDK surface for hosted or frontend consumers
+- provide validation commands for game definitions, snapshots, and generated
+  artifacts
+
+## Non-Goals
+
+- replacing the `tabletop-engine` runtime package
+- introducing a second handwritten schema source of truth
+- requiring game packages to stop using decorators
+- solving hosting, transport, auth, or deployment concerns
+
+## Package Placement
+
+The CLI should be implemented as a new workspace package:
+
+- `packages/cli`
+
+Reasons:
+
+- it is a first-class workspace tool, not engine runtime logic
+- it can depend on `tabletop-engine` internals without bloating the runtime
+  package surface
+- it can target any game package in the monorepo
+- it can later be published independently if that becomes useful
+
+The package name and command surface should follow the same separation:
+
+- runtime library: `tabletop-engine`
+- workspace CLI: `tabletop-cli`
+
+## Core Model
+
+The CLI loads a game entry module, builds the game definition, and materializes
+artifacts from engine-owned runtime metadata.
+
+The runtime metadata already exists today in forms such as:
+
+- compiled canonical game schema
+- compiled runtime schema
+- compiled visible state schema
+- command and discovery schemas
+- stage definitions and command maps
+- protocol descriptors
+
+The CLI should treat those runtime artifacts as the source of truth and emit
+developer-facing files from them.
+
+## Primary Commands
+
+The first version should support these command groups:
+
+### 1. `generate types`
+
+Generates exact TypeScript artifacts for a game package.
+
+Expected outputs include:
+
+- full canonical `{ game, runtime }` state type
+- full visible `{ game, progression }` state type
+- command input and discovery payload types when useful
+
+This command exists primarily to remove manual types like
+`examples/splendor-terminal/src/types.ts`.
+
+### 2. `generate schemas`
+
+Generates machine-readable schema artifacts for:
+
+- full canonical state
+- full visible state
+- command payloads
+- discovery payloads
+
+These artifacts can later support validation tooling, frontend consumers, and
+external services.
+
+### 3. `generate protocol`
+
+Generates protocol descriptor artifacts, including AsyncAPI-compatible outputs,
+from the built game definition.
+
+This is a materialized form of the protocol information the engine already
+knows.
+
+### 4. `generate client-sdk`
+
+Generates a typed client SDK surface for a single game.
+
+This should include:
+
+- canonical and visible state types
+- command request types
+- discovery request and response types
+- small helper wrappers for common hosted interaction patterns
+
+The first version does not need to generate a transport implementation. It only
+needs to generate the typed interface layer that a frontend or service can use.
+
+### 5. `validate`
+
+Validates a game definition and optionally external artifacts such as:
+
+- snapshots
+- replay records
+- generated files
+
+This command should reuse engine validation and generated schemas rather than
+invent a second validation model.
+
+## Inputs
+
+The CLI should take a game entry module path and enough information to resolve
+the built game definition.
+
+High-level examples:
+
+```bash
+tabletop-cli generate types --game examples/splendor/src/game.ts
+tabletop-cli generate schemas --game examples/splendor/src/game.ts
+tabletop-cli generate client-sdk --game examples/splendor/src/game.ts
+tabletop-cli validate --game examples/splendor/src/game.ts
+```
+
+If needed later, the CLI can support:
+
+- an explicit exported symbol name
+- a workspace package name
+- a config file for output paths and generation presets
+
+The first version should stay simple and assume one default exported game
+factory or one conventional exported game creator if possible.
+
+## Outputs
+
+Generated artifacts should live near the consuming game package, not inside the
+engine package.
+
+Suggested structure:
+
+- `examples/splendor/generated/`
+
+Possible outputs:
+
+- `canonical-state.generated.d.ts`
+- `visible-state.generated.d.ts`
+- `schemas.generated.json`
+- `protocol.generated.json`
+- `client-sdk.generated.ts`
+
+The exact filenames can change, but generated outputs should be:
+
+- deterministic
+- easy to diff in PRs
+- clearly machine-generated
+
+## Generation Pipeline
+
+High-level pipeline:
+
+1. load the target game module
+2. build the game definition
+3. read engine-owned compiled artifacts from the built game
+4. transform those artifacts into the requested generated output
+5. write generated files into the target output folder
+
+The CLI should not ask game authors to restate schema information in a second
+file.
+
+## Type Generation Strategy
+
+Type generation is the main reason this CLI exists.
+
+The CLI should not rely on the in-engine helper types being exact enough. It
+should instead emit concrete generated type definitions from the runtime schema
+artifacts the engine already builds.
+
+This solves several current problems at once:
+
+- exact full canonical state type generation
+- exact full visible state type generation
+- removal of manual visible-state type authoring in example frontends
+- avoidance of decorator-type reflection hacks in the engine itself
+
+## Client SDK Strategy
+
+The client SDK should be a typed consumer layer, not a network framework.
+
+For the first version, the SDK should generate:
+
+- state types
+- command and discovery types
+- typed envelopes for common hosted-style operations
+
+It may later generate transport clients, but that should not block the initial
+design.
+
+This SDK generation is valuable because it creates a standard, engine-owned
+frontend integration pattern for future games.
+
+## Relationship To Engine Runtime
+
+The CLI should reuse runtime artifacts already built by `tabletop-engine`
+instead of reimplementing engine logic.
+
+That means:
+
+- the engine remains the authority on runtime semantics
+- the CLI becomes the authority on materializing developer artifacts from those
+  runtime semantics
+
+This keeps responsibilities clean:
+
+- `tabletop-engine`
+  execution and metadata authority
+- `packages/cli`
+  generated artifact authority
+
+## Existing Engine Surface To Remove
+
+Once generated artifacts become the standard developer path, the engine should
+stop carrying awkward type-helper surfaces whose main purpose is compensating
+for decorator metadata not being visible to TypeScript.
+
+The main cleanup targets are:
+
+- `CanonicalStateOf<TGame>`
+- `CanonicalGameStateOf<TGame>`
+- `CanonicalDataFromFacade<TFacade>`
+
+These helpers currently exist to approximate exact canonical state typing from
+facade class shapes. That approach is inherently imprecise because TypeScript
+cannot see decorator metadata at compile time.
+
+The CLI-generated artifacts should replace that approximation with exact emitted
+types.
+
+The intended direction is:
+
+- generated `CanonicalState` types become the preferred developer surface
+- generated `VisibleState` types become the preferred developer surface
+- the in-engine helper types above can later be deprecated and removed
+
+The runtime validation and schema compilation logic should stay in the engine.
+Only the awkward static-type approximation layer should move out.
+
+## Future Expansion
+
+The CLI can later grow to support:
+
+- richer snapshot and replay validation
+- generated frontend integration scaffolds
+- AI-oriented artifact bundles for automated game consumers
+- static docs or manifest generation
+
+Those should build on the same artifact pipeline rather than introduce separate
+metadata systems.
