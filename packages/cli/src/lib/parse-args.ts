@@ -6,6 +6,7 @@ export interface ParsedCommandArguments {
   gamePath: string;
   exportName?: string;
   outDir?: string;
+  snapshotPath?: string;
 }
 
 export function parseCommandArguments(args: string[]): ParsedCommandArguments {
@@ -38,5 +39,6 @@ export function parseCommandArguments(args: string[]): ParsedCommandArguments {
     gamePath,
     exportName: flags.get("--export"),
     outDir: flags.get("--outDir"),
+    snapshotPath: flags.get("--snapshot"),
   };
 }

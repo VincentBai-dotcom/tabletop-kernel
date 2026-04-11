@@ -25,7 +25,9 @@ export async function run(
   }
 
   if (command === "validate") {
-    return runValidateCommand(args);
+    return runValidateCommand(args, {
+      cwd: options.cwd ?? process.cwd(),
+    });
   }
 
   return failure(`unknown_command:${command}`);
