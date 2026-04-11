@@ -39,7 +39,10 @@ export async function runGenerateSchemasCommand(
     discoveries: Object.fromEntries(
       Object.entries(protocol.commands)
         .filter(([, command]) => command.discoverySchema)
-        .map(([commandId, command]) => [commandId, command.discoverySchema]),
+        .map(([commandId, command]) => [
+          commandId,
+          command.discoverySchema!.schema,
+        ]),
     ),
   };
 

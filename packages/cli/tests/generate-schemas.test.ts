@@ -42,5 +42,11 @@ describe("generate schemas", () => {
     expect(generated.visibleState.properties.progression).toBeDefined();
     expect(generated.commands.take_three_distinct_gems).toBeDefined();
     expect(generated.discoveries.take_three_distinct_gems).toBeDefined();
+    expect(generated.discoveries.take_three_distinct_gems).toMatchObject({
+      type: "object",
+    });
+    expect(generated.discoveries.take_three_distinct_gems).not.toHaveProperty(
+      "kind",
+    );
   });
 });
