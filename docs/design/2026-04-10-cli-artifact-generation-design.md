@@ -61,6 +61,41 @@ The package name and command surface should follow the same separation:
 - runtime library: `tabletop-engine`
 - workspace CLI: `tabletop-cli`
 
+The CLI package should depend on:
+
+- `tabletop-engine`
+
+It should reuse engine-owned compilation, schema, protocol, and validation
+artifacts rather than reimplementing them independently.
+
+## Package Structure
+
+High-level package structure:
+
+- `packages/cli/package.json`
+- `packages/cli/tsconfig.json`
+- `packages/cli/src/main.ts`
+- `packages/cli/src/commands/`
+- `packages/cli/src/lib/`
+
+Suggested command files:
+
+- `packages/cli/src/commands/generate-types.ts`
+- `packages/cli/src/commands/generate-schemas.ts`
+- `packages/cli/src/commands/generate-protocol.ts`
+- `packages/cli/src/commands/generate-client-sdk.ts`
+- `packages/cli/src/commands/validate.ts`
+
+Suggested shared helpers:
+
+- `packages/cli/src/lib/parse-args.ts`
+- `packages/cli/src/lib/load-game.ts`
+- `packages/cli/src/lib/write-output.ts`
+- `packages/cli/src/lib/generation-context.ts`
+
+The first version should use a small internal command router rather than an
+external CLI framework.
+
 ## Core Model
 
 The CLI loads a game entry module, builds the game definition, and materializes
