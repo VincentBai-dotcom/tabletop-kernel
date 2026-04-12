@@ -84,8 +84,8 @@ export interface GameDefinitionInput<
 }
 
 interface GameDefinitionBuilderState<
-  CanonicalGameState extends object = object,
   FacadeGameState extends object = object,
+  CanonicalGameState extends object = CanonicalGameStateShape<FacadeGameState>,
   Commands extends CommandDefinitionMap<FacadeGameState> =
     CommandDefinitionMap<FacadeGameState>,
 > extends Partial<
@@ -107,14 +107,14 @@ interface GameDefinitionBuilderState<
 }
 
 export class GameDefinitionBuilder<
-  CanonicalGameState extends object = object,
   FacadeGameState extends object = object,
+  CanonicalGameState extends object = CanonicalGameStateShape<FacadeGameState>,
   Commands extends CommandDefinitionMap<FacadeGameState> =
     CommandDefinitionMap<FacadeGameState>,
 > {
   private readonly config: GameDefinitionBuilderState<
-    CanonicalGameState,
     FacadeGameState,
+    CanonicalGameState,
     Commands
   >;
 
@@ -127,14 +127,14 @@ export class GameDefinitionBuilder<
   rootState<NextFacadeGameState extends object>(
     rootState: StateClass<NextFacadeGameState>,
   ): GameDefinitionBuilder<
-    CanonicalGameStateShape<NextFacadeGameState>,
     NextFacadeGameState,
+    CanonicalGameStateShape<NextFacadeGameState>,
     CommandDefinitionMap<NextFacadeGameState>
   > {
     this.config.rootState = rootState;
     return this as unknown as GameDefinitionBuilder<
-      CanonicalGameStateShape<NextFacadeGameState>,
       NextFacadeGameState,
+      CanonicalGameStateShape<NextFacadeGameState>,
       CommandDefinitionMap<NextFacadeGameState>
     >;
   }

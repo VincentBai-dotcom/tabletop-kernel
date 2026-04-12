@@ -454,6 +454,22 @@ test("rootState infers plain canonical data directly through executor state", ()
   expect(updatedCounterValue).toBe(0);
 });
 
+test("game definition builder preserves facade generic before rootState", () => {
+  const builder = new GameDefinitionBuilder<TypedCounterRootState>(
+    "typed-facade-builder",
+  ).setup(({ game }) => {
+    game.increment();
+    game.counter.value += 1;
+  });
+
+  const typedRootGame = builder
+    .rootState(TypedCounterRootState)
+    .initialStage(createStageFactory<object>()("gameEnd").automatic().build())
+    .build();
+
+  expect(typedRootGame.initialStage.id).toBe("gameEnd");
+});
+
 test("game definition builder only exposes stage-based progression authoring", () => {
   const defineStage = createStageFactory<{ score: number }>();
   const gameEndStage = defineStage("gameEnd").automatic().build();
