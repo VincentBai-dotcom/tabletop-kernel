@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import * as visibilityMetadata from "../src/state-facade/metadata";
 import {
+  configureVisibility,
   field,
   getStateMetadata,
   hidden,
-  OwnedByPlayer,
   State,
   t,
   visibleToSelf,
@@ -69,37 +69,47 @@ const hiddenCountSummarySchema = t.object({
   count: t.number(),
 });
 
-@OwnedByPlayer()
 @State()
 class SummaryVisibilityPlayerState {
   @field(t.string())
   id!: string;
 
-  @visibleToSelf({
-    schema: hiddenCountSummarySchema,
-    project(value) {
-      return {
-        count: Array.isArray(value) ? value.length : 0,
-      };
-    },
-  })
   @field(t.array(t.string()))
   cards!: string[];
 }
 
 @State()
 class SummaryVisibilityDeckState {
-  @hidden({
-    schema: hiddenCountSummarySchema,
-    project(value) {
-      return {
-        count: Array.isArray(value) ? value.length : 0,
-      };
-    },
-  })
   @field(t.array(t.string()))
   cards!: string[];
 }
+
+configureVisibility(SummaryVisibilityPlayerState, {
+  ownedBy: "id",
+  fields: {
+    cards: visibleToSelf({
+      summary: hiddenCountSummarySchema,
+      derive(value) {
+        return {
+          count: Array.isArray(value) ? value.length : 0,
+        };
+      },
+    }),
+  },
+});
+
+configureVisibility(SummaryVisibilityDeckState, {
+  fields: {
+    cards: hidden({
+      summary: hiddenCountSummarySchema,
+      derive(value) {
+        return {
+          count: Array.isArray(value) ? value.length : 0,
+        };
+      },
+    }),
+  },
+});
 
 test("state decorators capture scalar and nested state metadata", () => {
   const handMetadata = getStateMetadata(HandState);
@@ -187,31 +197,28 @@ test("state facade metadata exports visibility decorators", () => {
     typeof (visibilityMetadata as Record<string, unknown>).visibleToSelf,
   ).toBe("function");
   expect(
-    typeof (visibilityMetadata as Record<string, unknown>).OwnedByPlayer,
+    typeof (visibilityMetadata as Record<string, unknown>).configureVisibility,
   ).toBe("function");
 });
 
-test("state decorators capture hidden summary visibility metadata", () => {
+test("configureVisibility captures hidden summary visibility metadata", () => {
   const playerMetadata = getStateMetadata(SummaryVisibilityPlayerState);
   const deckMetadata = getStateMetadata(SummaryVisibilityDeckState);
 
   expect(playerMetadata.fieldVisibility.cards).toMatchObject({
     mode: "visible_to_self",
-    hiddenSummarySchema: hiddenCountSummarySchema,
+    summary: hiddenCountSummarySchema,
   });
-  expect(
-    playerMetadata.fieldVisibility.cards?.projectHiddenSummary?.(["a", "b"]),
-  ).toEqual({
+  expect(playerMetadata.fieldVisibility.cards?.derive?.(["a", "b"])).toEqual({
     count: 2,
   });
+  expect(playerMetadata.ownedByField).toBe("id");
 
   expect(deckMetadata.fieldVisibility.cards).toMatchObject({
     mode: "hidden",
-    hiddenSummarySchema: hiddenCountSummarySchema,
+    summary: hiddenCountSummarySchema,
   });
-  expect(
-    deckMetadata.fieldVisibility.cards?.projectHiddenSummary?.(["a"]),
-  ).toEqual({
+  expect(deckMetadata.fieldVisibility.cards?.derive?.(["a"])).toEqual({
     count: 1,
   });
 });
