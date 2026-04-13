@@ -42,6 +42,7 @@ function visitState(
   }
 
   const metadata = getStateMetadata(target);
+  validateVisibilityFields(target, metadata.fields, metadata.fieldVisibility);
   validateOwnedByField(target, metadata.fields, metadata.ownedByField);
   validateVisibleFieldOwnership(
     metadata.fieldVisibility,
@@ -221,6 +222,20 @@ function validateOwnedByField(
     throw new Error(
       `owned_by_field_requires_string_field:${target.name || "anonymous"}:${ownedByField}`,
     );
+  }
+}
+
+function validateVisibilityFields(
+  target: StateClass,
+  fields: Record<string, StateFieldMetadata>,
+  fieldVisibility: Record<string, FieldVisibilityConfig>,
+) {
+  for (const fieldName of Object.keys(fieldVisibility)) {
+    if (!(fieldName in fields)) {
+      throw new Error(
+        `visibility_field_not_found:${target.name || "anonymous"}:${fieldName}`,
+      );
+    }
   }
 }
 

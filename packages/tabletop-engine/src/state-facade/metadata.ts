@@ -152,6 +152,10 @@ function resolveDecoratorTarget(target: object): StateClass {
 function assertVisibilityFieldConfig(config: FieldVisibilityConfig): void {
   if (config.schema) {
     assertSerializableSchema(config.schema);
+
+    if (!config.derive) {
+      throw new Error("visibility_schema_requires_derive");
+    }
   }
 }
 

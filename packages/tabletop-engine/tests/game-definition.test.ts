@@ -64,12 +64,25 @@ class OwnedPlayerStateWithoutId {
   score = 0;
 }
 
+@State()
+class VisibilityFieldTypoRootState {
+  @field(t.array(t.number()))
+  hiddenCards: number[] = [];
+}
+
 configureVisibility(VisibleToSelfWithoutOwnerRootState, ({ field }) => ({
   fields: [field.hiddenCards.visibleToSelf()],
 }));
 
 configureVisibility(OwnedPlayerStateWithoutId, ({ field }) => ({
   ownedBy: field.score as never,
+}));
+
+configureVisibility(VisibilityFieldTypoRootState, ({ field }) => ({
+  fields: [
+    ((field as unknown as { cardz: { hidden(): unknown } }).cardz.hidden() ??
+      undefined) as never,
+  ],
 }));
 
 @State()
@@ -583,4 +596,13 @@ test("GameDefinitionBuilder rejects owned player states without a string id fiel
   ).toThrow(
     "owned_by_field_requires_string_field:OwnedPlayerStateWithoutId:score",
   );
+});
+
+test("GameDefinitionBuilder rejects unknown configured visibility fields", () => {
+  expect(() =>
+    new GameDefinitionBuilder("visibility-field-typo-game")
+      .rootState(VisibilityFieldTypoRootState)
+      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .build(),
+  ).toThrow("visibility_field_not_found:VisibilityFieldTypoRootState:cardz");
 });

@@ -224,6 +224,24 @@ test("configureVisibility captures hidden visibility schema metadata", () => {
   });
 });
 
+test("configureVisibility rejects schema visibility without derive", () => {
+  expect(() => {
+    @State()
+    class MissingHiddenDeriveState {
+      @field(t.array(t.string()))
+      cards!: string[];
+    }
+
+    configureVisibility(MissingHiddenDeriveState, ({ field }) => ({
+      fields: [
+        field.cards.hidden({
+          schema: hiddenCountSchema,
+        } as never),
+      ],
+    }));
+  }).toThrow("visibility_schema_requires_derive");
+});
+
 test("state facade metadata exports the shared runtime schema api", () => {
   expect(typeof (visibilityMetadata as Record<string, unknown>).t).toBe(
     "object",
