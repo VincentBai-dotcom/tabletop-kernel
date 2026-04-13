@@ -3,10 +3,8 @@ import { GameDefinitionBuilder } from "../src/game-definition";
 import { createCommandFactory, describeGameProtocol } from "../src/index";
 import {
   configureVisibility,
-  hidden,
   State,
   field,
-  visibleToSelf,
 } from "../src/state-facade/metadata";
 import { t } from "../src/schema";
 import { createSelfLoopingTurnStage } from "./helpers/stages";
@@ -61,32 +59,32 @@ class ProtocolRootState {
   deck!: ProtocolDeckState;
 }
 
-configureVisibility(ProtocolPlayerState, {
-  ownedBy: "id",
-  fields: {
-    hand: visibleToSelf({
+configureVisibility(ProtocolPlayerState, ({ field }) => ({
+  ownedBy: field.id,
+  fields: [
+    field.hand.visibleToSelf({
       summary: hiddenSummaryViewSchema,
-      derive(value) {
+      derive(hand) {
         return {
-          count: Array.isArray(value) ? value.length : 0,
+          count: hand.length,
         };
       },
     }),
-  },
-});
+  ],
+}));
 
-configureVisibility(ProtocolDeckState, {
-  fields: {
-    cards: hidden({
+configureVisibility(ProtocolDeckState, ({ field }) => ({
+  fields: [
+    field.cards.hidden({
       summary: hiddenSummaryViewSchema,
-      derive(value) {
+      derive(cards) {
         return {
-          count: Array.isArray(value) ? value.length : 0,
+          count: cards.length,
         };
       },
     }),
-  },
-});
+  ],
+}));
 
 const defineProtocolCommand = createCommandFactory<ProtocolRootState>();
 const definePlainProtocolCommand =

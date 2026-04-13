@@ -10,9 +10,7 @@ export {
   configureVisibility,
   field,
   getStateMetadata,
-  hidden,
   State,
-  visibleToSelf,
 } from "./state-facade/metadata";
 export {
   appendReplayStep,

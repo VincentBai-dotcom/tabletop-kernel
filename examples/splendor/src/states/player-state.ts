@@ -1,10 +1,4 @@
-import {
-  configureVisibility,
-  field,
-  State,
-  t,
-  visibleToSelf,
-} from "tabletop-engine";
+import { configureVisibility, field, State, t } from "tabletop-engine";
 import { developmentCardsById } from "../data/cards.ts";
 import type { CardCost, DevelopmentCard } from "../data/types.ts";
 import { type GemTokenColor } from "./constants.ts";
@@ -180,16 +174,16 @@ export class SplendorPlayerState {
   }
 }
 
-configureVisibility(SplendorPlayerState, {
-  ownedBy: "id",
-  fields: {
-    reservedCardIds: visibleToSelf({
+configureVisibility(SplendorPlayerState, ({ field }) => ({
+  ownedBy: field.id,
+  fields: [
+    field.reservedCardIds.visibleToSelf({
       summary: hiddenReservedCardSummarySchema,
-      derive(value) {
+      derive(reservedCardIds) {
         return {
-          count: Array.isArray(value) ? value.length : 0,
+          count: reservedCardIds.length,
         };
       },
     }),
-  },
-});
+  ],
+}));

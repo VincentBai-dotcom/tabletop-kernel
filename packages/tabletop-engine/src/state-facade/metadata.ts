@@ -13,26 +13,71 @@ export { t };
 
 export type VisibilityMode = "hidden" | "visible_to_self";
 
-export interface HiddenFieldConfig {
+type StateDataFieldName<TState extends object> = Extract<
+  {
+    [K in keyof TState]-?: TState[K] extends (...args: never[]) => unknown
+      ? never
+      : K;
+  }[keyof TState],
+  string
+>;
+
+type StateStringFieldName<TState extends object> = Extract<
+  {
+    [K in StateDataFieldName<TState>]-?: TState[K] extends string ? K : never;
+  }[StateDataFieldName<TState>],
+  string
+>;
+
+export interface VisibilityDeriveOptions<
+  TValue = unknown,
+  TState extends object = object,
+> {
+  summary?: SerializableSchema;
+  derive?: (value: TValue, state: Readonly<TState>) => unknown;
+}
+
+export interface HiddenFieldConfig<
+  TValue = unknown,
+  TState extends object = object,
+> {
   mode: "hidden";
   summary?: SerializableSchema;
-  derive?: (value: unknown) => unknown;
+  derive?: (value: TValue, state: Readonly<TState>) => unknown;
 }
 
-export interface VisibleToSelfFieldConfig {
+export interface VisibleToSelfFieldConfig<
+  TValue = unknown,
+  TState extends object = object,
+> {
   mode: "visible_to_self";
   summary?: SerializableSchema;
-  derive?: (value: unknown) => unknown;
+  derive?: (value: TValue, state: Readonly<TState>) => unknown;
 }
 
-export type FieldVisibilityConfig =
-  | HiddenFieldConfig
-  | VisibleToSelfFieldConfig;
+export type FieldVisibilityConfig<
+  TValue = unknown,
+  TState extends object = object,
+> =
+  | HiddenFieldConfig<TValue, TState>
+  | VisibleToSelfFieldConfig<TValue, TState>;
 
-export interface VisibilityConfigurationInput {
-  ownedBy?: string;
-  fields?: Record<string, FieldVisibilityConfig>;
+interface VisibilityFieldConfigEntry<
+  TFieldName extends string = string,
+  TValue = unknown,
+  TState extends object = object,
+> {
+  fieldName: TFieldName;
+  visibility: FieldVisibilityConfig<TValue, TState>;
 }
+
+type AnyVisibilityFieldConfigEntry<TState extends object> = {
+  [K in StateDataFieldName<TState>]: VisibilityFieldConfigEntry<
+    K,
+    TState[K],
+    TState
+  >;
+}[StateDataFieldName<TState>];
 
 export interface StateMetadata {
   type: "state";
@@ -40,6 +85,30 @@ export interface StateMetadata {
   fieldVisibility: Record<string, FieldVisibilityConfig>;
   ownedByField?: string;
 }
+
+interface VisibilityFieldToken<
+  TState extends object,
+  TFieldName extends StateDataFieldName<TState>,
+> {
+  fieldName: TFieldName;
+  hidden(
+    options?: VisibilityDeriveOptions<TState[TFieldName], TState>,
+  ): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
+  visibleToSelf(
+    options?: VisibilityDeriveOptions<TState[TFieldName], TState>,
+  ): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
+}
+
+export interface VisibilityConfigurationInput<TState extends object = object> {
+  ownedBy?: VisibilityFieldToken<TState, StateStringFieldName<TState>>;
+  fields?: Array<AnyVisibilityFieldConfigEntry<TState>>;
+}
+
+type VisibilityConfigurationBuilder<TState extends object> = {
+  field: {
+    [K in StateDataFieldName<TState>]: VisibilityFieldToken<TState, K>;
+  };
+};
 
 const STATE_METADATA = new WeakMap<StateClass, StateMetadata>();
 
@@ -64,14 +133,10 @@ function resolveDecoratorTarget(target: object): StateClass {
   return target.constructor as StateClass;
 }
 
-function assertVisibilityFieldConfig<TConfig extends FieldVisibilityConfig>(
-  config: TConfig,
-): TConfig {
+function assertVisibilityFieldConfig(config: FieldVisibilityConfig): void {
   if (config.summary) {
     assertSerializableSchema(config.summary);
   }
-
-  return config;
 }
 
 export function State(): ClassDecorator {
@@ -87,45 +152,86 @@ export function field(fieldType: FieldType): PropertyDecorator {
   };
 }
 
-export function hidden(
-  options: {
-    summary?: SerializableSchema;
-    derive?: (value: unknown) => unknown;
-  } = {},
+function createHiddenFieldConfig(
+  options: VisibilityDeriveOptions = {},
 ): HiddenFieldConfig {
-  return assertVisibilityFieldConfig({
+  const config: HiddenFieldConfig = {
     mode: "hidden",
     summary: options.summary,
     derive: options.derive,
-  });
+  };
+  assertVisibilityFieldConfig(config);
+  return config;
 }
 
-export function visibleToSelf(
-  options: {
-    summary?: SerializableSchema;
-    derive?: (value: unknown) => unknown;
-  } = {},
+function createVisibleToSelfFieldConfig(
+  options: VisibilityDeriveOptions = {},
 ): VisibleToSelfFieldConfig {
-  return assertVisibilityFieldConfig({
+  const config: VisibleToSelfFieldConfig = {
     mode: "visible_to_self",
     summary: options.summary,
     derive: options.derive,
-  });
+  };
+  assertVisibilityFieldConfig(config);
+  return config;
 }
 
-export function configureVisibility(
-  target: StateClass,
-  config: VisibilityConfigurationInput,
+export function configureVisibility<TState extends object>(
+  target: StateClass<TState>,
+  config: (
+    builder: VisibilityConfigurationBuilder<TState>,
+  ) => VisibilityConfigurationInput<TState>,
 ): void {
   const metadata = ensureStateMetadata(target);
+  const resolvedConfig = config(createVisibilityConfigurationBuilder<TState>());
+  const configuredFieldEntries = resolvedConfig.fields ?? [];
+  const fieldVisibility: Record<string, FieldVisibilityConfig> = {};
 
-  metadata.ownedByField = config.ownedBy;
-  metadata.fieldVisibility = Object.fromEntries(
-    Object.entries(config.fields ?? {}).map(([fieldName, fieldConfig]) => [
-      fieldName,
-      assertVisibilityFieldConfig(fieldConfig),
-    ]),
-  );
+  for (const entry of configuredFieldEntries) {
+    if (fieldVisibility[entry.fieldName]) {
+      throw new Error(`duplicate_visibility_field:${entry.fieldName}`);
+    }
+
+    // TValue is erased here: the entry was validated as the correct type for
+    // its field by AnyVisibilityFieldConfigEntry; the engine calls derive with
+    // the matching runtime value.
+    fieldVisibility[entry.fieldName] =
+      entry.visibility as FieldVisibilityConfig;
+  }
+
+  metadata.ownedByField = resolvedConfig.ownedBy?.fieldName;
+  metadata.fieldVisibility = fieldVisibility;
+}
+
+function createVisibilityConfigurationBuilder<
+  TState extends object,
+>(): VisibilityConfigurationBuilder<TState> {
+  return {
+    field: new Proxy(
+      {},
+      {
+        get(_target, property) {
+          const fieldName = String(property);
+
+          return {
+            fieldName,
+            hidden(options?: VisibilityDeriveOptions) {
+              return {
+                fieldName,
+                visibility: createHiddenFieldConfig(options),
+              };
+            },
+            visibleToSelf(options?: VisibilityDeriveOptions) {
+              return {
+                fieldName,
+                visibility: createVisibleToSelfFieldConfig(options),
+              };
+            },
+          };
+        },
+      },
+    ) as VisibilityConfigurationBuilder<TState>["field"],
+  };
 }
 
 export function getStateMetadata(target: StateClass): StateMetadata {

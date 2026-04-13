@@ -4,10 +4,8 @@ import {
   configureVisibility,
   field,
   getStateMetadata,
-  hidden,
   State,
   t,
-  visibleToSelf,
 } from "../src/state-facade/metadata";
 import { compileStateFacadeDefinition } from "../src/state-facade/compile";
 import { hydrateStateFacade } from "../src/state-facade/hydrate";
@@ -84,32 +82,32 @@ class SummaryVisibilityDeckState {
   cards!: string[];
 }
 
-configureVisibility(SummaryVisibilityPlayerState, {
-  ownedBy: "id",
-  fields: {
-    cards: visibleToSelf({
+configureVisibility(SummaryVisibilityPlayerState, ({ field }) => ({
+  ownedBy: field.id,
+  fields: [
+    field.cards.visibleToSelf({
       summary: hiddenCountSummarySchema,
-      derive(value) {
+      derive(cards) {
         return {
-          count: Array.isArray(value) ? value.length : 0,
+          count: cards.length,
         };
       },
     }),
-  },
-});
+  ],
+}));
 
-configureVisibility(SummaryVisibilityDeckState, {
-  fields: {
-    cards: hidden({
+configureVisibility(SummaryVisibilityDeckState, ({ field }) => ({
+  fields: [
+    field.cards.hidden({
       summary: hiddenCountSummarySchema,
-      derive(value) {
+      derive(cards) {
         return {
-          count: Array.isArray(value) ? value.length : 0,
+          count: cards.length,
         };
       },
     }),
-  },
-});
+  ],
+}));
 
 test("state decorators capture scalar and nested state metadata", () => {
   const handMetadata = getStateMetadata(HandState);
@@ -189,13 +187,7 @@ test("state facades lazily hydrate nested state arrays", () => {
   expect(backing.cards[0]?.id).toBe("renamed-card");
 });
 
-test("state facade metadata exports visibility decorators", () => {
-  expect(typeof (visibilityMetadata as Record<string, unknown>).hidden).toBe(
-    "function",
-  );
-  expect(
-    typeof (visibilityMetadata as Record<string, unknown>).visibleToSelf,
-  ).toBe("function");
+test("state facade metadata exports visibility configuration api", () => {
   expect(
     typeof (visibilityMetadata as Record<string, unknown>).configureVisibility,
   ).toBe("function");
@@ -209,7 +201,12 @@ test("configureVisibility captures hidden summary visibility metadata", () => {
     mode: "visible_to_self",
     summary: hiddenCountSummarySchema,
   });
-  expect(playerMetadata.fieldVisibility.cards?.derive?.(["a", "b"])).toEqual({
+  expect(
+    playerMetadata.fieldVisibility.cards?.derive?.(["a", "b"], {
+      id: "p1",
+      cards: ["a", "b"],
+    }),
+  ).toEqual({
     count: 2,
   });
   expect(playerMetadata.ownedByField).toBe("id");
@@ -218,7 +215,11 @@ test("configureVisibility captures hidden summary visibility metadata", () => {
     mode: "hidden",
     summary: hiddenCountSummarySchema,
   });
-  expect(deckMetadata.fieldVisibility.cards?.derive?.(["a"])).toEqual({
+  expect(
+    deckMetadata.fieldVisibility.cards?.derive?.(["a"], {
+      cards: ["a"],
+    }),
+  ).toEqual({
     count: 1,
   });
 });

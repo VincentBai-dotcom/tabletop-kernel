@@ -10,7 +10,6 @@ import {
   field,
   State,
   t,
-  visibleToSelf,
 } from "../src/state-facade/metadata";
 
 const emptyCommandSchema = t.object({});
@@ -65,15 +64,13 @@ class OwnedPlayerStateWithoutId {
   score = 0;
 }
 
-configureVisibility(VisibleToSelfWithoutOwnerRootState, {
-  fields: {
-    hiddenCards: visibleToSelf(),
-  },
-});
+configureVisibility(VisibleToSelfWithoutOwnerRootState, ({ field }) => ({
+  fields: [field.hiddenCards.visibleToSelf()],
+}));
 
-configureVisibility(OwnedPlayerStateWithoutId, {
-  ownedBy: "id",
-});
+configureVisibility(OwnedPlayerStateWithoutId, ({ field }) => ({
+  ownedBy: field.score as never,
+}));
 
 @State()
 class ScoreRootState {
@@ -583,5 +580,7 @@ test("GameDefinitionBuilder rejects owned player states without a string id fiel
       .rootState(OwnedPlayerStateWithoutId)
       .initialStage(defineTestStage("gameEnd").automatic().build())
       .build(),
-  ).toThrow("owned_by_field_not_found:OwnedPlayerStateWithoutId:id");
+  ).toThrow(
+    "owned_by_field_requires_string_field:OwnedPlayerStateWithoutId:score",
+  );
 });

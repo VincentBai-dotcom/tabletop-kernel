@@ -4,10 +4,8 @@ import {
   configureVisibility,
   field,
   getStateMetadata,
-  hidden,
   State,
   t,
-  visibleToSelf,
 } from "../src/state-facade/metadata";
 import { assertSerializableSchema } from "../src/schema";
 import { assertSchemaValue } from "../src/runtime/validation";
@@ -244,9 +242,9 @@ test("visibility summary schemas reject nested state transport fields", () => {
       cards!: number[];
     }
 
-    configureVisibility(InvalidHiddenSummaryState, {
-      fields: {
-        cards: hidden({
+    configureVisibility(InvalidHiddenSummaryState, ({ field }) => ({
+      fields: [
+        field.cards.hidden({
           summary: (t as ExtendedSchemaApi).object({
             child: t.state(() => NestedSerializableChildState),
           }) as never,
@@ -258,8 +256,8 @@ test("visibility summary schemas reject nested state transport fields", () => {
             };
           },
         }),
-      },
-    });
+      ],
+    }));
 
     return InvalidHiddenSummaryState;
   }).toThrow("state_field_not_allowed_in_serializable_schema");
@@ -274,10 +272,10 @@ test("visibility summary schemas reject nested state transport fields", () => {
       cards!: number[];
     }
 
-    configureVisibility(InvalidVisibleToSelfSummaryState, {
-      ownedBy: "id",
-      fields: {
-        cards: visibleToSelf({
+    configureVisibility(InvalidVisibleToSelfSummaryState, ({ field }) => ({
+      ownedBy: field.id,
+      fields: [
+        field.cards.visibleToSelf({
           summary: (t as ExtendedSchemaApi).object({
             child: t.state(() => NestedSerializableChildState),
           }) as never,
@@ -289,8 +287,8 @@ test("visibility summary schemas reject nested state transport fields", () => {
             };
           },
         }),
-      },
-    });
+      ],
+    }));
 
     return InvalidVisibleToSelfSummaryState;
   }).toThrow("state_field_not_allowed_in_serializable_schema");

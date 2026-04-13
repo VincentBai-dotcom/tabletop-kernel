@@ -7,7 +7,6 @@ import {
 } from "../src/index";
 import {
   configureVisibility,
-  hidden,
   State,
   field,
 } from "../src/state-facade/metadata";
@@ -50,18 +49,14 @@ class AsyncApiRootState {
   deck!: AsyncApiDeckState;
 }
 
-configureVisibility(AsyncApiPlayerState, {
-  ownedBy: "id",
-  fields: {
-    hand: hidden(),
-  },
-});
+configureVisibility(AsyncApiPlayerState, ({ field }) => ({
+  ownedBy: field.id,
+  fields: [field.hand.hidden()],
+}));
 
-configureVisibility(AsyncApiDeckState, {
-  fields: {
-    cards: hidden(),
-  },
-});
+configureVisibility(AsyncApiDeckState, ({ field }) => ({
+  fields: [field.cards.hidden()],
+}));
 
 const defineAsyncApiCommand = createCommandFactory<AsyncApiRootState>();
 

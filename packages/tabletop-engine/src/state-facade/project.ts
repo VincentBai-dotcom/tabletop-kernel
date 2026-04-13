@@ -5,6 +5,7 @@ import type {
   StateClass,
   VisibilityMode,
 } from "./metadata";
+import { hydrateStateNode } from "./hydrate";
 import type { CanonicalState } from "../types/state";
 import type { HiddenValue, Viewer, VisibleState } from "../types/visibility";
 
@@ -52,6 +53,17 @@ function projectStateNode(
     ? readOwnerPlayerId(target, backing, definition.ownedByField)
     : ownerPlayerId;
   const projected: Record<string, unknown> = {};
+  let readonlyFacade: object | undefined;
+
+  function getReadonlyFacade(): object {
+    if (!readonlyFacade) {
+      readonlyFacade = hydrateStateNode(compiled, target, backing as object, {
+        readonly: true,
+      });
+    }
+
+    return readonlyFacade;
+  }
 
   for (const [fieldName, fieldType] of Object.entries(definition.fields)) {
     const visibility = definition.fieldVisibility[fieldName]?.mode;
@@ -61,6 +73,7 @@ function projectStateNode(
       projected[fieldName] = createHiddenValue(
         definition.fieldVisibility[fieldName],
         fieldValue,
+        getReadonlyFacade,
       );
       continue;
     }
@@ -201,8 +214,9 @@ function readOwnerPlayerId(
 function createHiddenValue(
   visibility: FieldVisibilityConfig | undefined,
   value: unknown,
+  getReadonlyFacade: () => object,
 ): HiddenValue {
-  const summaryValue = visibility?.derive?.(value);
+  const summaryValue = visibility?.derive?.(value, getReadonlyFacade());
 
   if (summaryValue === undefined) {
     return {

@@ -6,10 +6,8 @@ import { GameDefinitionBuilder } from "../src/game-definition";
 import {
   configureVisibility,
   field,
-  hidden,
   State,
   t,
-  visibleToSelf,
 } from "../src/state-facade/metadata";
 import {
   createSelfLoopingTurnStage,
@@ -107,8 +105,13 @@ class VisiblePlayerState {
   score = 0;
 }
 
-const hiddenSummarySchema = t.object({
+const hiddenCountSummarySchema = t.object({
   count: t.number(),
+});
+
+const hiddenHandSummarySchema = t.object({
+  count: t.number(),
+  score: t.number(),
 });
 
 @State()
@@ -207,45 +210,42 @@ class PlainCounterRootState {
   }
 }
 
-configureVisibility(VisiblePlayerState, {
-  ownedBy: "id",
-  fields: {
-    hand: visibleToSelf(),
-  },
-});
+configureVisibility(VisiblePlayerState, ({ field }) => ({
+  ownedBy: field.id,
+  fields: [field.hand.visibleToSelf()],
+}));
 
-configureVisibility(VisibleSummaryPlayerState, {
-  ownedBy: "id",
-  fields: {
-    hand: visibleToSelf({
-      summary: hiddenSummarySchema,
-      derive(value) {
+configureVisibility(VisibleSummaryPlayerState, ({ field }) => ({
+  ownedBy: field.id,
+  fields: [
+    field.hand.visibleToSelf({
+      summary: hiddenHandSummarySchema,
+      derive(hand, player) {
         return {
-          count: Array.isArray(value) ? value.length : 0,
+          count: hand.length,
+          score: player.score,
         };
       },
     }),
-  },
-});
+  ],
+}));
 
-configureVisibility(HiddenDeckState, {
-  fields: {
-    cards: hidden(),
-  },
-});
+configureVisibility(HiddenDeckState, ({ field }) => ({
+  fields: [field.cards.hidden()],
+}));
 
-configureVisibility(HiddenSummaryDeckState, {
-  fields: {
-    cards: hidden({
-      summary: hiddenSummarySchema,
-      derive(value) {
+configureVisibility(HiddenSummaryDeckState, ({ field }) => ({
+  fields: [
+    field.cards.hidden({
+      summary: hiddenCountSummarySchema,
+      derive(cards) {
         return {
-          count: Array.isArray(value) ? value.length : 0,
+          count: cards.length,
         };
       },
     }),
-  },
-});
+  ],
+}));
 
 @State()
 class CanPlayRootState {
@@ -715,7 +715,9 @@ test("createGameExecutor projects hidden summary values for visibleToSelf fields
           {
             id: string;
             score: number;
-            hand: string[] | { __hidden: true; value?: { count: number } };
+            hand:
+              | string[]
+              | { __hidden: true; value?: { count: number; score: number } };
           }
         >;
       };
@@ -737,12 +739,14 @@ test("createGameExecutor projects hidden summary values for visibleToSelf fields
     __hidden: true,
     value: {
       count: 1,
+      score: 2,
     },
   });
   expect(visibleForP2.game.players.p1?.hand).toEqual({
     __hidden: true,
     value: {
       count: 2,
+      score: 3,
     },
   });
 });

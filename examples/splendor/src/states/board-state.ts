@@ -1,4 +1,4 @@
-import { configureVisibility, field, hidden, State, t } from "tabletop-engine";
+import { configureVisibility, field, State, t } from "tabletop-engine";
 import type { DevelopmentLevel } from "../data/types.ts";
 
 const hiddenDeckSummarySchema = t.object({
@@ -86,22 +86,17 @@ export class SplendorBoardState {
   }
 }
 
-configureVisibility(SplendorBoardState, {
-  fields: {
-    deckByLevel: hidden({
+configureVisibility(SplendorBoardState, ({ field }) => ({
+  fields: [
+    field.deckByLevel.hidden({
       summary: hiddenDeckSummarySchema,
-      derive(value) {
-        const deckByLevel =
-          value && typeof value === "object" && !Array.isArray(value)
-            ? (value as Partial<Record<DevelopmentLevel, number[]>>)
-            : undefined;
-
+      derive(deckByLevel) {
         return {
-          1: deckByLevel?.[1]?.length ?? 0,
-          2: deckByLevel?.[2]?.length ?? 0,
-          3: deckByLevel?.[3]?.length ?? 0,
+          1: deckByLevel[1]?.length ?? 0,
+          2: deckByLevel[2]?.length ?? 0,
+          3: deckByLevel[3]?.length ?? 0,
         };
       },
     }),
-  },
-});
+  ],
+}));
