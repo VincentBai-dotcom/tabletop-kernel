@@ -63,7 +63,7 @@ class CardCollectionStateFacade {
   cards!: CardStateFacade[];
 }
 
-const hiddenCountSummarySchema = t.object({
+const hiddenCountSchema = t.object({
   count: t.number(),
 });
 
@@ -86,7 +86,7 @@ configureVisibility(SummaryVisibilityPlayerState, ({ field }) => ({
   ownedBy: field.id,
   fields: [
     field.cards.visibleToSelf({
-      summary: hiddenCountSummarySchema,
+      schema: hiddenCountSchema,
       derive(cards) {
         return {
           count: cards.length,
@@ -99,7 +99,7 @@ configureVisibility(SummaryVisibilityPlayerState, ({ field }) => ({
 configureVisibility(SummaryVisibilityDeckState, ({ field }) => ({
   fields: [
     field.cards.hidden({
-      summary: hiddenCountSummarySchema,
+      schema: hiddenCountSchema,
       derive(cards) {
         return {
           count: cards.length,
@@ -193,13 +193,13 @@ test("state facade metadata exports visibility configuration api", () => {
   ).toBe("function");
 });
 
-test("configureVisibility captures hidden summary visibility metadata", () => {
+test("configureVisibility captures hidden visibility schema metadata", () => {
   const playerMetadata = getStateMetadata(SummaryVisibilityPlayerState);
   const deckMetadata = getStateMetadata(SummaryVisibilityDeckState);
 
   expect(playerMetadata.fieldVisibility.cards).toMatchObject({
     mode: "visible_to_self",
-    summary: hiddenCountSummarySchema,
+    schema: hiddenCountSchema,
   });
   expect(
     playerMetadata.fieldVisibility.cards?.derive?.(["a", "b"], {
@@ -213,7 +213,7 @@ test("configureVisibility captures hidden summary visibility metadata", () => {
 
   expect(deckMetadata.fieldVisibility.cards).toMatchObject({
     mode: "hidden",
-    summary: hiddenCountSummarySchema,
+    schema: hiddenCountSchema,
   });
   expect(
     deckMetadata.fieldVisibility.cards?.derive?.(["a"], {

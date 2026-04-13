@@ -6,6 +6,7 @@ import { assertSerializableSchema, t } from "../schema";
 import type {
   FieldType,
   SerializableSchema,
+  SerializableSchemaStatic,
   StateFieldMetadata,
 } from "../schema";
 
@@ -29,20 +30,29 @@ type StateStringFieldName<TState extends object> = Extract<
   string
 >;
 
-export interface VisibilityDeriveOptions<
+export type VisibilityDeriveOptions = {
+  schema?: undefined;
+  derive?: undefined;
+};
+
+export type VisibilitySchemaOptions<
   TValue = unknown,
   TState extends object = object,
-> {
-  summary?: SerializableSchema;
-  derive?: (value: TValue, state: Readonly<TState>) => unknown;
-}
+  TSchema extends SerializableSchema = SerializableSchema,
+> = {
+  schema: TSchema;
+  derive?: (
+    value: TValue,
+    state: Readonly<TState>,
+  ) => SerializableSchemaStatic<TSchema>;
+};
 
 export interface HiddenFieldConfig<
   TValue = unknown,
   TState extends object = object,
 > {
   mode: "hidden";
-  summary?: SerializableSchema;
+  schema?: SerializableSchema;
   derive?: (value: TValue, state: Readonly<TState>) => unknown;
 }
 
@@ -51,7 +61,7 @@ export interface VisibleToSelfFieldConfig<
   TState extends object = object,
 > {
   mode: "visible_to_self";
-  summary?: SerializableSchema;
+  schema?: SerializableSchema;
   derive?: (value: TValue, state: Readonly<TState>) => unknown;
 }
 
@@ -91,11 +101,17 @@ interface VisibilityFieldToken<
   TFieldName extends StateDataFieldName<TState>,
 > {
   fieldName: TFieldName;
-  hidden(
-    options?: VisibilityDeriveOptions<TState[TFieldName], TState>,
+  hidden(): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
+  hidden<TSchema extends SerializableSchema>(
+    options: VisibilitySchemaOptions<TState[TFieldName], TState, TSchema>,
   ): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
-  visibleToSelf(
-    options?: VisibilityDeriveOptions<TState[TFieldName], TState>,
+  visibleToSelf(): VisibilityFieldConfigEntry<
+    TFieldName,
+    TState[TFieldName],
+    TState
+  >;
+  visibleToSelf<TSchema extends SerializableSchema>(
+    options: VisibilitySchemaOptions<TState[TFieldName], TState, TSchema>,
   ): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
 }
 
@@ -134,8 +150,8 @@ function resolveDecoratorTarget(target: object): StateClass {
 }
 
 function assertVisibilityFieldConfig(config: FieldVisibilityConfig): void {
-  if (config.summary) {
-    assertSerializableSchema(config.summary);
+  if (config.schema) {
+    assertSerializableSchema(config.schema);
   }
 }
 
@@ -152,27 +168,31 @@ export function field(fieldType: FieldType): PropertyDecorator {
   };
 }
 
-function createHiddenFieldConfig(
-  options: VisibilityDeriveOptions = {},
-): HiddenFieldConfig {
-  const config: HiddenFieldConfig = {
+function createHiddenFieldConfig<TValue, TState extends object>(
+  options:
+    | VisibilityDeriveOptions
+    | VisibilitySchemaOptions<TValue, TState> = {},
+): HiddenFieldConfig<TValue, TState> {
+  const config: HiddenFieldConfig<TValue, TState> = {
     mode: "hidden",
-    summary: options.summary,
+    schema: options.schema,
     derive: options.derive,
   };
-  assertVisibilityFieldConfig(config);
+  assertVisibilityFieldConfig(config as FieldVisibilityConfig);
   return config;
 }
 
-function createVisibleToSelfFieldConfig(
-  options: VisibilityDeriveOptions = {},
-): VisibleToSelfFieldConfig {
-  const config: VisibleToSelfFieldConfig = {
+function createVisibleToSelfFieldConfig<TValue, TState extends object>(
+  options:
+    | VisibilityDeriveOptions
+    | VisibilitySchemaOptions<TValue, TState> = {},
+): VisibleToSelfFieldConfig<TValue, TState> {
+  const config: VisibleToSelfFieldConfig<TValue, TState> = {
     mode: "visible_to_self",
-    summary: options.summary,
+    schema: options.schema,
     derive: options.derive,
   };
-  assertVisibilityFieldConfig(config);
+  assertVisibilityFieldConfig(config as FieldVisibilityConfig);
   return config;
 }
 
@@ -215,13 +235,21 @@ function createVisibilityConfigurationBuilder<
 
           return {
             fieldName,
-            hidden(options?: VisibilityDeriveOptions) {
+            hidden(
+              options?:
+                | VisibilityDeriveOptions
+                | VisibilitySchemaOptions<unknown, object>,
+            ) {
               return {
                 fieldName,
                 visibility: createHiddenFieldConfig(options),
               };
             },
-            visibleToSelf(options?: VisibilityDeriveOptions) {
+            visibleToSelf(
+              options?:
+                | VisibilityDeriveOptions
+                | VisibilitySchemaOptions<unknown, object>,
+            ) {
               return {
                 fieldName,
                 visibility: createVisibleToSelfFieldConfig(options),

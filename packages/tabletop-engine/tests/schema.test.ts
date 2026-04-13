@@ -234,7 +234,7 @@ test("discovery schemas reject nested state transport fields at definition time"
   ).toThrow("state_field_not_allowed_in_serializable_schema");
 });
 
-test("visibility summary schemas reject nested state transport fields", () => {
+test("visibility schemas reject nested state transport fields", () => {
   expect(() => {
     @State()
     class InvalidHiddenSummaryState {
@@ -245,7 +245,7 @@ test("visibility summary schemas reject nested state transport fields", () => {
     configureVisibility(InvalidHiddenSummaryState, ({ field }) => ({
       fields: [
         field.cards.hidden({
-          summary: (t as ExtendedSchemaApi).object({
+          schema: (t as ExtendedSchemaApi).object({
             child: t.state(() => NestedSerializableChildState),
           }) as never,
           derive() {
@@ -255,7 +255,7 @@ test("visibility summary schemas reject nested state transport fields", () => {
               },
             };
           },
-        }),
+        } as never),
       ],
     }));
 
@@ -276,7 +276,7 @@ test("visibility summary schemas reject nested state transport fields", () => {
       ownedBy: field.id,
       fields: [
         field.cards.visibleToSelf({
-          summary: (t as ExtendedSchemaApi).object({
+          schema: (t as ExtendedSchemaApi).object({
             child: t.state(() => NestedSerializableChildState),
           }) as never,
           derive() {
@@ -286,7 +286,7 @@ test("visibility summary schemas reject nested state transport fields", () => {
               },
             };
           },
-        }),
+        } as never),
       ],
     }));
 

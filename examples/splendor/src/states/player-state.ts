@@ -25,7 +25,7 @@ function getCardOrThrow(cardId: number): DevelopmentCard {
   return card;
 }
 
-const hiddenReservedCardSummarySchema = t.object({
+const hiddenReservedCardSchema = t.object({
   count: t.number(),
 });
 
@@ -178,7 +178,7 @@ configureVisibility(SplendorPlayerState, ({ field }) => ({
   ownedBy: field.id,
   fields: [
     field.reservedCardIds.visibleToSelf({
-      summary: hiddenReservedCardSummarySchema,
+      schema: hiddenReservedCardSchema,
       derive(reservedCardIds) {
         return {
           count: reservedCardIds.length,

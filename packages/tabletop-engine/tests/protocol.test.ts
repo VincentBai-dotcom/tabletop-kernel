@@ -15,7 +15,7 @@ const gainScoreCommandSchema = t.object({
 const gainScoreDiscoverySchema = t.object({
   selectedAmount: t.optional(t.number()),
 });
-const hiddenSummaryViewSchema = t.object({
+const hiddenViewSchema = t.object({
   count: t.number(),
 });
 
@@ -63,7 +63,7 @@ configureVisibility(ProtocolPlayerState, ({ field }) => ({
   ownedBy: field.id,
   fields: [
     field.hand.visibleToSelf({
-      summary: hiddenSummaryViewSchema,
+      schema: hiddenViewSchema,
       derive(hand) {
         return {
           count: hand.length,
@@ -76,7 +76,7 @@ configureVisibility(ProtocolPlayerState, ({ field }) => ({
 configureVisibility(ProtocolDeckState, ({ field }) => ({
   fields: [
     field.cards.hidden({
-      summary: hiddenSummaryViewSchema,
+      schema: hiddenViewSchema,
       derive(cards) {
         return {
           count: cards.length,
@@ -144,7 +144,7 @@ test("describeGameProtocol returns command payload schemas", () => {
         const: true,
         type: "boolean",
       },
-      value: hiddenSummaryViewSchema.schema,
+      value: hiddenViewSchema.schema,
     },
     required: ["__hidden", "value"],
   });
@@ -158,7 +158,7 @@ test("describeGameProtocol returns command payload schemas", () => {
             const: true,
             type: "boolean",
           },
-          value: hiddenSummaryViewSchema.schema,
+          value: hiddenViewSchema.schema,
         },
         required: ["__hidden", "value"],
       },

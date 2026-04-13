@@ -103,7 +103,7 @@ function inferFieldViewSchema(
   visibility?: VisibilityMode,
 ): TSchema {
   const visibleSchema = inferVisibleFieldSchema(compiled, fieldType);
-  const hiddenSchema = inferHiddenEnvelopeSchema(fieldVisibility?.summary);
+  const hiddenSchema = inferHiddenEnvelopeSchema(fieldVisibility?.schema);
 
   if (visibility === "hidden") {
     return hiddenSchema;

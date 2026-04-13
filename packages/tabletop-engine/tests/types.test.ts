@@ -53,7 +53,7 @@ class TypedCounterRootState {
   }
 }
 
-const typedHiddenSummarySchema = t.object({
+const typedHiddenSchema = t.object({
   count: t.number(),
   health: t.number(),
 });
@@ -78,7 +78,7 @@ configureVisibility(TypedVisibilityState, ({ field }) => ({
   ownedBy: field.id,
   fields: [
     field.hand.visibleToSelf({
-      summary: typedHiddenSummarySchema,
+      schema: typedHiddenSchema,
       derive(hand, state) {
         const typedHand: number[] = hand;
         const typedHealth: number = state.health;
@@ -91,6 +91,32 @@ configureVisibility(TypedVisibilityState, ({ field }) => ({
         return {
           count: hand.length,
           health: state.health,
+        };
+      },
+    }),
+  ],
+}));
+
+@State()
+class InvalidTypedVisibilityState {
+  @field(t.string())
+  id = "";
+
+  @field(t.array(t.number()))
+  hand: number[] = [];
+}
+
+configureVisibility(InvalidTypedVisibilityState, ({ field }) => ({
+  ownedBy: field.id,
+  fields: [
+    field.hand.visibleToSelf({
+      schema: t.object({
+        count: t.number(),
+      }),
+      // @ts-expect-error derive must return the static type of the visibility schema
+      derive(hand) {
+        return {
+          wrong: hand.length,
         };
       },
     }),

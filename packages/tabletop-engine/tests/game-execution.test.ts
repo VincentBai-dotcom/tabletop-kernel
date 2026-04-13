@@ -105,11 +105,11 @@ class VisiblePlayerState {
   score = 0;
 }
 
-const hiddenCountSummarySchema = t.object({
+const hiddenCountSchema = t.object({
   count: t.number(),
 });
 
-const hiddenHandSummarySchema = t.object({
+const hiddenHandSchema = t.object({
   count: t.number(),
   score: t.number(),
 });
@@ -219,7 +219,7 @@ configureVisibility(VisibleSummaryPlayerState, ({ field }) => ({
   ownedBy: field.id,
   fields: [
     field.hand.visibleToSelf({
-      summary: hiddenHandSummarySchema,
+      schema: hiddenHandSchema,
       derive(hand, player) {
         return {
           count: hand.length,
@@ -237,7 +237,7 @@ configureVisibility(HiddenDeckState, ({ field }) => ({
 configureVisibility(HiddenSummaryDeckState, ({ field }) => ({
   fields: [
     field.cards.hidden({
-      summary: hiddenCountSummarySchema,
+      schema: hiddenCountSchema,
       derive(cards) {
         return {
           count: cards.length,
@@ -634,7 +634,7 @@ test("createGameExecutor projects hidden fields for every viewer", () => {
   });
 });
 
-test("createGameExecutor projects hidden summary values for hidden fields", () => {
+test("createGameExecutor projects hidden schema values for hidden fields", () => {
   const game = new GameDefinitionBuilder<{
     deck: {
       cards: string[];
@@ -674,7 +674,7 @@ test("createGameExecutor projects hidden summary values for hidden fields", () =
   });
 });
 
-test("createGameExecutor projects hidden summary values for visibleToSelf fields", () => {
+test("createGameExecutor projects hidden schema values for visibleToSelf fields", () => {
   const game = new GameDefinitionBuilder<{
     players: Record<
       string,
