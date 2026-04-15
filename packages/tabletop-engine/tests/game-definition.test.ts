@@ -137,6 +137,16 @@ test("GameDefinitionBuilder preserves setup input schema in the built game", () 
   ).toBeTrue();
 });
 
+test("GameDefinitionBuilder rejects non-object setup input schemas at runtime", () => {
+  expect(() =>
+    new GameDefinitionBuilder("invalid-runtime-setup-input-game")
+      .rootState(ScoreRootState)
+      .setupInput(t.string() as never)
+      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .build(),
+  ).toThrow("setup_input_schema_must_be_object");
+});
+
 test("GameDefinitionBuilder rejects field defaults that do not match their schema", () => {
   expect(() =>
     new GameDefinitionBuilder("mismatched-default-game")

@@ -567,10 +567,13 @@ test("game definition builder infers setup input through executor initialization
 test("game definition builder rejects non-object setup input schemas", () => {
   const builder = new GameDefinitionBuilder("invalid-setup-input");
 
-  // @ts-expect-error setupInput only accepts object schemas
-  builder.setupInput(t.string());
+  function assertInvalidSetupInputSchema() {
+    // @ts-expect-error setupInput only accepts object schemas
+    builder.setupInput(t.string());
+  }
 
   expect(builder).toBeObject();
+  expect(assertInvalidSetupInputSchema).toBeFunction();
 });
 
 test("game definition builder preserves facade generic before rootState", () => {

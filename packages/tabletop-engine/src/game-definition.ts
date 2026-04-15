@@ -166,6 +166,10 @@ export class GameDefinitionBuilder<
     Commands,
     SetupInputFromSchema<TSchema>
   > {
+    if (schema.kind !== "object") {
+      throw new Error("setup_input_schema_must_be_object");
+    }
+
     this.config.setupInputSchema = schema;
     return this as unknown as GameDefinitionBuilder<
       FacadeGameState,
