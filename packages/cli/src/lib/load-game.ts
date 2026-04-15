@@ -63,9 +63,7 @@ function buildGameFromFactory(factory: GameFactory): unknown {
     return factory();
   }
 
-  return factory({
-    playerIds: ["player-1", "player-2"],
-  });
+  throw new Error("game_factory_with_runtime_parameters_not_supported");
 }
 
 function isGameDefinition(value: unknown): value is GameDefinition {

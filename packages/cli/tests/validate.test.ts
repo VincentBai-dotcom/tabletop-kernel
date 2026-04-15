@@ -29,15 +29,22 @@ describe("validate", () => {
 
   it("validates a valid snapshot", async () => {
     const outDir = await mkdtemp(join(tmpdir(), "tabletop-cli-validate-"));
-    const game = createSplendorGame({
-      playerIds: ["player-1", "player-2"],
-    });
+    const game = createSplendorGame();
     const executor = createGameExecutor(game);
     const snapshotPath = join(outDir, "snapshot.json");
 
     await writeFile(
       snapshotPath,
-      JSON.stringify(executor.createInitialState(), null, 2),
+      JSON.stringify(
+        executor.createInitialState(
+          {
+            playerIds: ["player-1", "player-2"],
+          },
+          "validate-seed",
+        ),
+        null,
+        2,
+      ),
       "utf8",
     );
 
@@ -62,12 +69,15 @@ describe("validate", () => {
 
   it("fails for an invalid snapshot", async () => {
     const outDir = await mkdtemp(join(tmpdir(), "tabletop-cli-validate-"));
-    const game = createSplendorGame({
-      playerIds: ["player-1", "player-2"],
-    });
+    const game = createSplendorGame();
     const executor = createGameExecutor(game);
     const invalidSnapshotPath = join(outDir, "invalid-snapshot.json");
-    const invalidState = executor.createInitialState();
+    const invalidState = executor.createInitialState(
+      {
+        playerIds: ["player-1", "player-2"],
+      },
+      "validate-seed",
+    );
 
     invalidState.game.playerOrder = 123 as never;
 

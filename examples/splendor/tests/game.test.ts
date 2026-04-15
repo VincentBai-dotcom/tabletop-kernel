@@ -3,18 +3,25 @@ import { createGameExecutor } from "tabletop-engine";
 import { createCommands } from "../src/commands/index.ts";
 import { createSplendorGame } from "../src/game";
 
-function createTestGameExecutor(playerIds: string[]) {
-  const game = createSplendorGame({
-    playerIds,
-    seed: "splendor-seed",
-  });
+const TEST_SEED = "splendor-seed";
+
+function createTestGameExecutor() {
+  const game = createSplendorGame();
 
   return createGameExecutor(game);
 }
 
+function createTestInitialState(playerIds: string[]) {
+  const gameExecutor = createTestGameExecutor();
+
+  return {
+    gameExecutor,
+    state: gameExecutor.createInitialState({ playerIds }, TEST_SEED),
+  };
+}
+
 test("splendor setup follows official 2-player rules", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { state } = createTestInitialState(["p1", "p2"]);
 
   expect(state.game.playerOrder).toEqual(["p1", "p2"]);
   expect(state.game.bank.white).toBe(4);
@@ -36,10 +43,7 @@ test("splendor setup follows official 2-player rules", () => {
 });
 
 test("splendor game definition compiles a root state facade", () => {
-  const game = createSplendorGame({
-    playerIds: ["p1", "p2"],
-    seed: "splendor-seed",
-  });
+  const game = createSplendorGame();
 
   expect(game.stateFacade?.root.name).toBe("SplendorGameState");
   const rootFields = game.stateFacade?.states.SplendorGameState?.fields;
@@ -55,8 +59,7 @@ test("splendor game definition compiles a root state facade", () => {
 });
 
 test("splendor visible state hides deck contents and opponent reserved cards", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.players.p1!.reservedCardIds = [1, 2];
   state.game.players.p2!.reservedCardIds = [3];
@@ -141,8 +144,7 @@ test("splendor visible state hides deck contents and opponent reserved cards", (
 });
 
 test("splendor setup follows official 4-player rules", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2", "p3", "p4"]);
-  const state = gameExecutor.createInitialState();
+  const { state } = createTestInitialState(["p1", "p2", "p3", "p4"]);
 
   expect(state.game.bank.white).toBe(7);
   expect(state.game.bank.blue).toBe(7);
@@ -154,8 +156,7 @@ test("splendor setup follows official 4-player rules", () => {
 });
 
 test("splendor exposes the expected available command families on the opening turn", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   expect(gameExecutor.listAvailableCommands(state, { actorId: "p1" })).toEqual([
     "take_three_distinct_gems",
@@ -169,8 +170,7 @@ test("splendor exposes the expected available command families on the opening tu
 });
 
 test("splendor exposes buy commands once the active player can afford them", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.players.p1!.tokens.gold = 20;
   state.game.players.p1!.reservedCardIds = [24];
@@ -194,8 +194,7 @@ test("splendor commands declare explicit discovery draft schemas", () => {
 });
 
 test("splendor discovers gem color choices before return tokens for three-distinct take", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   const firstStep = gameExecutor.discoverCommand(state, {
     type: "take_three_distinct_gems",
@@ -236,8 +235,7 @@ test("splendor discovers gem color choices before return tokens for three-distin
 });
 
 test("splendor buy discovery no longer asks for noble selection", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.board.nobleIds = [6, 7];
   state.game.players.p1!.tokens.white = 0;
@@ -272,8 +270,7 @@ test("splendor buy discovery no longer asks for noble selection", () => {
 });
 
 test("taking three distinct gems updates tokens and advances the turn", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
   const result = gameExecutor.executeCommand(state, {
     type: "take_three_distinct_gems",
     actorId: "p1",
@@ -320,8 +317,7 @@ test("taking three distinct gems updates tokens and advances the turn", () => {
 });
 
 test("taking two gems of the same color requires at least four in the bank", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
   state.game.bank.red = 3;
 
   const result = gameExecutor.executeCommand(state, {
@@ -344,8 +340,7 @@ test("taking two gems of the same color requires at least four in the bank", () 
 });
 
 test("taking two gems of the same color rejects invalid gem colors explicitly", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   const result = gameExecutor.executeCommand(state, {
     type: "take_two_same_gems",
@@ -365,8 +360,7 @@ test("taking two gems of the same color rejects invalid gem colors explicitly", 
 });
 
 test("reserving a deck card rejects invalid development levels explicitly", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   const result = gameExecutor.executeCommand(state, {
     type: "reserve_deck_card",
@@ -386,8 +380,7 @@ test("reserving a deck card rejects invalid development levels explicitly", () =
 });
 
 test("reserving a face-up card grants gold and refills the market", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.board.faceUpByLevel[1] = [1, 2, 3, 4];
   state.game.board.deckByLevel[1] = [5, 6];
@@ -425,8 +418,7 @@ test("reserving a face-up card grants gold and refills the market", () => {
 });
 
 test("buying a reserved card uses discounts and can claim a noble automatically", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.board.nobleIds = [1];
   state.game.players.p1!.tokens.white = 0;
@@ -462,8 +454,7 @@ test("buying a reserved card uses discounts and can claim a noble automatically"
 });
 
 test("buying with multiple eligible nobles moves into the choose-noble stage", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.board.nobleIds = [6, 7];
   state.game.players.p1!.tokens.white = 0;
@@ -509,8 +500,7 @@ test("buying with multiple eligible nobles moves into the choose-noble stage", (
 });
 
 test("choosing a noble claims it and then advances to the next player", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.board.nobleIds = [6, 7];
   state.game.players.p1!.tokens.white = 0;
@@ -564,8 +554,7 @@ test("choosing a noble claims it and then advances to the next player", () => {
 });
 
 test("endgame finishes after the final player in turn order and breaks ties by fewest cards", () => {
-  const gameExecutor = createTestGameExecutor(["p1", "p2"]);
-  const state = gameExecutor.createInitialState();
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
   state.game.players.p1!.tokens.white = 0;
   state.game.players.p1!.tokens.blue = 0;

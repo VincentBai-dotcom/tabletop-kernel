@@ -16,7 +16,7 @@ The CLI is no longer just scaffold. It has working commands for:
 However, several parts are still first-pass implementations rather than stable
 product surfaces.
 
-## Gap 1: Game Factory Inputs Are Guessed
+## Gap 1: Runtime Setup Input Is Still Not CLI-Addressable
 
 Current implementation in [load-game.ts](/home/vincent-bai/Documents/github/tabletop-kernel/packages/cli/src/lib/load-game.ts#L61):
 
@@ -26,40 +26,43 @@ function buildGameFromFactory(factory: GameFactory): unknown {
     return factory();
   }
 
-  return factory({
-    playerIds: ["player-1", "player-2"],
-  });
+  throw new Error("game_factory_with_runtime_parameters_not_supported");
 }
 ```
 
 Problem:
 
-- any factory with parameters is implicitly called as a 2-player game
-- the CLI has no explicit setup/build input model
-- games that require:
-  - 3+ players
-  - non-`playerIds` setup options
-  - scenario-specific setup
-    can be built incorrectly or fail for the wrong reason
+- the engine now correctly models session setup through
+  `setupInput(t.object(...))` and `createInitialState(input, rngSeed)`
+- the CLI can load zero-arg game-definition factories cleanly
+- but the CLI still has no way to supply runtime setup input for:
+  - snapshot creation
+  - scenario validation
+  - future artifact generation that needs a concrete initialized session
 
 Why this matters:
 
-- generated artifacts may describe the wrong built game
-- validation may pass against an accidental default instead of the intended
-  setup
-- the CLI contract is hidden and surprising
+- the previous hidden guessing behavior is gone, which is correct
+- but the CLI still cannot drive games that require concrete setup input without
+  hand-written external code
+- validation and generation commands still lack an explicit session-input
+  contract
 
 What is missing:
 
-- explicit CLI support for game build inputs
-- either structured config input or a stricter export contract
+- explicit CLI support for session setup input
+- explicit CLI support for the required `rngSeed`
+- a clear distinction between:
+  - building/loading a game definition
+  - initializing a concrete session from that definition
 
 Likely direction:
 
-- add explicit input options such as:
-  - `--players`
-  - `--config <file>`
-- or require a prebuilt exported game definition for artifact generation
+- add explicit runtime-input options such as:
+  - `--seed`
+  - `--input <file>`
+- validate those against the engine-declared `setupInput` schema before
+  invoking session-oriented CLI flows
 
 ## Gap 2: Protocol Generation Dumps Raw Engine Descriptor
 
