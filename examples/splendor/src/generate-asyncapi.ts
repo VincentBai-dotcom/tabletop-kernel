@@ -2,15 +2,10 @@ import { writeFile } from "node:fs/promises";
 import { generateAsyncApi } from "tabletop-engine";
 import { createSplendorGame } from "./game.ts";
 
-const document = generateAsyncApi(
-  createSplendorGame({
-    playerIds: ["player-1", "player-2"],
-  }),
-  {
-    title: "Splendor Hosted API",
-    version: "0.1.0",
-  },
-);
+const document = generateAsyncApi(createSplendorGame(), {
+  title: "Splendor Hosted API",
+  version: "0.1.0",
+});
 
 const outputPath = new URL("../asyncapi.json", import.meta.url);
 

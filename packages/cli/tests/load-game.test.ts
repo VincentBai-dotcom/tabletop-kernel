@@ -26,6 +26,15 @@ describe("loadGame", () => {
     expect(game.name).toBe("fixture-named");
   });
 
+  it("loads a game from a factory with omittable parameters", async () => {
+    const game = await loadGame({
+      gamePath: resolve(import.meta.dir, "fixtures/game-optional.ts"),
+      cwd: repoRoot,
+    });
+
+    expect(game.name).toBe("fixture-optional");
+  });
+
   it("loads a game from the splendor example with default cli options", async () => {
     const game = await loadGame({
       gamePath: resolve(repoRoot, "examples/splendor/src/game.ts"),

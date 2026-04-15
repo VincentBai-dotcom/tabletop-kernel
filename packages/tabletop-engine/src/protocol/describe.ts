@@ -24,8 +24,14 @@ export function describeGameProtocol<
   CanonicalGameState extends object,
   FacadeGameState extends object,
   Commands extends Record<string, CommandDefinition<FacadeGameState>>,
+  SetupInput extends object | undefined = undefined,
 >(
-  game: GameDefinition<CanonicalGameState, FacadeGameState, Commands>,
+  game: GameDefinition<
+    CanonicalGameState,
+    FacadeGameState,
+    Commands,
+    SetupInput
+  >,
 ): GameProtocolDescriptor {
   const commands: Record<string, ProtocolCommandDescriptor> = {};
 

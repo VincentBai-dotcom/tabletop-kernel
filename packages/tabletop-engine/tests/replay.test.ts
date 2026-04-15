@@ -61,7 +61,6 @@ test("snapshots restore canonical state and replay reproduces final state", () =
 
   const game = new GameDefinitionBuilder("replay-game")
     .rootState(ReplayRootState)
-    .rngSeed("seed-123")
     .initialStage(
       createSelfLoopingTurnStage([
         incrementCounterCommand,
@@ -71,7 +70,7 @@ test("snapshots restore canonical state and replay reproduces final state", () =
     .build();
 
   const gameExecutor = createGameExecutor(game);
-  const initialState = gameExecutor.createInitialState();
+  const initialState = gameExecutor.createInitialState("seed-123");
   const initialSnapshot = createSnapshot(initialState);
   const restoredInitialState = restoreSnapshot(initialSnapshot);
   let replay = createReplayRecord(initialSnapshot);
@@ -124,7 +123,7 @@ test("replay rejects invalid canonical state restored from snapshot", () => {
     .initialStage(createSelfLoopingTurnStage([incrementCounterCommand]))
     .build();
   const gameExecutor = createGameExecutor(game);
-  const initialState = gameExecutor.createInitialState();
+  const initialState = gameExecutor.createInitialState("seed-123");
   const invalidSnapshot = createSnapshot({
     game: {
       counter: "bad",
