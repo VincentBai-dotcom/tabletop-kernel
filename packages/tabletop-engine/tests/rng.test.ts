@@ -56,15 +56,14 @@ test("game executor rng is deterministic for the same seed and command sequence"
 
   const game = new GameDefinitionBuilder("rng-game")
     .rootState(RandomDeckRootState)
-    .rngSeed("seed-123")
     .initialStage(createSelfLoopingTurnStage([sampleRandomnessCommand]))
     .build();
 
   const gameExecutorA = createGameExecutor(game);
   const gameExecutorB = createGameExecutor(game);
 
-  const initialA = gameExecutorA.createInitialState();
-  const initialB = gameExecutorB.createInitialState();
+  const initialA = gameExecutorA.createInitialState("seed-123");
+  const initialB = gameExecutorB.createInitialState("seed-123");
 
   const resultA = gameExecutorA.executeCommand(initialA, {
     type: "sample_randomness",
@@ -100,12 +99,11 @@ test("game executor rng cursor advances when randomness is consumed", () => {
 
   const game = new GameDefinitionBuilder("rng-game")
     .rootState(RandomValueRootState)
-    .rngSeed("seed-123")
     .initialStage(createSelfLoopingTurnStage([sampleRandomnessCommand]))
     .build();
 
   const gameExecutor = createGameExecutor(game);
-  const initialState = gameExecutor.createInitialState();
+  const initialState = gameExecutor.createInitialState("seed-123");
   const result = gameExecutor.executeCommand(initialState, {
     type: "sample_randomness",
     actorId: "player-1",

@@ -17,15 +17,16 @@ export function runScenario<
   TCommandInput extends Command = Command,
 >(
   gameExecutor: {
-    createInitialState(): State;
+    createInitialState(...args: unknown[]): State;
     executeCommand(
       state: State,
       command: TCommandInput,
     ): ExecutionResult<State>;
   },
   commands: TCommandInput[],
+  ...initialStateArgs: unknown[]
 ): ScenarioResult<State, TCommandInput> {
-  const initialState = gameExecutor.createInitialState();
+  const initialState = gameExecutor.createInitialState(...initialStateArgs);
   let currentState = initialState;
   const results: ExecutionResult<State>[] = [];
 

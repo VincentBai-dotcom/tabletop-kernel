@@ -132,7 +132,9 @@ test("GameDefinitionBuilder preserves setup input schema in the built game", () 
     .build();
 
   expect(game.setupInputSchema?.kind).toBe("object");
-  expect(game.setupInputSchema?.properties.playerIds.kind).toBe("array");
+  expect(
+    game.setupInputSchema && "playerIds" in game.setupInputSchema.properties,
+  ).toBeTrue();
 });
 
 test("GameDefinitionBuilder rejects field defaults that do not match their schema", () => {

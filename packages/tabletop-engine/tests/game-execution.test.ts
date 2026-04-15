@@ -533,9 +533,11 @@ test("createInitialState rejects missing setup input when setupInput is declared
     .build();
   const executor = createGameExecutor(game);
 
-  expect(() => executor.createInitialState("seed-123" as never)).toThrow(
-    "setup_input_required",
-  );
+  expect(() =>
+    (
+      executor as { createInitialState(...args: unknown[]): unknown }
+    ).createInitialState("seed-123"),
+  ).toThrow("setup_input_required");
 });
 
 test("createInitialState validates setup input against the declared schema", () => {
