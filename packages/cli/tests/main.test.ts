@@ -27,7 +27,7 @@ describe("tabletop-cli", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("tabletop-cli validate");
-    expect(result.stdout).toContain("--game");
+    expect(result.stdout).toContain("--config");
   });
 
   it("rejects unknown generate subcommands", async () => {

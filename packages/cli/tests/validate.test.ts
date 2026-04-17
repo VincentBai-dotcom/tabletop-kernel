@@ -10,18 +10,9 @@ const repoRoot = join(import.meta.dir, "..", "..", "..");
 
 describe("validate", () => {
   it("validates a game definition when given only the game module", async () => {
-    const result = await run(
-      [
-        "validate",
-        "--game",
-        "examples/splendor/src/game.ts",
-        "--export",
-        "createSplendorGame",
-      ],
-      {
-        cwd: repoRoot,
-      },
-    );
+    const result = await run(["validate"], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("validated game:splendor");
@@ -48,20 +39,9 @@ describe("validate", () => {
       "utf8",
     );
 
-    const result = await run(
-      [
-        "validate",
-        "--game",
-        "examples/splendor/src/game.ts",
-        "--export",
-        "createSplendorGame",
-        "--snapshot",
-        snapshotPath,
-      ],
-      {
-        cwd: repoRoot,
-      },
-    );
+    const result = await run(["validate", "--snapshot", snapshotPath], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("validated snapshot");
@@ -87,20 +67,9 @@ describe("validate", () => {
       "utf8",
     );
 
-    const result = await run(
-      [
-        "validate",
-        "--game",
-        "examples/splendor/src/game.ts",
-        "--export",
-        "createSplendorGame",
-        "--snapshot",
-        invalidSnapshotPath,
-      ],
-      {
-        cwd: repoRoot,
-      },
-    );
+    const result = await run(["validate", "--snapshot", invalidSnapshotPath], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("invalid_schema_value");

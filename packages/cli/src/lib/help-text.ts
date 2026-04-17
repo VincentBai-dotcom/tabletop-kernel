@@ -20,7 +20,8 @@ export function createValidateHelpText(): string {
   return [
     "tabletop-cli validate",
     "",
-    "Required flags:",
-    "  --game <path>",
+    "Optional flags:",
+    "  --config <path>",
+    "  --snapshot <path>",
   ].join("\n");
 }

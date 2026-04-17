@@ -3,8 +3,7 @@ export function isHelpFlag(value: string | undefined): boolean {
 }
 
 export interface ParsedCommandArguments {
-  gamePath: string;
-  exportName?: string;
+  configPath?: string;
   outDir?: string;
   snapshotPath?: string;
 }
@@ -29,15 +28,8 @@ export function parseCommandArguments(args: string[]): ParsedCommandArguments {
     index += 1;
   }
 
-  const gamePath = flags.get("--game");
-
-  if (!gamePath) {
-    throw new Error("game_path_required");
-  }
-
   return {
-    gamePath,
-    exportName: flags.get("--export"),
+    configPath: flags.get("--config"),
     outDir: flags.get("--outDir"),
     snapshotPath: flags.get("--snapshot"),
   };
