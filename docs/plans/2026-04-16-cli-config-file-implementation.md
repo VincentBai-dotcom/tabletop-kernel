@@ -9,7 +9,7 @@ Target developer experience:
 
 ```ts
 // tabletop.config.ts
-import { defineConfig } from "tabletop-cli/config";
+import { defineConfig } from "tabletop-engine/config";
 import { createSplendorGame } from "./examples/splendor/src/game";
 
 export default defineConfig({
@@ -96,7 +96,7 @@ Create a CLI-side config definition API.
 
 Likely files:
 
-- `packages/cli/src/config.ts`
+- `packages/tabletop-engine/src/config.ts`
 - package export wiring in `packages/cli/package.json`
 
 Responsibilities:
@@ -167,7 +167,7 @@ works the way the new CLI expects.
 Recommended shape:
 
 ```ts
-import { defineConfig } from "tabletop-cli/config";
+import { defineConfig } from "tabletop-engine/config";
 import { createSplendorGame } from "./examples/splendor/src/game";
 
 export default defineConfig({
@@ -224,7 +224,7 @@ bun test --cwd examples/splendor-terminal
 
 ## Risk Areas
 
-- package export wiring for `tabletop-cli/config`
+- package export wiring for `tabletop-engine/config`
 - relative path resolution for `outDir`
 - keeping tests stable when switching from `--game` flags to cwd/config-based
   loading

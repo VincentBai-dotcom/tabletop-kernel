@@ -4,8 +4,7 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/main.ts",
-    "./config": "./src/config.ts"
+    ".": "./src/main.ts"
   },
   "bin": {
     "tabletop-cli": "./src/main.ts"

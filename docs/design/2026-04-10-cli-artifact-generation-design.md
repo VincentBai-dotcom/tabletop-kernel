@@ -184,7 +184,7 @@ High-level example:
 
 ```ts
 // tabletop.config.ts
-import { defineConfig } from "tabletop-cli/config";
+import { defineConfig } from "tabletop-engine/config";
 import { createSplendorGame } from "./examples/splendor/src/game";
 
 export default defineConfig({
