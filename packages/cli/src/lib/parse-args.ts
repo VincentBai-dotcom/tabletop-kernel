@@ -8,6 +8,9 @@ export interface ParsedCommandArguments {
   snapshotPath?: string;
 }
 
+const supportedFlags = new Set(["--config", "--outDir", "--snapshot"]);
+const deprecatedFlags = new Set(["--game", "--export"]);
+
 export function parseCommandArguments(args: string[]): ParsedCommandArguments {
   const flags = new Map<string, string>();
 
@@ -15,7 +18,15 @@ export function parseCommandArguments(args: string[]): ParsedCommandArguments {
     const current = args[index];
 
     if (!current?.startsWith("--")) {
-      continue;
+      throw new Error(`unexpected_positional_argument:${current}`);
+    }
+
+    if (deprecatedFlags.has(current)) {
+      throw new Error(`deprecated_flag:${current}`);
+    }
+
+    if (!supportedFlags.has(current)) {
+      throw new Error(`unknown_flag:${current}`);
     }
 
     const next = args[index + 1];

@@ -36,4 +36,22 @@ describe("tabletop-cli", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("unknown_generate_target:foo");
   });
+
+  it("rejects deprecated game-selection flags", async () => {
+    const result = await run([
+      "validate",
+      "--game",
+      "packages/cli/tests/fixtures/game-default.ts",
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("deprecated_flag:--game");
+  });
+
+  it("rejects unexpected positional arguments after command parsing begins", async () => {
+    const result = await run(["generate", "types", "oops"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("unexpected_positional_argument:oops");
+  });
 });
