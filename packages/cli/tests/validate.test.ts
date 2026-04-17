@@ -7,11 +7,12 @@ import { createSplendorGame } from "splendor-example";
 import { run } from "../src/main.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..", "..");
+const splendorRoot = join(repoRoot, "examples", "splendor");
 
 describe("validate", () => {
   it("validates a game definition when given only the game module", async () => {
     const result = await run(["validate"], {
-      cwd: repoRoot,
+      cwd: splendorRoot,
     });
 
     expect(result.exitCode).toBe(0);
@@ -40,7 +41,7 @@ describe("validate", () => {
     );
 
     const result = await run(["validate", "--snapshot", snapshotPath], {
-      cwd: repoRoot,
+      cwd: splendorRoot,
     });
 
     expect(result.exitCode).toBe(0);
@@ -68,7 +69,7 @@ describe("validate", () => {
     );
 
     const result = await run(["validate", "--snapshot", invalidSnapshotPath], {
-      cwd: repoRoot,
+      cwd: splendorRoot,
     });
 
     expect(result.exitCode).toBe(1);

@@ -161,8 +161,8 @@ This should be mostly mechanical once context loading is stable.
 
 ### Step 6: Add a repo-level example config
 
-Create an example `tabletop.config.ts` in the repo root so the actual monorepo
-works the way the new CLI expects.
+Create an example `tabletop.config.ts` in the consuming game package so the
+actual monorepo works the way the new CLI expects.
 
 Recommended shape:
 
