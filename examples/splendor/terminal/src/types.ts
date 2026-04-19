@@ -5,10 +5,12 @@ import type {
   GameEvent,
   VisibleState,
 } from "tabletop-engine";
-import type { SplendorDiscoveryOption } from "splendor-example";
-import type { VisibleState as GeneratedSplendorVisibleState } from "../../engine/generated/visible-state.generated";
+import type {
+  SplendorDiscoveryOption,
+  SplendorGeneratedVisibleState,
+} from "splendor-example";
 
-export type SplendorVisibleGame = GeneratedSplendorVisibleState["game"];
+export type SplendorVisibleGame = SplendorGeneratedVisibleState["game"];
 export type SplendorVisibleState = VisibleState<SplendorVisibleGame>;
 export type SplendorVisiblePlayer = SplendorVisibleGame["players"][string];
 export type SplendorCommandData = Record<string, unknown>;

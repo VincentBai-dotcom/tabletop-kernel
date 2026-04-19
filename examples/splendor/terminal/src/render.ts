@@ -68,7 +68,7 @@ function renderNobles(nobleIds: readonly number[]): string[] {
 function renderMarket(game: SplendorVisibleGame): string[] {
   return DEVELOPMENT_LEVELS.flatMap((level) => {
     const cards = (game.board.faceUpByLevel[level] ?? [])
-      .map((cardId) => {
+      .map((cardId: number) => {
         const card = developmentCardsById[cardId];
 
         if (!card) {
@@ -86,7 +86,7 @@ function renderMarket(game: SplendorVisibleGame): string[] {
 }
 
 function renderPlayers(game: SplendorVisibleGame): string[] {
-  return game.playerOrder.map((playerId) => {
+  return game.playerOrder.map((playerId: string) => {
     const player = game.players[playerId]!;
     const discounts = computeDiscounts(player);
     const score = computeScore(player);
@@ -113,7 +113,7 @@ function renderReservedCards(
     return ["  none"];
   }
 
-  return player.reservedCardIds.map((cardId) => {
+  return player.reservedCardIds.map((cardId: number) => {
     const card = developmentCardsById[cardId];
 
     if (!card) {
@@ -203,10 +203,13 @@ function computeDiscounts(
 }
 
 function computeScore(player: SplendorVisiblePlayer): number {
-  const cardScore = player.purchasedCardIds.reduce((total, cardId) => {
-    const card = developmentCardsById[cardId];
-    return total + (card?.prestigePoints ?? 0);
-  }, 0);
+  const cardScore = player.purchasedCardIds.reduce(
+    (total: number, cardId: number) => {
+      const card = developmentCardsById[cardId];
+      return total + (card?.prestigePoints ?? 0);
+    },
+    0,
+  );
 
   return cardScore + player.nobleIds.length * 3;
 }
