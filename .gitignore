@@ -1,9 +1,14 @@
 # dependencies (bun install)
 node_modules
+.pnp
+.pnp.js
 
 # output
 out
 dist
+dist-ssr
+build
+.next
 *.tgz
 
 # code coverage
@@ -13,6 +18,12 @@ coverage
 # logs
 logs
 _.log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # dotenv environment variable files
@@ -21,6 +32,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .env.test.local
 .env.production.local
 .env.local
+*.local
 
 # caches
 .eslintcache
@@ -29,14 +41,29 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # IntelliJ based IDEs
 .idea
+.vscode/*
+!.vscode/extensions.json
 
 # Finder (MacOS) folder config
 .DS_Store
 
+# local artifacts
+*.pem
+**/*.trace
+**/*.zip
+**/*.tar.gz
+**/*.bun
+package-lock.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
 # local splendor reference files
-examples/splendor/Splendor Cards.csv
-examples/splendor/Splendor.md
-examples/splendor/nobile tiles.md
+examples/splendor/engine/Splendor Cards.csv
+examples/splendor/engine/Splendor.md
+examples/splendor/engine/nobile tiles.md
 
 # local codex state
 .codex
