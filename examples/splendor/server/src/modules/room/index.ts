@@ -4,7 +4,7 @@ export {
   normalizeDisplayName,
   normalizeRoomCode,
 } from "./service";
-export { createRoomStore } from "./store";
+export { createRoomStore, mapRoomSnapshot } from "./store";
 export type {
   CreateRoomInput,
   CreateRoomResult,

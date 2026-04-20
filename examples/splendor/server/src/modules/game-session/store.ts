@@ -7,7 +7,7 @@ import {
   roomPlayers,
   rooms,
 } from "../../schema";
-import type { RoomPlayerSnapshot, RoomSnapshot } from "../room";
+import { mapRoomSnapshot } from "../room";
 import type {
   CreateGameSessionInput,
   GameSessionPlayerSnapshot,
@@ -15,32 +15,8 @@ import type {
   GameSessionStore,
 } from "./model";
 
-type RoomRow = typeof rooms.$inferSelect;
-type RoomPlayerRow = typeof roomPlayers.$inferSelect;
 type GameSessionRow = typeof gameSessions.$inferSelect;
 type GameSessionPlayerRow = typeof gameSessionPlayers.$inferSelect;
-
-function mapRoomSnapshot(
-  room: RoomRow,
-  players: RoomPlayerRow[],
-): RoomSnapshot {
-  return {
-    id: room.id,
-    code: room.code,
-    status: room.status,
-    hostPlayerSessionId: room.hostPlayerSessionId,
-    players: players.map(
-      (player): RoomPlayerSnapshot => ({
-        playerSessionId: player.playerSessionId,
-        seatIndex: player.seatIndex,
-        displayName: player.displayName,
-        displayNameKey: player.displayNameKey,
-        isReady: player.isReady,
-        isHost: player.playerSessionId === room.hostPlayerSessionId,
-      }),
-    ),
-  };
-}
 
 function mapGameSessionSnapshot<TState extends CanonicalState<object>>(
   gameSession: GameSessionRow,

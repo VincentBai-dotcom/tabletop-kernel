@@ -11,7 +11,7 @@ import type {
 type RoomRow = typeof rooms.$inferSelect;
 type RoomPlayerRow = typeof roomPlayers.$inferSelect;
 
-function mapRoomSnapshot(
+export function mapRoomSnapshot(
   room: RoomRow,
   players: RoomPlayerRow[],
 ): RoomSnapshot {
