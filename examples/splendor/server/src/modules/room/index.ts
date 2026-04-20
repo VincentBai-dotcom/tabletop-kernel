@@ -14,6 +14,7 @@ export type {
   RoomActionResult,
   RoomNotifier,
   RoomPlayerSnapshot,
+  RoomService,
   RoomSnapshot,
   RoomStore,
   SetReadyInput,
@@ -21,4 +22,3 @@ export type {
   StartGameResult,
   StartRoomInput,
 } from "./model";
-export type { RoomService } from "./service";

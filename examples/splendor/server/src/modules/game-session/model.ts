@@ -9,6 +9,7 @@ import type { Clock } from "../../lib/clock";
 import type { RoomSnapshot } from "../room";
 import type { GameEndedPayload } from "../websocket";
 
+/** A player mapped into an active game session. */
 export interface GameSessionPlayerSnapshot {
   playerSessionId: string;
   playerId: string;
@@ -17,6 +18,7 @@ export interface GameSessionPlayerSnapshot {
   disconnectedAt: Date | null;
 }
 
+/** Point-in-time view of a game session: canonical state, version, and players. */
 export interface GameSessionSnapshot<
   TState extends CanonicalState<object> = CanonicalState<object>,
 > {
@@ -33,23 +35,34 @@ export interface CreateGameSessionInput<
   players: Array<Omit<GameSessionPlayerSnapshot, "disconnectedAt">>;
 }
 
+/**
+ * Persistence layer for active game sessions.
+ * Handles creation from a room, command persistence, and cleanup.
+ */
 export interface GameSessionStore<
   TState extends CanonicalState<object> = CanonicalState<object>,
 > {
+  /** Load the room snapshot needed to initialize a game (players + host check). */
   loadRoomForGameStart(roomId: string): Promise<RoomSnapshot | null>;
+  /** Persist a new game session with its initial state and player mappings. */
   createGameSession(
     input: CreateGameSessionInput<TState>,
   ): Promise<GameSessionSnapshot<TState>>;
+  /** Load a game session by id. Returns null if not found. */
   loadGameSession(
     gameSessionId: string,
   ): Promise<GameSessionSnapshot<TState> | null>;
+  /** Persist the new canonical state and bumped version after an accepted command. */
   persistAcceptedCommandResult(input: {
     gameSessionId: string;
     canonicalState: TState;
     stateVersion: number;
   }): Promise<GameSessionSnapshot<TState>>;
+  /** Delete the originating room after a game session is created. */
   deleteRoom(roomId: string): Promise<void>;
+  /** Delete a game session (e.g. after invalidation). */
   deleteGameSession(gameSessionId: string): Promise<void>;
+  /** Record a player disconnect timestamp. Returns null if session not found. */
   markPlayerDisconnected(input: {
     gameSessionId: string;
     playerSessionId: string;
@@ -57,12 +70,19 @@ export interface GameSessionStore<
   }): Promise<GameSessionSnapshot<TState> | null>;
 }
 
+/**
+ * Adapter around the tabletop-engine executor.
+ * Provides game creation, command execution, and per-player view generation.
+ */
 export interface HostedGameExecutor<TState extends CanonicalState<object>> {
+  /** Create the initial canonical state for a new game. */
   createInitialState(
     input: { playerIds: string[] },
     rngSeed: string | number,
   ): TState;
+  /** Execute a player command against the current state. */
   executeCommand(state: TState, command: Command): ExecutionResult<TState>;
+  /** Generate a player-specific view of the game state (hides opponent hands, etc.). */
   getView(state: TState, viewer: Viewer): unknown;
 }
 
@@ -96,6 +116,7 @@ export interface SubmitGameCommandInput {
   command: unknown;
 }
 
+/** A player's filtered view of the game state. */
 export interface GamePlayerView {
   playerSessionId: string;
   playerId: string;
@@ -125,4 +146,21 @@ export interface MarkDisconnectedInput {
 export interface GameEndedResult {
   gameSessionId: string;
   result: GameEndedPayload;
+}
+
+/**
+ * Application-level game session service.
+ * Manages creating game sessions from rooms, processing player commands, and handling disconnects.
+ */
+export interface GameSessionService {
+  /** Initialize a new game session from a room's player roster and transition the room to "starting". */
+  createGameSessionFromRoom(
+    input: CreateGameSessionFromRoomInput,
+  ): Promise<GameStartedResult>;
+  /** Validate and execute a player's command against the current game state. */
+  submitCommand(input: SubmitGameCommandInput): Promise<GameCommandResult>;
+  /** Record a player disconnect and invalidate the game session if applicable. */
+  markDisconnected(
+    input: MarkDisconnectedInput,
+  ): Promise<GameEndedResult | null>;
 }

@@ -2,15 +2,9 @@ import type { Clock } from "../../lib/clock";
 import { createRandomToken } from "../../lib/random";
 import type {
   PlayerSessionStore,
-  ResolvePlayerSessionInput,
   ResolvePlayerSessionResult,
+  SessionService,
 } from "./model";
-
-export interface SessionService {
-  resolveOrCreatePlayerSession(
-    input: ResolvePlayerSessionInput,
-  ): Promise<ResolvePlayerSessionResult>;
-}
 
 interface CreateSessionServiceDeps {
   store: PlayerSessionStore;

@@ -1,26 +1,14 @@
 import type { CanonicalState, Command } from "tabletop-engine";
 import { AppError } from "../errors";
 import type {
-  CreateGameSessionFromRoomInput,
   CreateGameSessionServiceDeps,
   GameCommandResult,
   GameEndedResult,
   GamePlayerView,
   GameSessionPlayerSnapshot,
+  GameSessionService,
   GameStartedResult,
-  MarkDisconnectedInput,
-  SubmitGameCommandInput,
 } from "./model";
-
-export interface GameSessionService {
-  createGameSessionFromRoom(
-    input: CreateGameSessionFromRoomInput,
-  ): Promise<GameStartedResult>;
-  submitCommand(input: SubmitGameCommandInput): Promise<GameCommandResult>;
-  markDisconnected(
-    input: MarkDisconnectedInput,
-  ): Promise<GameEndedResult | null>;
-}
 
 function createPlayerId(index: number) {
   return `player-${index + 1}`;

@@ -5,5 +5,5 @@ export type {
   PlayerSessionStore,
   ResolvePlayerSessionInput,
   ResolvePlayerSessionResult,
+  SessionService,
 } from "./model";
-export type { SessionService } from "./service";

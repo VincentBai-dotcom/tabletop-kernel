@@ -7,6 +7,7 @@ export type {
   GameEndedResult,
   GamePlayerView,
   GameSessionPlayerSnapshot,
+  GameSessionService,
   GameSessionSnapshot,
   GameSessionStore,
   GameStartedResult,
@@ -14,4 +15,3 @@ export type {
   MarkDisconnectedInput,
   SubmitGameCommandInput,
 } from "./model";
-export type { GameSessionService } from "./service";

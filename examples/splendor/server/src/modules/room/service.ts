@@ -1,32 +1,16 @@
 import { AppError } from "../errors";
 import { createRoomCode } from "../../lib/random";
 import type {
-  CreateRoomInput,
-  CreateRoomResult,
-  JoinRoomInput,
-  JoinRoomResult,
-  LeaveRoomInput,
   ResolvePlayerSession,
-  RoomActionResult,
   RoomCodeGenerator,
   RoomNotifier,
   RoomPlayerSnapshot,
+  RoomService,
   RoomSnapshot,
   RoomStore,
-  SetReadyInput,
   StartGameFromRoom,
-  StartGameResult,
-  StartRoomInput,
 } from "./model";
 import { MIN_PLAYERS_TO_START, ROOM_CAPACITY } from "./model";
-
-export interface RoomService {
-  createRoom(input: CreateRoomInput): Promise<CreateRoomResult>;
-  joinRoom(input: JoinRoomInput): Promise<JoinRoomResult>;
-  setReady(input: SetReadyInput): Promise<RoomActionResult>;
-  leaveRoom(input: LeaveRoomInput): Promise<RoomActionResult>;
-  startGame(input: StartRoomInput): Promise<StartGameResult>;
-}
 
 interface CreateRoomServiceDeps {
   store: RoomStore;
