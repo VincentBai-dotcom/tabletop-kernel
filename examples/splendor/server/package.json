@@ -6,10 +6,12 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "dotenv": "^17.4.2",
+    "@elysiajs/openapi": "^1.4.14",
     "drizzle-orm": "^0.45.2",
     "elysia": "latest",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "splendor-example": "workspace:*",
+    "tabletop-engine": "workspace:*"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
