@@ -55,6 +55,18 @@ export function createLiveConnectionRegistry(): LiveConnectionRegistry {
       return playerSessionIdByConnectionId.get(connectionId) ?? null;
     },
 
+    getGameConnectionForPlayer(playerSessionId, gameSessionId) {
+      const record = byPlayerSessionId.get(playerSessionId);
+      if (
+        record?.subscription?.type !== "game" ||
+        record.subscription.gameSessionId !== gameSessionId
+      ) {
+        return null;
+      }
+
+      return record.connection;
+    },
+
     subscribeToRoom(playerSessionId, roomId) {
       getRecord(playerSessionId).subscription = { type: "room", roomId };
     },

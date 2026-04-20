@@ -1,4 +1,5 @@
 import { AppError, toErrorResponse } from "../errors";
+import type { GameSessionService } from "../game-session";
 import type { RoomService } from "../room";
 import type {
   LiveClientMessage,
@@ -17,6 +18,7 @@ export interface LiveMessageHandler {
 export interface LiveMessageHandlerDeps {
   registry: LiveConnectionRegistry;
   roomService: RoomService;
+  gameSessionService?: GameSessionService;
 }
 
 function sendError(connection: LiveConnection, error: unknown) {
@@ -31,6 +33,7 @@ function sendError(connection: LiveConnection, error: unknown) {
 export function createLiveMessageHandler({
   registry,
   roomService,
+  gameSessionService,
 }: LiveMessageHandlerDeps): LiveMessageHandler {
   function requirePlayerSessionId(connection: LiveConnection) {
     const playerSessionId = registry.getPlayerSessionIdByConnectionId(
@@ -82,12 +85,44 @@ export function createLiveMessageHandler({
             registry.subscribeToGame(playerSessionId, message.gameSessionId);
             return;
 
-          case "game_command":
-            throw new AppError(
-              "game_commands_not_implemented",
-              501,
-              "Game commands are not implemented yet",
-            );
+          case "game_command": {
+            if (!gameSessionService) {
+              throw new AppError(
+                "game_commands_not_implemented",
+                501,
+                "Game commands are not implemented yet",
+              );
+            }
+
+            const result = await gameSessionService.submitCommand({
+              gameSessionId: message.gameSessionId,
+              playerSessionId,
+              command: message.command,
+            });
+
+            if (!result.accepted) {
+              connection.send({
+                type: "error",
+                code: result.reason,
+                message: "Command rejected",
+              });
+              return;
+            }
+
+            for (const playerView of result.playerViews) {
+              const gameConnection = registry.getGameConnectionForPlayer(
+                playerView.playerSessionId,
+                message.gameSessionId,
+              );
+              gameConnection?.send({
+                type: "game_updated",
+                stateVersion: result.stateVersion,
+                events: result.events,
+                view: playerView.view,
+              });
+            }
+            return;
+          }
         }
       } catch (error) {
         sendError(connection, error);

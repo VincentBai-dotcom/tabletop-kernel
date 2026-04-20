@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import type { GameSessionService } from "../game-session";
 import type { RoomService } from "../room";
 import type { SessionService } from "../session";
 import { createLiveMessageHandler } from "./actions";
@@ -11,6 +12,7 @@ import type {
 
 export interface WebSocketRoutesDeps {
   registry: LiveConnectionRegistry;
+  gameSessionService?: GameSessionService;
   roomService: RoomService;
   sessionService: SessionService;
 }
@@ -55,10 +57,15 @@ function toLiveConnection(ws: { id: string; send(payload: unknown): unknown }) {
 
 export function createWebSocketRoutes({
   registry,
+  gameSessionService,
   roomService,
   sessionService,
 }: WebSocketRoutesDeps) {
-  const handler = createLiveMessageHandler({ registry, roomService });
+  const handler = createLiveMessageHandler({
+    registry,
+    roomService,
+    gameSessionService,
+  });
 
   return new Elysia().ws("/live", {
     query: t.Object({

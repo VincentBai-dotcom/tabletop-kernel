@@ -18,6 +18,10 @@ export interface LiveConnectionRegistry {
   register(playerSessionId: string, connection: LiveConnection): void;
   getConnection(playerSessionId: string): LiveConnection | null;
   getPlayerSessionIdByConnectionId(connectionId: string): string | null;
+  getGameConnectionForPlayer(
+    playerSessionId: string,
+    gameSessionId: string,
+  ): LiveConnection | null;
   subscribeToRoom(playerSessionId: string, roomId: string): void;
   subscribeToGame(playerSessionId: string, gameSessionId: string): void;
   getRoomConnections(roomId: string): LiveConnection[];
