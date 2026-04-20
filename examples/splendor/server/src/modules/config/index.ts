@@ -7,7 +7,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
     env: readEnvironment(env.NODE_ENV),
     server: {
-      host: env.HOST || "0.0.0.0",
+      host: env.HOST || "127.0.0.1",
       port: readPort(env.PORT),
     },
     database: {
