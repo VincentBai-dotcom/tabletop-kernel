@@ -22,6 +22,7 @@ function createRoom(): RoomSnapshot {
         displayNameKey: "host",
         isReady: true,
         isHost: true,
+        disconnectedAt: null,
       },
       {
         playerSessionId: "session-2",
@@ -30,6 +31,7 @@ function createRoom(): RoomSnapshot {
         displayNameKey: "second",
         isReady: true,
         isHost: false,
+        disconnectedAt: null,
       },
     ],
   };

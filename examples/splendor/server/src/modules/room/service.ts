@@ -114,6 +114,42 @@ export function createRoomService({
     }
   }
 
+  async function removeSeatedPlayer(
+    room: RoomSnapshot,
+    playerSessionId: string,
+  ): Promise<{
+    room: RoomSnapshot | null;
+    roomDeleted: boolean;
+  }> {
+    const leavingPlayer = requireSeatedPlayer(room, playerSessionId);
+    const roomAfterRemoval = await store.removeRoomPlayer({
+      roomId: room.id,
+      playerSessionId,
+    });
+
+    if (roomAfterRemoval.players.length === 0) {
+      await store.deleteRoom(room.id);
+      return {
+        room: null,
+        roomDeleted: true,
+      };
+    }
+
+    const updatedRoom = leavingPlayer.isHost
+      ? await store.updateRoomHost({
+          roomId: room.id,
+          playerSessionId: roomAfterRemoval.players[0]!.playerSessionId,
+        })
+      : roomAfterRemoval;
+
+    await notifier.publishRoomUpdated(updatedRoom);
+
+    return {
+      room: updatedRoom,
+      roomDeleted: false,
+    };
+  }
+
   return {
     async createRoom({ token, displayName }) {
       const session = await resolveOrCreatePlayerSession({ token });
@@ -179,35 +215,69 @@ export function createRoomService({
       };
     },
 
-    async leaveRoom({ roomId, playerSessionId }) {
+    async markDisconnected({ roomId, playerSessionId, disconnectedAt }) {
       const room = await loadOpenRoom(roomId);
-      const leavingPlayer = requireSeatedPlayer(room, playerSessionId);
-      const roomAfterRemoval = await store.removeRoomPlayer({
+      requireSeatedPlayer(room, playerSessionId);
+
+      const updatedRoom = await store.markRoomPlayerDisconnected({
         roomId,
         playerSessionId,
+        disconnectedAt,
       });
-
-      if (roomAfterRemoval.players.length === 0) {
-        await store.deleteRoom(roomId);
-        return {
-          room: null,
-          roomDeleted: true,
-        };
-      }
-
-      const updatedRoom = leavingPlayer.isHost
-        ? await store.updateRoomHost({
-            roomId,
-            playerSessionId: roomAfterRemoval.players[0]!.playerSessionId,
-          })
-        : roomAfterRemoval;
-
       await notifier.publishRoomUpdated(updatedRoom);
 
       return {
         room: updatedRoom,
         roomDeleted: false,
       };
+    },
+
+    async markReconnected({ roomId, playerSessionId }) {
+      const room = await loadOpenRoom(roomId);
+      requireSeatedPlayer(room, playerSessionId);
+
+      const updatedRoom = await store.clearRoomPlayerDisconnected({
+        roomId,
+        playerSessionId,
+      });
+      await notifier.publishRoomUpdated(updatedRoom);
+
+      return {
+        room: updatedRoom,
+        roomDeleted: false,
+      };
+    },
+
+    async cleanupExpiredDisconnects({ olderThan }) {
+      const expiredPlayers = await store.loadExpiredDisconnectedRoomPlayers({
+        olderThan,
+      });
+      let processedCount = 0;
+
+      for (const expiredPlayer of expiredPlayers) {
+        const room = await store.loadRoomSnapshot(expiredPlayer.roomId);
+        if (!room || room.status !== "open") {
+          continue;
+        }
+        if (
+          !room.players.some(
+            (player) =>
+              player.playerSessionId === expiredPlayer.playerSessionId,
+          )
+        ) {
+          continue;
+        }
+
+        await removeSeatedPlayer(room, expiredPlayer.playerSessionId);
+        processedCount += 1;
+      }
+
+      return processedCount;
+    },
+
+    async leaveRoom({ roomId, playerSessionId }) {
+      const room = await loadOpenRoom(roomId);
+      return removeSeatedPlayer(room, playerSessionId);
     },
 
     async startGame({ roomId, playerSessionId }) {

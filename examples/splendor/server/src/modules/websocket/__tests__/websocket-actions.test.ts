@@ -28,6 +28,15 @@ function createUnusedRoomService() {
     async setReady() {
       throw new Error("not used");
     },
+    async markDisconnected() {
+      throw new Error("not used");
+    },
+    async markReconnected() {
+      throw new Error("not used");
+    },
+    async cleanupExpiredDisconnects() {
+      return 0;
+    },
     async leaveRoom() {
       throw new Error("not used");
     },

@@ -42,6 +42,15 @@ function createFakeRoomService() {
       calls.setReady.push(input);
       return { room: null, roomDeleted: false };
     },
+    async markDisconnected() {
+      throw new Error("not used");
+    },
+    async markReconnected() {
+      throw new Error("not used");
+    },
+    async cleanupExpiredDisconnects() {
+      return 0;
+    },
     async leaveRoom(input) {
       calls.leaveRoom.push(input);
       return { room: null, roomDeleted: true };
