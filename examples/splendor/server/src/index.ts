@@ -1,8 +1,13 @@
 import { createSplendorExecutor, type SplendorState } from "splendor-example";
 import { systemClock } from "./lib/clock";
 import { createRandomToken } from "./lib/random";
+import {
+  DISCONNECT_CLEANUP_CRON_PATTERN,
+  DISCONNECT_GRACE_MS,
+} from "./lib/reconnect-policy";
 import { configService } from "./modules/config";
 import { createDbClient } from "./modules/db";
+import { createDisconnectCleanupService } from "./modules/disconnect-cleanup";
 import {
   createGameSessionService,
   createGameSessionStore,
@@ -46,6 +51,13 @@ const livePresenceService = createLivePresenceService({
   roomService,
   gameSessionService,
 });
+const disconnectCleanupService = createDisconnectCleanupService({
+  clock: systemClock,
+  roomService,
+  gameSessionService,
+  notifier: liveNotifier,
+  disconnectGraceMs: DISCONNECT_GRACE_MS,
+});
 
 const app = createApp({
   roomService,
@@ -55,6 +67,10 @@ const app = createApp({
     roomService,
     livePresenceService,
     playerSessionService,
+  },
+  disconnectCleanup: {
+    cleanupService: disconnectCleanupService,
+    pattern: DISCONNECT_CLEANUP_CRON_PATTERN,
   },
 }).listen({
   hostname: config.server.host,
