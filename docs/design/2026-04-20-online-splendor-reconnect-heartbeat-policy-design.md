@@ -98,13 +98,18 @@ For each connection:
 
 - mark it as awaiting pong
 - send a WebSocket `ping`
-- if no `pong` arrives within 10 seconds, terminate the stale socket
+- if no `pong` arrives by the next heartbeat tick, terminate the stale socket
 
 Terminating a stale socket follows the same path as a normal close:
 
 - unregister the in-memory connection
 - mark the subscribed room/game player as temporarily disconnected
 - schedule or rely on cleanup to enforce expiration after the grace window
+
+Implementation note: the v1 server keeps awaiting-pong state inside the
+heartbeat manager rather than in the live registry. `LIVE_HEARTBEAT_TIMEOUT_MS`
+is reserved for a stricter per-connection timeout, but the current
+implementation uses the next 30-second heartbeat tick as the timeout boundary.
 
 ### Client-Side Heartbeat
 
@@ -250,8 +255,8 @@ Add these server messages:
 
 On `SIGTERM`:
 
-1. Set the server into `draining` mode.
-2. Stop accepting new WebSocket upgrades if the framework allows it.
+1. Stop the heartbeat loop.
+2. Stop the disconnect cleanup cron job.
 3. Send every live socket:
 
 ```ts
@@ -266,6 +271,10 @@ On `SIGTERM`:
 6. Let clients reconnect to another instance and resubscribe.
 7. Continue normal process shutdown.
 
+The v1 implementation does not add an explicit app-wide `draining` mode. If we
+observe clients opening new sockets during Render shutdown, add that as a
+follow-up at the Elysia route boundary.
+
 The backend does not need to save canonical game state during shutdown because
 accepted commands are already persisted after every accepted command.
 
@@ -274,7 +283,9 @@ Clients restore subscriptions from browser-local `roomId` or `gameSessionId`.
 
 ## Cleanup Model
 
-Use a simple database cleanup loop in the server process for v1.
+Use a simple database cleanup loop in the server process for v1. The current
+implementation schedules this loop with `@elysiajs/cron` rather than a manual
+`setInterval`, so the lifecycle is owned by the Elysia app boundary.
 
 Every 5 seconds:
 

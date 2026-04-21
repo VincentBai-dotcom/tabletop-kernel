@@ -146,6 +146,27 @@ describe("createLiveMessageHandler", () => {
     ]);
   });
 
+  it("rejects messages from unregistered live connections", async () => {
+    const registry = createLiveConnectionRegistry();
+    const client = createRecordingConnection("conn-1");
+    const { roomService } = createFakeRoomService();
+    const handler = createLiveMessageHandler({ registry, roomService });
+
+    await handler.handleMessage(client.connection, {
+      type: "room_set_ready",
+      roomId: "room-1",
+      ready: true,
+    });
+
+    expect(client.sent).toEqual([
+      {
+        type: "error",
+        code: "live_connection_not_registered",
+        message: "Live connection is not registered",
+      },
+    ]);
+  });
+
   it("routes room leave and start messages to the room service", async () => {
     const registry = createLiveConnectionRegistry();
     const client = createRecordingConnection("conn-1");
