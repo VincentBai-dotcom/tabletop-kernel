@@ -52,7 +52,7 @@ Create one shared config file for reconnect timing:
 export const LIVE_HEARTBEAT_INTERVAL_MS = 30_000;
 export const LIVE_HEARTBEAT_TIMEOUT_MS = 10_000;
 export const DISCONNECT_GRACE_MS = 45_000;
-export const DISCONNECT_CLEANUP_INTERVAL_MS = 5_000;
+export const DISCONNECT_CLEANUP_CRON_PATTERN = "*/5 * * * * *";
 export const SERVER_RESTART_RECONNECT_AFTER_MS = 1_000;
 export const SERVER_RESTART_CLOSE_CODE = 1012;
 ```
@@ -595,15 +595,20 @@ git add examples/splendor/server/src/modules/live-presence examples/splendor/ser
 git commit -m "feat: wire reconnect presence into websocket lifecycle"
 ```
 
-## Task 5: Add Cleanup Loop
+## Task 5: Add Elysia Cron Cleanup Job
 
 **Files:**
 
 - Create: `examples/splendor/server/src/modules/disconnect-cleanup/model.ts`
 - Create: `examples/splendor/server/src/modules/disconnect-cleanup/service.ts`
+- Create: `examples/splendor/server/src/modules/disconnect-cleanup/plugin.ts`
 - Create: `examples/splendor/server/src/modules/disconnect-cleanup/index.ts`
 - Create: `examples/splendor/server/src/modules/disconnect-cleanup/__tests__/service.test.ts`
+- Create: `examples/splendor/server/src/modules/disconnect-cleanup/__tests__/plugin.test.ts`
 - Create: `examples/splendor/server/src/lib/time.ts`
+- Modify: `examples/splendor/server/package.json`
+- Modify: `bun.lock`
+- Modify: `examples/splendor/server/src/app.ts`
 - Modify: `examples/splendor/server/src/index.ts`
 
 **Step 1: Write failing cleanup service tests**
@@ -641,16 +646,29 @@ bun test --cwd examples/splendor/server ./src/modules/disconnect-cleanup/__tests
 
 Expected: FAIL because module does not exist.
 
-**Step 3: Implement cleanup service**
+**Step 3: Install Elysia cron plugin**
+
+Run:
+
+```bash
+BUN_INSTALL=/tmp/bun-install BUN_TMPDIR=/tmp/bun-tmp bun add --cwd examples/splendor/server @elysiajs/cron
+```
+
+Expected:
+
+- `examples/splendor/server/package.json` includes `@elysiajs/cron`
+- `bun.lock` updates
+
+If package installation is blocked by sandbox or network restrictions, request
+escalation with the same command.
+
+**Step 4: Implement cleanup service**
 
 `createDisconnectCleanupService` should expose:
 
 ```ts
 runOnce(): Promise<{ roomsProcessed: number; gamesEnded: number }>;
-start(): { stop(): void };
 ```
-
-`start` should use `setInterval` with `DISCONNECT_CLEANUP_INTERVAL_MS`.
 
 Implementation:
 
@@ -671,7 +689,10 @@ return { roomsProcessed, gamesEnded: endedGames.length };
 If `roomService.cleanupExpiredDisconnects` currently returns void from Task 2,
 adjust it to return the number of processed expired room players.
 
-**Step 4: Add time helper**
+Do not put scheduling logic in this service. The service should be directly
+testable and callable once.
+
+**Step 5: Add time helper**
 
 Create `examples/splendor/server/src/lib/time.ts`:
 
@@ -681,34 +702,133 @@ export function subtractMilliseconds(date: Date, milliseconds: number): Date {
 }
 ```
 
-**Step 5: Wire in index**
+**Step 6: Write failing cron plugin tests**
+
+Create `examples/splendor/server/src/modules/disconnect-cleanup/__tests__/plugin.test.ts`.
+
+Test the Elysia plugin wrapper:
+
+- it registers a cron job named `disconnectCleanup`
+- it accepts `DISCONNECT_CLEANUP_CRON_PATTERN`
+- invoking the cron callback calls `cleanupService.runOnce`
+
+Expected plugin shape:
+
+```ts
+const app = new Elysia().use(
+  createDisconnectCleanupCron({
+    cleanupService,
+    pattern: "*/5 * * * * *",
+  }),
+);
+```
+
+If the cron plugin does not expose its callback cleanly for direct tests, keep
+plugin tests minimal and rely on `service.test.ts` for cleanup behavior. Do not
+test cronner internals.
+
+Run:
+
+```bash
+bun test --cwd examples/splendor/server ./src/modules/disconnect-cleanup/__tests__/plugin.test.ts
+```
+
+Expected: FAIL because plugin module does not exist.
+
+**Step 7: Implement Elysia cron plugin wrapper**
+
+Create `examples/splendor/server/src/modules/disconnect-cleanup/plugin.ts`:
+
+```ts
+import { Elysia } from "elysia";
+import { cron } from "@elysiajs/cron";
+import type { DisconnectCleanupService } from "./model";
+
+export function createDisconnectCleanupCron({
+  cleanupService,
+  pattern,
+}: {
+  cleanupService: DisconnectCleanupService;
+  pattern: string;
+}) {
+  return new Elysia({ name: "disconnect-cleanup-cron" }).use(
+    cron({
+      name: "disconnectCleanup",
+      pattern,
+      async run() {
+        await cleanupService.runOnce();
+      },
+      catch(error) {
+        console.error("disconnect_cleanup_failed", error);
+      },
+    }),
+  );
+}
+```
+
+The `catch` option is based on the official Elysia cron plugin docs and keeps
+one failed cleanup run from disabling future runs.
+
+**Step 8: Wire cleanup cron into app**
+
+Change `examples/splendor/server/src/app.ts` so `createApp` accepts optional
+cron/plugin deps:
+
+```ts
+export interface AppDeps {
+  roomService: RoomService;
+  websocket: WebSocketRoutesDeps;
+  disconnectCleanup?: {
+    cleanupService: DisconnectCleanupService;
+    pattern: string;
+  };
+}
+```
+
+Then:
+
+```ts
+const app = new Elysia();
+// existing plugins/routes
+
+return disconnectCleanup
+  ? app.use(createDisconnectCleanupCron(disconnectCleanup))
+  : app;
+```
+
+This keeps Elysia-specific cron wiring at the app boundary, not in domain
+services.
+
+**Step 9: Wire in index**
 
 In `examples/splendor/server/src/index.ts`:
 
 - create cleanup service after `roomService`, `gameSessionService`, and
   `liveNotifier`
-- call `const cleanupLoop = disconnectCleanupService.start()`
-- on `SIGTERM`, stop cleanup loop before closing sockets
+- pass it into `createApp` with
+  `pattern: DISCONNECT_CLEANUP_CRON_PATTERN`
+- do not call `setInterval`
 
-Do not add complex process manager abstractions.
+Do not add complex process manager abstractions. Elysia owns the scheduled cron
+job lifecycle.
 
-**Step 6: Verify**
+**Step 10: Verify**
 
 Run:
 
 ```bash
-bun test --cwd examples/splendor/server ./src/modules/disconnect-cleanup/__tests__/service.test.ts
+bun test --cwd examples/splendor/server ./src/modules/disconnect-cleanup/__tests__/service.test.ts ./src/modules/disconnect-cleanup/__tests__/plugin.test.ts
 bunx tsc -p examples/splendor/server/tsconfig.json --noEmit
 bunx eslint examples/splendor/server
 ```
 
 Expected: all pass.
 
-**Step 7: Commit**
+**Step 11: Commit**
 
 ```bash
-git add examples/splendor/server/src/lib/time.ts examples/splendor/server/src/modules/disconnect-cleanup examples/splendor/server/src/index.ts
-git commit -m "feat: add disconnect cleanup loop"
+git add examples/splendor/server/package.json bun.lock examples/splendor/server/src/lib/time.ts examples/splendor/server/src/modules/disconnect-cleanup examples/splendor/server/src/app.ts examples/splendor/server/src/index.ts
+git commit -m "feat: add disconnect cleanup cron"
 ```
 
 ## Task 6: Add Heartbeat Manager
@@ -862,6 +982,10 @@ const heartbeat = heartbeatManager.start();
 
 Stop it on `SIGTERM`.
 
+Do not move heartbeat to `@elysiajs/cron`. Heartbeat owns per-socket
+awaiting-pong state and termination behavior, while cron is only used for the
+database cleanup job.
+
 **Step 7: Verify**
 
 Run:
@@ -900,7 +1024,8 @@ Test:
 - sends `{ type: "server_restarting", reconnectAfterMs: 1000 }` to all
   connections
 - closes each connection with code `1012`
-- stops cleanup and heartbeat loops
+- stops the heartbeat loop
+- stops the Elysia cron cleanup job if a cron handle is provided
 - does not call room/game disconnect invalidation directly
 
 Use fake connections:
@@ -941,7 +1066,7 @@ getConnections(): LiveConnection[];
 {
   registry: LiveConnectionRegistry;
   heartbeat: { stop(): void };
-  cleanupLoop: { stop(): void };
+  cleanupCron?: { stop(): void };
   reconnectAfterMs: number;
   closeCode: number;
 }
@@ -956,7 +1081,7 @@ handleSigterm(): void;
 Implementation:
 
 1. stop heartbeat
-2. stop cleanup loop
+2. stop cleanup cron if provided
 3. send `server_restarting`
 4. close every connection with code `1012` and reason `"server_restarting"`
 
@@ -975,6 +1100,20 @@ process.on("SIGTERM", () => shutdownService.handleSigterm());
 ```
 
 Optionally handle `SIGINT` for local development.
+
+How to get the cron handle:
+
+- Prefer reading `app.store.cron.disconnectCleanup` if Elysia exposes it with
+  stable typing.
+- If typing is awkward, pass a minimal adapter from `index.ts`:
+
+```ts
+const cleanupCron = app.store.cron?.disconnectCleanup
+  ? { stop: () => app.store.cron.disconnectCleanup.stop() }
+  : undefined;
+```
+
+Do not make shutdown depend on cron internals beyond `.stop()`.
 
 **Step 6: Verify**
 
