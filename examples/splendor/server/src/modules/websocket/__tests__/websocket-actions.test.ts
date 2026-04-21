@@ -57,6 +57,15 @@ function createFakeGameSessionService(
     async markDisconnected() {
       return null;
     },
+    async markReconnected() {
+      return null;
+    },
+    async getPlayerSnapshot() {
+      throw new Error("not used");
+    },
+    async cleanupExpiredDisconnects() {
+      return [];
+    },
   } satisfies GameSessionService;
 }
 
