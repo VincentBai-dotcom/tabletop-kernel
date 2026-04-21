@@ -4,6 +4,7 @@ import type { LivePresenceService } from "../live-presence";
 import type { RoomService } from "../room";
 import type { PlayerSessionService } from "../player-session";
 import { createLiveMessageHandler } from "./actions";
+import type { HeartbeatManager } from "./heartbeat";
 import type {
   LiveClientMessage,
   LiveConnection,
@@ -16,6 +17,7 @@ export interface WebSocketRoutesDeps {
   gameSessionService?: GameSessionService;
   roomService: RoomService;
   livePresenceService?: LivePresenceService;
+  heartbeatManager?: HeartbeatManager;
   playerSessionService: PlayerSessionService;
 }
 
@@ -48,11 +50,22 @@ const liveMessageSchema = t.Union([
   }),
 ]);
 
-function toLiveConnection(ws: { id: string; send(payload: unknown): unknown }) {
+function toLiveConnection(ws: {
+  id: string;
+  send(payload: unknown): unknown;
+  ping?(): unknown;
+  terminate?(): void;
+}) {
   return {
     id: ws.id,
     send(payload: LiveServerMessage) {
       ws.send(payload);
+    },
+    ping() {
+      ws.ping?.();
+    },
+    terminate() {
+      ws.terminate?.();
     },
   } satisfies LiveConnection;
 }
@@ -79,6 +92,7 @@ export function createWebSocketRoutes({
   gameSessionService,
   roomService,
   livePresenceService,
+  heartbeatManager,
   playerSessionService,
 }: WebSocketRoutesDeps) {
   const handler = createLiveMessageHandler({
@@ -106,6 +120,9 @@ export function createWebSocketRoutes({
     },
     async message(ws, message: LiveClientMessage) {
       await handler.handleMessage(toLiveConnection(ws), message);
+    },
+    pong(ws) {
+      heartbeatManager?.markPong(ws.id);
     },
     close(ws) {
       void handleLiveConnectionClosed({

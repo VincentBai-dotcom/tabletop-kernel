@@ -5,6 +5,10 @@ export interface LiveConnection {
   id: string;
   /** Send a JSON-serializable payload to the client. */
   send(payload: unknown): void;
+  /** Send a protocol-level websocket ping when the runtime supports it. */
+  ping?(): void;
+  /** Force-close a stale connection when the runtime supports it. */
+  terminate?(): void;
 }
 
 /** What a connection is currently subscribed to. */
@@ -43,6 +47,8 @@ export interface LiveConnectionRegistry {
   getRoomConnections(roomId: string): LiveConnection[];
   /** Get all connections currently subscribed to a game session. */
   getGameConnections(gameSessionId: string): LiveConnection[];
+  /** Get every registered live connection. */
+  getConnections(): LiveConnection[];
   /** Unregister a connection on close. Returns the player session and last subscription for cleanup. */
   removeConnection(connectionId: string): RemovedLiveConnection | null;
 }

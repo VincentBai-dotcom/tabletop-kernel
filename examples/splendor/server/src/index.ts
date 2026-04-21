@@ -4,6 +4,7 @@ import { createRandomToken } from "./lib/random";
 import {
   DISCONNECT_CLEANUP_CRON_PATTERN,
   DISCONNECT_GRACE_MS,
+  LIVE_HEARTBEAT_INTERVAL_MS,
 } from "./lib/reconnect-policy";
 import { configService } from "./modules/config";
 import { createDbClient } from "./modules/db";
@@ -18,8 +19,10 @@ import {
   createPlayerSessionStore,
 } from "./modules/player-session";
 import {
+  createHeartbeatManager,
   createLiveConnectionRegistry,
   createLiveNotifier,
+  handleLiveConnectionClosed,
 } from "./modules/websocket";
 import { createLivePresenceService } from "./modules/live-presence";
 import { createApp } from "./app";
@@ -51,6 +54,20 @@ const livePresenceService = createLivePresenceService({
   roomService,
   gameSessionService,
 });
+const heartbeatManager = createHeartbeatManager({
+  registry: liveRegistry,
+  intervalMs: LIVE_HEARTBEAT_INTERVAL_MS,
+  onTerminated(connection) {
+    void handleLiveConnectionClosed({
+      registry: liveRegistry,
+      livePresenceService,
+      connectionId: connection.id,
+    }).catch((error: unknown) => {
+      console.error("live_connection_heartbeat_cleanup_failed", error);
+    });
+  },
+});
+heartbeatManager.start();
 const disconnectCleanupService = createDisconnectCleanupService({
   clock: systemClock,
   roomService,
@@ -66,6 +83,7 @@ const app = createApp({
     gameSessionService,
     roomService,
     livePresenceService,
+    heartbeatManager,
     playerSessionService,
   },
   disconnectCleanup: {
