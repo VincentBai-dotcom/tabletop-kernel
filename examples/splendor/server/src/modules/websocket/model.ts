@@ -9,6 +9,8 @@ export interface LiveConnection {
   ping?(): void;
   /** Force-close a stale connection when the runtime supports it. */
   terminate?(): void;
+  /** Gracefully close a connection with an optional code and reason. */
+  close?(code?: number, reason?: string): void;
 }
 
 /** What a connection is currently subscribed to. */

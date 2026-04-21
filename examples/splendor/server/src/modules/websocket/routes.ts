@@ -55,6 +55,7 @@ function toLiveConnection(ws: {
   send(payload: unknown): unknown;
   ping?(): unknown;
   terminate?(): void;
+  close?(code?: number, reason?: string): void;
 }) {
   return {
     id: ws.id,
@@ -66,6 +67,9 @@ function toLiveConnection(ws: {
     },
     terminate() {
       ws.terminate?.();
+    },
+    close(code, reason) {
+      ws.close?.(code, reason);
     },
   } satisfies LiveConnection;
 }

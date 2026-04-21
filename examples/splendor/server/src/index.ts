@@ -5,6 +5,8 @@ import {
   DISCONNECT_CLEANUP_CRON_PATTERN,
   DISCONNECT_GRACE_MS,
   LIVE_HEARTBEAT_INTERVAL_MS,
+  SERVER_RESTART_CLOSE_CODE,
+  SERVER_RESTART_RECONNECT_AFTER_MS,
 } from "./lib/reconnect-policy";
 import { configService } from "./modules/config";
 import { createDbClient } from "./modules/db";
@@ -18,6 +20,7 @@ import {
   createPlayerSessionService,
   createPlayerSessionStore,
 } from "./modules/player-session";
+import { createShutdownService } from "./modules/shutdown";
 import {
   createHeartbeatManager,
   createLiveConnectionRegistry,
@@ -26,6 +29,17 @@ import {
 } from "./modules/websocket";
 import { createLivePresenceService } from "./modules/live-presence";
 import { createApp } from "./app";
+
+function getDisconnectCleanupCron(app: { store: unknown }) {
+  const store = app.store as {
+    cron?: {
+      disconnectCleanup?: { stop(): void };
+    };
+  };
+  const job = store.cron?.disconnectCleanup;
+
+  return job ? { stop: () => job.stop() } : undefined;
+}
 
 const config = configService.get();
 const { db } = createDbClient(config.database.url);
@@ -67,7 +81,6 @@ const heartbeatManager = createHeartbeatManager({
     });
   },
 });
-heartbeatManager.start();
 const disconnectCleanupService = createDisconnectCleanupService({
   clock: systemClock,
   roomService,
@@ -90,7 +103,20 @@ const app = createApp({
     cleanupService: disconnectCleanupService,
     pattern: DISCONNECT_CLEANUP_CRON_PATTERN,
   },
-}).listen({
+});
+const heartbeat = heartbeatManager.start();
+const shutdownService = createShutdownService({
+  registry: liveRegistry,
+  heartbeat,
+  cleanupCron: getDisconnectCleanupCron(app),
+  reconnectAfterMs: SERVER_RESTART_RECONNECT_AFTER_MS,
+  closeCode: SERVER_RESTART_CLOSE_CODE,
+});
+
+process.on("SIGTERM", () => shutdownService.handleSigterm());
+process.on("SIGINT", () => shutdownService.handleSigterm());
+
+app.listen({
   hostname: config.server.host,
   port: config.server.port,
 });
