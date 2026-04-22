@@ -18,8 +18,16 @@ export function createShutdownService({
       }
       shutdownStarted = true;
 
+      const connectionCount = registry.getConnections().length;
+      console.log("server_shutdown_started", { connectionCount });
+
       heartbeat.stop();
+      console.log("server_shutdown_heartbeat_stopped");
+
       cleanupCron?.stop();
+      if (cleanupCron) {
+        console.log("server_shutdown_cleanup_stopped");
+      }
 
       for (const connection of registry.getConnections()) {
         connection.send({
@@ -28,8 +36,15 @@ export function createShutdownService({
         });
         connection.close?.(closeCode, "server_restarting");
       }
+      console.log("server_shutdown_connections_closed", {
+        closeCode,
+        connectionCount,
+        reconnectAfterMs,
+      });
 
       await server.stop();
+      console.log("server_shutdown_listener_stopped");
+
       exitProcess(0);
     },
   };
