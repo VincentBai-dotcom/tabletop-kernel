@@ -30,17 +30,6 @@ import {
 import { createLivePresenceService } from "./modules/live-presence";
 import { createApp } from "./app";
 
-function getDisconnectCleanupCron(app: { store: unknown }) {
-  const store = app.store as {
-    cron?: {
-      disconnectCleanup?: { stop(): void };
-    };
-  };
-  const job = store.cron?.disconnectCleanup;
-
-  return job ? { stop: () => job.stop() } : undefined;
-}
-
 const config = configService.get();
 const { db } = createDbClient(config.database.url);
 const playerSessionService = createPlayerSessionService({
@@ -108,7 +97,6 @@ const heartbeat = heartbeatManager.start();
 const shutdownService = createShutdownService({
   registry: liveRegistry,
   heartbeat,
-  cleanupCron: getDisconnectCleanupCron(app),
   server: app,
   exitProcess: (code) => process.exit(code),
   reconnectAfterMs: SERVER_RESTART_RECONNECT_AFTER_MS,

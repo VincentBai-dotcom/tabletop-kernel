@@ -17,7 +17,6 @@ export interface ShutdownService {
 export interface CreateShutdownServiceDeps {
   registry: LiveConnectionRegistry;
   heartbeat: Stoppable;
-  cleanupCron?: Stoppable;
   server: ServerStopper;
   exitProcess: ExitProcess;
   reconnectAfterMs: number;

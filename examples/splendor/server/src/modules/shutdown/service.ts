@@ -3,7 +3,6 @@ import type { CreateShutdownServiceDeps, ShutdownService } from "./model";
 export function createShutdownService({
   registry,
   heartbeat,
-  cleanupCron,
   server,
   exitProcess,
   reconnectAfterMs,
@@ -23,11 +22,6 @@ export function createShutdownService({
 
       heartbeat.stop();
       console.log("server_shutdown_heartbeat_stopped");
-
-      cleanupCron?.stop();
-      if (cleanupCron) {
-        console.log("server_shutdown_cleanup_stopped");
-      }
 
       for (const connection of registry.getConnections()) {
         connection.send({

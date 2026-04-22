@@ -36,11 +36,6 @@ describe("createShutdownService", () => {
           calls.push("heartbeat.stop");
         },
       },
-      cleanupCron: {
-        stop() {
-          calls.push("cleanupCron.stop");
-        },
-      },
       server: {
         async stop() {
           calls.push("server.stop");
@@ -58,19 +53,13 @@ describe("createShutdownService", () => {
     expect(log.mock.calls).toEqual([
       ["server_shutdown_started", { connectionCount: 2 }],
       ["server_shutdown_heartbeat_stopped"],
-      ["server_shutdown_cleanup_stopped"],
       [
         "server_shutdown_connections_closed",
         { closeCode: 1012, connectionCount: 2, reconnectAfterMs: 1_000 },
       ],
       ["server_shutdown_listener_stopped"],
     ]);
-    expect(calls).toEqual([
-      "heartbeat.stop",
-      "cleanupCron.stop",
-      "server.stop",
-      "process.exit:0",
-    ]);
+    expect(calls).toEqual(["heartbeat.stop", "server.stop", "process.exit:0"]);
     expect(first.sent).toEqual([
       { type: "server_restarting", reconnectAfterMs: 1_000 },
     ]);
