@@ -15,6 +15,7 @@ import type {
 class FakeRoomStore implements RoomStore {
   readonly rooms = new Map<string, RoomSnapshot>();
   readonly markedStartingRoomIds: string[] = [];
+  beforeNextLoadRoomSnapshot: (() => void) | null = null;
   private nextRoomId = 1;
   private nextPlayerSessionId = 1;
 
@@ -53,6 +54,8 @@ class FakeRoomStore implements RoomStore {
   }
 
   async loadRoomSnapshot(roomId: string) {
+    this.beforeNextLoadRoomSnapshot?.();
+    this.beforeNextLoadRoomSnapshot = null;
     return this.rooms.get(roomId) ?? null;
   }
 
@@ -401,6 +404,20 @@ describe("createRoomService", () => {
     ).rejects.toMatchObject({ code: "room_players_not_ready" });
   });
 
+  it("requires all seated players to be connected before start", async () => {
+    const { service, store } = createTestService();
+    const room = createRoom(["host", "p2"]);
+    room.players.forEach((player) => {
+      player.isReady = true;
+    });
+    room.players[1]!.disconnectedAt = new Date("2026-04-20T12:00:00.000Z");
+    store.addExistingRoom(room);
+
+    await expect(
+      service.startGame({ roomId: room.id, playerSessionId: "host" }),
+    ).rejects.toMatchObject({ code: "room_players_disconnected" });
+  });
+
   it("marks the room starting and publishes game started when start succeeds", async () => {
     const { notifier, service, store } = createTestService();
     const room = createRoom(["host", "p2"]);
@@ -511,6 +528,27 @@ describe("createRoomService", () => {
         .get("room-1")
         ?.players.map((player) => player.playerSessionId),
     ).toEqual(["host", "p3"]);
+  });
+
+  it("keeps room players who reconnect before cleanup removes them", async () => {
+    const { service, store } = createTestService();
+    const room = createRoom(["host", "p2", "p3"]);
+    room.players[1]!.disconnectedAt = new Date("2026-04-20T12:00:00.000Z");
+    store.addExistingRoom(room);
+    store.beforeNextLoadRoomSnapshot = () => {
+      room.players[1]!.disconnectedAt = null;
+    };
+
+    const processedCount = await service.cleanupExpiredDisconnects({
+      olderThan: new Date("2026-04-20T12:00:45.000Z"),
+    });
+
+    expect(processedCount).toBe(0);
+    expect(
+      store.rooms
+        .get("room-1")
+        ?.players.map((player) => player.playerSessionId),
+    ).toEqual(["host", "p2", "p3"]);
   });
 
   it("transfers host when an expired disconnected host is removed", async () => {

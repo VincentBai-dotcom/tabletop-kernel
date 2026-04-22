@@ -44,6 +44,15 @@ function toEngineCommand(command: unknown, actorId: string): Command {
   };
 }
 
+function disconnectExpired(
+  disconnectedAt: Date | null,
+  olderThan: Date,
+): boolean {
+  return (
+    disconnectedAt !== null && disconnectedAt.getTime() < olderThan.getTime()
+  );
+}
+
 export function createGameSessionService<
   TState extends CanonicalState<object>,
 >({
@@ -263,7 +272,7 @@ export function createGameSessionService<
         }
 
         const player = findPlayer(gameSession, expiredPlayer.playerSessionId);
-        if (!player) {
+        if (!player || !disconnectExpired(player.disconnectedAt, olderThan)) {
           continue;
         }
 

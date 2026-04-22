@@ -43,6 +43,7 @@ class FakeGameSessionStore implements GameSessionStore {
   readonly deletedRoomIds: string[] = [];
   readonly deletedGameSessionIds: string[] = [];
   readonly persistedVersions: number[] = [];
+  beforeNextLoadGameSession: (() => void) | null = null;
   private nextGameSessionId = 1;
 
   async loadRoomForGameStart(roomId: string) {
@@ -64,6 +65,8 @@ class FakeGameSessionStore implements GameSessionStore {
   }
 
   async loadGameSession(gameSessionId: string) {
+    this.beforeNextLoadGameSession?.();
+    this.beforeNextLoadGameSession = null;
     return this.sessions.get(gameSessionId) ?? null;
   }
 
@@ -364,5 +367,27 @@ describe("createGameSessionService", () => {
       },
     ]);
     expect(store.deletedGameSessionIds).toEqual(["game-1"]);
+  });
+
+  it("keeps games when the expired player reconnects before cleanup deletes", async () => {
+    const { service, store } = await createStartedGame();
+    const gameSession = store.sessions.get("game-1");
+    if (!gameSession) {
+      throw new Error("expected game session");
+    }
+    gameSession.players[1]!.disconnectedAt = new Date(
+      "2026-04-19T12:00:00.000Z",
+    );
+    store.beforeNextLoadGameSession = () => {
+      gameSession.players[1]!.disconnectedAt = null;
+    };
+
+    const result = await service.cleanupExpiredDisconnects({
+      olderThan: new Date("2026-04-19T12:00:45.000Z"),
+    });
+
+    expect(result).toEqual([]);
+    expect(store.deletedGameSessionIds).toEqual([]);
+    expect(await store.loadGameSession("game-1")).not.toBeNull();
   });
 });

@@ -114,6 +114,15 @@ export function createRoomService({
     }
   }
 
+  function disconnectExpired(
+    disconnectedAt: Date | null,
+    olderThan: Date,
+  ): boolean {
+    return (
+      disconnectedAt !== null && disconnectedAt.getTime() < olderThan.getTime()
+    );
+  }
+
   async function removeSeatedPlayer(
     room: RoomSnapshot,
     playerSessionId: string,
@@ -259,12 +268,11 @@ export function createRoomService({
         if (!room || room.status !== "open") {
           continue;
         }
-        if (
-          !room.players.some(
-            (player) =>
-              player.playerSessionId === expiredPlayer.playerSessionId,
-          )
-        ) {
+        const player = room.players.find(
+          (candidate) =>
+            candidate.playerSessionId === expiredPlayer.playerSessionId,
+        );
+        if (!player || !disconnectExpired(player.disconnectedAt, olderThan)) {
           continue;
         }
 
@@ -302,6 +310,13 @@ export function createRoomService({
           "room_players_not_ready",
           409,
           "Every seated player must be ready before start",
+        );
+      }
+      if (room.players.some((candidate) => candidate.disconnectedAt !== null)) {
+        throw new AppError(
+          "room_players_disconnected",
+          409,
+          "Every seated player must be connected before start",
         );
       }
 
