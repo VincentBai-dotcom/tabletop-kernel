@@ -4,11 +4,12 @@ export function createShutdownService({
   registry,
   heartbeat,
   cleanupCron,
+  server,
   reconnectAfterMs,
   closeCode,
 }: CreateShutdownServiceDeps): ShutdownService {
   return {
-    handleSigterm() {
+    async handleSigterm() {
       heartbeat.stop();
       cleanupCron?.stop();
 
@@ -19,6 +20,8 @@ export function createShutdownService({
         });
         connection.close?.(closeCode, "server_restarting");
       }
+
+      await server.stop();
     },
   };
 }

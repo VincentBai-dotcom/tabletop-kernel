@@ -109,12 +109,27 @@ const shutdownService = createShutdownService({
   registry: liveRegistry,
   heartbeat,
   cleanupCron: getDisconnectCleanupCron(app),
+  server: app,
   reconnectAfterMs: SERVER_RESTART_RECONNECT_AFTER_MS,
   closeCode: SERVER_RESTART_CLOSE_CODE,
 });
 
-process.on("SIGTERM", () => shutdownService.handleSigterm());
-process.on("SIGINT", () => shutdownService.handleSigterm());
+let shutdownStarted = false;
+
+function handleShutdownSignal() {
+  if (shutdownStarted) {
+    return;
+  }
+  shutdownStarted = true;
+
+  void shutdownService.handleSigterm().catch((error: unknown) => {
+    console.error("server_shutdown_failed", error);
+    process.exit(1);
+  });
+}
+
+process.on("SIGTERM", handleShutdownSignal);
+process.on("SIGINT", handleShutdownSignal);
 
 app.listen({
   hostname: config.server.host,

@@ -20,7 +20,7 @@ function createClosableConnection(id: string) {
 }
 
 describe("createShutdownService", () => {
-  it("notifies connections, closes with restart code, and stops loops", () => {
+  it("notifies connections, closes with restart code, stops loops, and stops the server", async () => {
     const registry = createLiveConnectionRegistry();
     const first = createClosableConnection("conn-1");
     const second = createClosableConnection("conn-2");
@@ -40,13 +40,22 @@ describe("createShutdownService", () => {
           calls.push("cleanupCron.stop");
         },
       },
+      server: {
+        async stop() {
+          calls.push("server.stop");
+        },
+      },
       reconnectAfterMs: 1_000,
       closeCode: 1012,
     });
 
-    service.handleSigterm();
+    await service.handleSigterm();
 
-    expect(calls).toEqual(["heartbeat.stop", "cleanupCron.stop"]);
+    expect(calls).toEqual([
+      "heartbeat.stop",
+      "cleanupCron.stop",
+      "server.stop",
+    ]);
     expect(first.sent).toEqual([
       { type: "server_restarting", reconnectAfterMs: 1_000 },
     ]);
