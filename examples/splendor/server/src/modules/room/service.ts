@@ -1,5 +1,6 @@
 import { AppError } from "../errors";
 import { createRoomCode } from "../../lib/random";
+import { timestampBefore } from "../../lib/time";
 import type {
   ResolvePlayerSession,
   RoomCodeGenerator,
@@ -112,15 +113,6 @@ export function createRoomService({
         "Display name is already taken in this room",
       );
     }
-  }
-
-  function disconnectExpired(
-    disconnectedAt: Date | null,
-    olderThan: Date,
-  ): boolean {
-    return (
-      disconnectedAt !== null && disconnectedAt.getTime() < olderThan.getTime()
-    );
   }
 
   async function removeSeatedPlayer(
@@ -272,7 +264,7 @@ export function createRoomService({
           (candidate) =>
             candidate.playerSessionId === expiredPlayer.playerSessionId,
         );
-        if (!player || !disconnectExpired(player.disconnectedAt, olderThan)) {
+        if (!player || !timestampBefore(player.disconnectedAt, olderThan)) {
           continue;
         }
 

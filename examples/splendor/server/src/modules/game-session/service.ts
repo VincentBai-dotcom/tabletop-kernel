@@ -1,5 +1,6 @@
 import type { CanonicalState, Command } from "tabletop-engine";
 import { AppError } from "../errors";
+import { timestampBefore } from "../../lib/time";
 import type {
   CreateGameSessionServiceDeps,
   GameCommandResult,
@@ -42,15 +43,6 @@ function toEngineCommand(command: unknown, actorId: string): Command {
     actorId,
     input: input as Record<string, unknown>,
   };
-}
-
-function disconnectExpired(
-  disconnectedAt: Date | null,
-  olderThan: Date,
-): boolean {
-  return (
-    disconnectedAt !== null && disconnectedAt.getTime() < olderThan.getTime()
-  );
 }
 
 export function createGameSessionService<
@@ -272,7 +264,7 @@ export function createGameSessionService<
         }
 
         const player = findPlayer(gameSession, expiredPlayer.playerSessionId);
-        if (!player || !disconnectExpired(player.disconnectedAt, olderThan)) {
+        if (!player || !timestampBefore(player.disconnectedAt, olderThan)) {
           continue;
         }
 
