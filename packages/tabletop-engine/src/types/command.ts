@@ -119,71 +119,42 @@ export interface DiscoveryStepDefinition<
   ): DiscoveryStepResult<DiscoveryData, TOutput, TCommandInput> | null;
 }
 
-type DiscoveryStepReady<
-  THasInput extends boolean,
-  THasOutput extends boolean,
-> = THasInput extends true ? (THasOutput extends true ? true : false) : false;
-
-type DiscoveryStepBuilderMethods<
-  FacadeGameState extends object,
-  TInput extends DiscoveryData,
-  TOutput extends DiscoveryData,
-  TCommandInput extends CommandData,
-  THasInput extends boolean,
-  THasOutput extends boolean,
+export type DiscoveryStepBuilder<
+  FacadeGameState extends object = object,
+  TCommandInput extends CommandData = CommandData,
 > = {
   input<TNextInput extends DiscoveryData>(
     schema: CommandSchema<TNextInput>,
-  ): DiscoveryStepBuilder<
-    FacadeGameState,
-    TNextInput,
-    TOutput,
-    TCommandInput,
-    true,
-    THasOutput
-  >;
+  ): DiscoveryStepInputBuilder<FacadeGameState, TNextInput, TCommandInput>;
+};
+
+export type DiscoveryStepInputBuilder<
+  FacadeGameState extends object = object,
+  TInput extends DiscoveryData = DiscoveryData,
+  TCommandInput extends CommandData = CommandData,
+> = {
   output<TNextOutput extends DiscoveryData>(
     schema: CommandSchema<TNextOutput>,
-  ): DiscoveryStepBuilder<
+  ): DiscoveryStepReadyBuilder<
     FacadeGameState,
     TInput,
     TNextOutput,
-    TCommandInput,
-    THasInput,
-    true
+    TCommandInput
   >;
 };
 
-type ConditionalBuilderMethod<
-  Enabled extends boolean,
-  TMethod,
-> = Enabled extends true ? TMethod : NoBuilderMethod;
-
-export type DiscoveryStepBuilder<
+export type DiscoveryStepReadyBuilder<
   FacadeGameState extends object = object,
   TInput extends DiscoveryData = DiscoveryData,
   TOutput extends DiscoveryData = DiscoveryData,
   TCommandInput extends CommandData = CommandData,
-  THasInput extends boolean = false,
-  THasOutput extends boolean = false,
-> = DiscoveryStepBuilderMethods<
-  FacadeGameState,
-  TInput,
-  TOutput,
-  TCommandInput,
-  THasInput,
-  THasOutput
-> &
-  ConditionalBuilderMethod<
-    DiscoveryStepReady<THasInput, THasOutput>,
-    {
-      resolve(
-        resolve: (
-          context: DiscoveryStepContext<FacadeGameState, TInput>,
-        ) => DiscoveryStepResult<DiscoveryData, TOutput, TCommandInput> | null,
-      ): void;
-    }
-  >;
+> = {
+  resolve(
+    resolve: (
+      context: DiscoveryStepContext<FacadeGameState, TInput>,
+    ) => DiscoveryStepResult<DiscoveryData, TOutput, TCommandInput> | null,
+  ): void;
+};
 
 export interface DiscoveryDefinition<
   FacadeGameState extends object = object,
@@ -487,18 +458,10 @@ export interface DiscoveryFlowBuilder<
   FacadeGameState extends object = object,
   TCommandInput extends CommandData = CommandData,
 > {
-  step<
-    TInput extends DiscoveryData = DiscoveryData,
-    TOutput extends DiscoveryData = DiscoveryData,
-  >(
+  step(
     stepId: string,
     configure: (
-      step: DiscoveryStepBuilder<
-        FacadeGameState,
-        TInput,
-        TOutput,
-        TCommandInput
-      >,
+      step: DiscoveryStepBuilder<FacadeGameState, TCommandInput>,
     ) => void,
   ): DiscoveryFlowBuilder<FacadeGameState, TCommandInput>;
 }

@@ -9,7 +9,9 @@ import type {
   DiscoveryDefinition,
   DiscoveryFlowBuilder,
   DiscoveryStepBuilder,
+  DiscoveryStepInputBuilder,
   DiscoveryStepDefinition,
+  DiscoveryStepReadyBuilder,
   NonDiscoverableCommandAccumulator,
   NonDiscoverableCommandConfig,
 } from "./types/command";
@@ -107,69 +109,45 @@ export function createCommandFactory<FacadeGameState extends object>() {
 
   function createDiscoveryStepBuilder<
     TCommandInput extends Record<string, unknown>,
-    TInput extends Record<string, unknown> = Record<string, unknown>,
-    TOutput extends Record<string, unknown> = Record<string, unknown>,
-    THasInput extends boolean = false,
-    THasOutput extends boolean = false,
   >(
     stepState: DiscoveryStepAccumulator,
-  ): DiscoveryStepBuilder<
-    FacadeGameState,
-    TInput,
-    TOutput,
-    TCommandInput,
-    THasInput,
-    THasOutput
-  > {
+  ): DiscoveryStepBuilder<FacadeGameState, TCommandInput> {
     const builder: Partial<
-      DiscoveryStepBuilder<
-        FacadeGameState,
-        TInput,
-        TOutput,
-        TCommandInput,
-        true,
-        true
-      >
+      DiscoveryStepBuilder<FacadeGameState, TCommandInput> &
+        DiscoveryStepInputBuilder<FacadeGameState> &
+        DiscoveryStepReadyBuilder<FacadeGameState>
     > = {};
 
     const input: DiscoveryStepBuilder<
       FacadeGameState,
-      TInput,
-      TOutput,
       TCommandInput
     >["input"] = <TNextInput extends Record<string, unknown>>(
       schema: CommandSchema<TNextInput>,
     ) => {
       assertSerializableSchema(schema);
       stepState.inputSchema = schema;
-      return builder as DiscoveryStepBuilder<
+      return builder as unknown as DiscoveryStepInputBuilder<
         FacadeGameState,
-        typeof schema.static,
-        TOutput,
-        TCommandInput,
-        true,
-        THasOutput
+        TNextInput,
+        TCommandInput
       >;
     };
     builder.input = input;
 
-    const output: DiscoveryStepBuilder<
+    const output: DiscoveryStepInputBuilder<
       FacadeGameState,
-      TInput,
-      TOutput,
+      Record<string, unknown>,
       TCommandInput
     >["output"] = <TNextOutput extends Record<string, unknown>>(
       schema: CommandSchema<TNextOutput>,
     ) => {
       assertSerializableSchema(schema);
       stepState.outputSchema = schema;
-      return builder as DiscoveryStepBuilder<
+      return builder as unknown as DiscoveryStepReadyBuilder<
         FacadeGameState,
-        TInput,
-        typeof schema.static,
-        TCommandInput,
-        THasInput,
-        true
+        Record<string, unknown>,
+        TNextOutput,
+        TCommandInput
       >;
     };
     builder.output = output;
@@ -178,14 +156,7 @@ export function createCommandFactory<FacadeGameState extends object>() {
       stepState.resolve = resolve as (...args: unknown[]) => unknown;
     };
 
-    return builder as DiscoveryStepBuilder<
-      FacadeGameState,
-      TInput,
-      TOutput,
-      TCommandInput,
-      THasInput,
-      THasOutput
-    >;
+    return builder as DiscoveryStepBuilder<FacadeGameState, TCommandInput>;
   }
 
   function createDiscoveryFlowBuilder<
@@ -201,13 +172,7 @@ export function createCommandFactory<FacadeGameState extends object>() {
         stepId,
       };
       stepStates.push(stepState);
-      configure(
-        createDiscoveryStepBuilder<
-          TCommandInput,
-          Record<string, unknown>,
-          Record<string, unknown>
-        >(stepState),
-      );
+      configure(createDiscoveryStepBuilder<TCommandInput>(stepState));
       return flow as DiscoveryFlowBuilder<FacadeGameState, TCommandInput>;
     };
 

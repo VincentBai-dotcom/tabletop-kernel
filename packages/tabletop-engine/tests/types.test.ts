@@ -812,14 +812,20 @@ test("step builder only exposes resolve after input and output are set", () => {
     flow.step("select_amount", (step) => {
       // @ts-expect-error resolve should not exist before input and output are set
       void step.resolve;
+      // @ts-expect-error output should not exist before input is set
+      void step.output;
 
       const withInput = step.input(stepInputSchema);
 
-      // @ts-expect-error resolve should not exist after input alone
-      void withInput.resolve;
+      // @ts-expect-error input should not exist after input is set
+      void withInput.input;
 
       const withOutput = withInput.output(stepOutputSchema);
 
+      // @ts-expect-error input should not exist after input and output are set
+      void withOutput.input;
+      // @ts-expect-error output should not exist after input and output are set
+      void withOutput.output;
       withOutput.resolve(({ discovery }) => {
         void discovery.step;
         return [];
