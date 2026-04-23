@@ -752,7 +752,8 @@ test("command factory contextually types command lifecycle methods", () => {
           .input(draftSchema)
           .output(t.object({ amount: t.number() }))
           .resolve(({ discovery }) => {
-            const selectedAmount = discovery.input.selectedAmount;
+            const selectedAmount: number | undefined =
+              discovery.input.selectedAmount;
 
             if (typeof selectedAmount !== "number") {
               return [
