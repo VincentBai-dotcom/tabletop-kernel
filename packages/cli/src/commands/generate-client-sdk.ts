@@ -21,53 +21,130 @@ export async function runGenerateClientSdkCommand(
     cwd: options.cwd,
   });
   const protocol = describeGameProtocol(context.game);
-  const canonicalSchema = {
-    type: "object",
-    properties: {
-      game: context.game.canonicalGameStateSchema.schema,
-      runtime: context.game.runtimeStateSchema,
-    },
-    required: ["game", "runtime"],
-  } as const;
-  const commandUnion = Object.entries(protocol.commands)
-    .map(([commandId, command]) => {
-      return `{
-  type: ${JSON.stringify(commandId)};
-  actorId: string;
-  input: ${renderSchemaTypeString(command.commandSchema.schema as Record<string, unknown>)};
-}`;
-    })
-    .join(" |\n");
-  const discoveryUnion = Object.entries(protocol.commands)
-    .filter(([, command]) => command.discoverySchema)
-    .map(([commandId, command]) => {
-      return `{
-  type: ${JSON.stringify(commandId)};
-  actorId: string;
-  input: ${renderSchemaTypeString(command.discoverySchema!.schema as Record<string, unknown>)};
-}`;
-    })
-    .join(" |\n");
+  const commandUnion = renderCommandRequestUnion(protocol.commands);
+  const discoveryRequestUnion = renderDiscoveryRequestUnion(protocol.commands);
+  const discoveryResultUnion = renderDiscoveryResultUnion(protocol.commands);
   const output = [
-    renderTypeDeclaration("CanonicalState", canonicalSchema),
     renderTypeDeclaration(
       "VisibleState",
       protocol.viewSchema as Record<string, unknown>,
     ),
     `export type CommandRequest = ${commandUnion || "never"};\n`,
-    `export type DiscoveryRequest = ${discoveryUnion || "never"};\n`,
-    [
-      "export interface GameClientSdk {",
-      "  getVisibleState(): Promise<VisibleState>;",
-      "  submitCommand(command: CommandRequest): Promise<CanonicalState>;",
-      "  discover(request: DiscoveryRequest): Promise<unknown>;",
-      "}",
-      "",
-    ].join("\n"),
+    `export type DiscoveryRequest = ${discoveryRequestUnion || "never"};\n`,
+    `export type DiscoveryResult = ${discoveryResultUnion || "never"};\n`,
   ].join("\n");
   const outputPath = `${context.outputDirectory}/client-sdk.generated.ts`;
 
   await writeOutputFile(outputPath, output);
 
   return success(`generated client sdk:${outputPath}`);
+}
+
+function renderCommandRequestUnion(
+  commands: Record<
+    string,
+    { commandSchema: { schema?: Record<string, unknown> } }
+  >,
+): string {
+  return renderUnion(
+    Object.entries(commands).map(([commandId, command]) => {
+      const commandSchema = command.commandSchema.schema as Record<
+        string,
+        unknown
+      >;
+
+      return `{
+  type: ${JSON.stringify(commandId)};
+  actorId: string;
+  input: ${renderSchemaTypeString(commandSchema)};
+}`;
+    }),
+  );
+}
+
+function renderDiscoveryRequestUnion(
+  commands: Record<
+    string,
+    {
+      commandSchema: { schema?: Record<string, unknown> };
+      discovery?: {
+        steps: Array<{
+          stepId: string;
+          inputSchema: { schema?: Record<string, unknown> };
+        }>;
+      };
+    }
+  >,
+): string {
+  return renderUnion(
+    Object.entries(commands).flatMap(([commandId, command]) =>
+      (command.discovery?.steps ?? []).map((step) => {
+        const inputSchema = step.inputSchema.schema as Record<string, unknown>;
+
+        return `{
+  type: ${JSON.stringify(commandId)};
+  actorId: string;
+  step: ${JSON.stringify(step.stepId)};
+  input: ${renderSchemaTypeString(inputSchema)};
+}`;
+      }),
+    ),
+  );
+}
+
+function renderDiscoveryResultUnion(
+  commands: Record<
+    string,
+    {
+      commandSchema: { schema?: Record<string, unknown> };
+      discovery?: {
+        steps: Array<{
+          stepId: string;
+          inputSchema: { schema?: Record<string, unknown> };
+          outputSchema: { schema?: Record<string, unknown> };
+          defaultNextStep?: string;
+        }>;
+      };
+    }
+  >,
+): string {
+  return renderUnion(
+    Object.entries(commands).flatMap(([, command]) => {
+      const completeResult = `{
+  complete: true;
+  input: ${renderSchemaTypeString(
+    command.commandSchema.schema as Record<string, unknown>,
+  )};
+}`;
+
+      const stepResults = (command.discovery?.steps ?? []).map((step) => {
+        const inputSchema = step.inputSchema.schema as Record<string, unknown>;
+        const outputSchema = step.outputSchema.schema as Record<
+          string,
+          unknown
+        >;
+
+        return `{
+  complete: false;
+  step: ${JSON.stringify(step.stepId)};
+  options: Array<{
+    id: string;
+    output: ${renderSchemaTypeString(outputSchema)};
+    nextStep: string;
+    nextInput: ${renderSchemaTypeString(inputSchema)};
+  }>;
+}`;
+      });
+
+      return [...stepResults, completeResult];
+    }),
+  );
+}
+
+function renderUnion(members: string[]): string {
+  if (members.length === 0) {
+    return "";
+  }
+
+  return members.join(" |\n");
 }

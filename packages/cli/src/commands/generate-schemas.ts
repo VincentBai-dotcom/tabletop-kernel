@@ -38,10 +38,18 @@ export async function runGenerateSchemasCommand(
     ),
     discoveries: Object.fromEntries(
       Object.entries(protocol.commands)
-        .filter(([, command]) => command.discoverySchema)
+        .filter(([, command]) => command.discovery)
         .map(([commandId, command]) => [
           commandId,
-          command.discoverySchema!.schema,
+          {
+            startStep: command.discovery!.startStep,
+            steps: command.discovery!.steps.map((step) => ({
+              stepId: step.stepId,
+              input: step.inputSchema.schema,
+              output: step.outputSchema.schema,
+              defaultNextStep: step.defaultNextStep,
+            })),
+          },
         ]),
     ),
   };
