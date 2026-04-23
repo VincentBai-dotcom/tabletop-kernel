@@ -81,7 +81,17 @@ function normalizeDiscoveryDescriptor(
   const normalizedSteps: ProtocolDiscoveryStepDescriptor[] = [];
   const knownStepIds = new Set<string>();
 
-  for (const step of discovery.steps) {
+  for (const [index, step] of discovery.steps.entries()) {
+    if (!isObjectRecord(step)) {
+      throw new Error(`command_discovery_step_invalid:${commandId}:${index}`);
+    }
+
+    if (typeof step.stepId !== "string" || step.stepId.length === 0) {
+      throw new Error(
+        `command_discovery_step_missing_step_id:${commandId}:${index}`,
+      );
+    }
+
     if (knownStepIds.has(step.stepId)) {
       throw new Error(
         `command_discovery_duplicate_step_id:${commandId}:${step.stepId}`,
@@ -89,15 +99,21 @@ function normalizeDiscoveryDescriptor(
     }
     knownStepIds.add(step.stepId);
 
-    if (!step.inputSchema) {
+    if (!isObjectRecord(step.inputSchema)) {
       throw new Error(
-        `command_discovery_input_schema_required:${commandId}:${step.stepId}`,
+        `command_discovery_step_missing_input_schema:${commandId}:${index}`,
       );
     }
 
-    if (!step.outputSchema) {
+    if (!isObjectRecord(step.outputSchema)) {
       throw new Error(
-        `command_discovery_output_schema_required:${commandId}:${step.stepId}`,
+        `command_discovery_step_missing_output_schema:${commandId}:${index}`,
+      );
+    }
+
+    if (typeof (step as { resolve?: unknown }).resolve !== "function") {
+      throw new Error(
+        `command_discovery_step_missing_resolve:${commandId}:${index}`,
       );
     }
 
@@ -128,6 +144,10 @@ function normalizeDiscoveryDescriptor(
     startStep: discovery.startStep,
     steps: normalizedSteps,
   };
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function createVisibleStateSchema(

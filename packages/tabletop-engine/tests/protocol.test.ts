@@ -319,3 +319,50 @@ test("describeGameProtocol rejects discovery commands with empty discovery steps
     "command_discovery_steps_required:empty_discovery_steps",
   );
 });
+
+test("describeGameProtocol rejects malformed discovery step entries", () => {
+  const malformedStepCommand = definePlainProtocolCommand({
+    commandId: "malformed_discovery_step",
+    commandSchema: gainScoreCommandSchema,
+  })
+    .discoverable((flow) =>
+      flow.step("select_amount", (step) =>
+        step
+          .input(selectAmountInputSchema)
+          .output(selectAmountOutputSchema)
+          .resolve(() => ({
+            complete: true as const,
+            input: {
+              amount: 1,
+            },
+          })),
+      ),
+    )
+    .validate(() => ({ ok: true as const }))
+    .execute(() => {})
+    .build();
+
+  const malformedStepsCommand = malformedStepCommand as unknown as {
+    discovery: { steps: unknown[] };
+  };
+
+  malformedStepsCommand.discovery.steps[0] = null;
+  const nullStepsGame = new GameDefinitionBuilder("null-discovery-step-game")
+    .rootState(PlainProtocolRootState)
+    .initialStage(createSelfLoopingTurnStage([malformedStepCommand]))
+    .build();
+
+  expect(() => describeGameProtocol(nullStepsGame)).toThrow(
+    "command_discovery_step_invalid:malformed_discovery_step:0",
+  );
+
+  malformedStepsCommand.discovery.steps[0] = {};
+  const emptyStepsGame = new GameDefinitionBuilder("empty-discovery-step-game")
+    .rootState(PlainProtocolRootState)
+    .initialStage(createSelfLoopingTurnStage([malformedStepCommand]))
+    .build();
+
+  expect(() => describeGameProtocol(emptyStepsGame)).toThrow(
+    "command_discovery_step_missing_step_id:malformed_discovery_step:0",
+  );
+});
