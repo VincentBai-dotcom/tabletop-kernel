@@ -225,12 +225,14 @@ test("discovery schemas reject nested state transport fields at definition time"
     defineCommand({
       commandId: "invalid_discovery_command",
       commandSchema: t.object({}),
-    }).discoverable({
-      discoverySchema: invalidTransportSchema,
-      discover() {
-        return null;
-      },
-    }),
+    }).discoverable((flow) =>
+      flow.step("invalid_step", (step) =>
+        step
+          .input(invalidTransportSchema)
+          .output(t.object({}))
+          .resolve(() => []),
+      ),
+    ),
   ).toThrow("state_field_not_allowed_in_serializable_schema");
 });
 

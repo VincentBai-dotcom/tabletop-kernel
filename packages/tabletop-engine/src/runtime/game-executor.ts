@@ -511,6 +511,10 @@ export function createGameExecutor<
       }
 
       const definition = game.commands[discovery.type];
+      if (!definition) {
+        return null;
+      }
+
       const discoveryDefinition = definition?.discovery;
 
       if (
@@ -568,7 +572,12 @@ export function createGameExecutor<
         return null;
       }
 
-      const discoveryContext = createDiscoveryContext(
+      const discoveryContext = createDiscoveryContext<
+        CanonicalGameState,
+        FacadeGameState,
+        RuntimeState,
+        typeof discovery.input
+      >(
         state,
         createCommandGameView(
           game as GameExecutorDefinition<

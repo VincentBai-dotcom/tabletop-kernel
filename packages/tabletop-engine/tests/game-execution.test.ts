@@ -1684,42 +1684,26 @@ test("game executor can discover the next semantic options for a command", () =>
             step
               .input(selectAmountInputSchema)
               .output(selectCardOutputSchema)
-              .resolve(({ discovery }) => {
-                if (typeof discovery.input.cardId !== "number") {
-                  return [
-                    {
-                      id: "card-1",
-                      output: {
-                        cardId: 1,
-                      },
-                      nextInput: {
-                        cardId: 1,
-                      },
-                    },
-                    {
-                      id: "card-2",
-                      output: {
-                        cardId: 2,
-                      },
-                      nextInput: {
-                        cardId: 2,
-                      },
-                    },
-                  ];
-                }
-
-                return [
-                  {
-                    id: "card-1",
-                    output: {
-                      cardId: discovery.input.cardId,
-                    },
-                    nextInput: {
-                      cardId: discovery.input.cardId,
-                    },
+              .resolve(() => [
+                {
+                  id: "card-1",
+                  output: {
+                    cardId: 1,
                   },
-                ];
-              }),
+                  nextInput: {
+                    cardId: 1,
+                  },
+                },
+                {
+                  id: "card-2",
+                  output: {
+                    cardId: 2,
+                  },
+                  nextInput: {
+                    cardId: 2,
+                  },
+                },
+              ]),
           )
           .step("select_target", (step) =>
             step
@@ -1729,10 +1713,10 @@ test("game executor can discover the next semantic options for a command", () =>
                   targetId: t.number(),
                 }),
               )
-              .resolve(({ discovery }) => ({
+              .resolve(({ input }) => ({
                 complete: true as const,
                 input: {
-                  cardId: discovery.input.cardId,
+                  cardId: input.cardId,
                 },
               })),
           ),
@@ -1863,12 +1847,15 @@ test("createGameExecutor rejects invalid discovery results for step-authored com
           step
             .input(selectCardInputSchema)
             .output(t.object({ targetId: t.number() }))
-            .resolve(() => ({
-              complete: false as const,
-              input: {
-                cardId: 2,
-              },
-            })),
+            .resolve(
+              () =>
+                ({
+                  complete: false as const,
+                  input: {
+                    cardId: 2,
+                  },
+                }) as never,
+            ),
         ),
       )
       .validate(() => ({ ok: true as const }))

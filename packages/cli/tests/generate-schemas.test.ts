@@ -78,7 +78,12 @@ describe("generate schemas", () => {
       canonicalState: { properties: Record<string, unknown> };
       visibleState: { properties: Record<string, unknown> };
       commands: Record<string, unknown>;
-      discoveries: Record<string, unknown>;
+      discoveries: Record<
+        string,
+        {
+          steps?: unknown[];
+        }
+      >;
     };
 
     expect(generated.canonicalState.properties.game).toBeDefined();
@@ -86,11 +91,10 @@ describe("generate schemas", () => {
     expect(generated.visibleState.properties.game).toBeDefined();
     expect(generated.visibleState.properties.progression).toBeDefined();
     expect(generated.commands.take_three_distinct_gems).toBeDefined();
-    expect(generated.discoveries.take_three_distinct_gems).toBeDefined();
-    expect(generated.discoveries.take_three_distinct_gems.steps).toBeDefined();
-    expect(
-      generated.discoveries.take_three_distinct_gems.steps[0],
-    ).toMatchObject({
+    const discovery = generated.discoveries.take_three_distinct_gems;
+    expect(discovery).toBeDefined();
+    expect(discovery?.steps).toBeDefined();
+    expect(discovery?.steps?.[0]).toMatchObject({
       input: { type: "object" },
       output: { type: "object" },
     });
