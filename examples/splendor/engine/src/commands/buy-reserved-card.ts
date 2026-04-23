@@ -12,51 +12,65 @@ const buyReservedCardCommandSchema = t.object({
 
 export type BuyReservedCardInput = typeof buyReservedCardCommandSchema.static;
 
-const buyReservedCardDiscoverySchema = t.object({
+const selectReservedCardDiscoveryInputSchema = t.object({
   selectedCardId: t.optional(t.number()),
+});
+
+const selectReservedCardDiscoveryOutputSchema = t.object({
+  cardId: t.number(),
+  level: t.number(),
+  bonusColor: t.string(),
+  prestigePoints: t.number(),
+  source: t.string(),
 });
 
 const buyReservedCardCommand = defineSplendorCommand({
   commandId: "buy_reserved_card",
   commandSchema: buyReservedCardCommandSchema,
 })
-  .discoverable({
-    discoverySchema: buyReservedCardDiscoverySchema,
-    discover(context) {
-      const actorId = context.actorId;
-      const game = context.game;
-      const draft = context.discovery.input;
-      const player = game.getPlayer(actorId);
+  .discoverable((flow) =>
+    flow.step("select_reserved_card", (step) =>
+      step
+        .input(selectReservedCardDiscoveryInputSchema)
+        .output(selectReservedCardDiscoveryOutputSchema)
+        .resolve(({ actorId, game, discovery }) => {
+          const draft = discovery.input;
+          const player = game.getPlayer(actorId);
 
-      if (!draft?.selectedCardId) {
-        return {
-          complete: false as const,
-          step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
-          options: player.reservedCardIds
+          if (draft.selectedCardId) {
+            return completeDiscovery({
+              cardId: draft.selectedCardId,
+            });
+          }
+
+          return player.reservedCardIds
             .filter((cardId: number) => {
               const card = game.getCard(cardId);
 
               return player.getAffordablePayment(card) !== null;
             })
-            .map((cardId: number) => ({
-              id: String(cardId),
-              nextInput: {
-                ...(draft ?? {}),
-                selectedCardId: cardId,
-              },
-              metadata: {
-                cardId,
-                source: "reserved",
-              },
-            })),
-        };
-      }
+            .map((cardId: number) => {
+              const card = game.getCard(cardId);
 
-      return completeDiscovery({
-        cardId: draft.selectedCardId,
-      });
-    },
-  })
+              return {
+                id: String(cardId),
+                output: {
+                  cardId,
+                  level: card.level,
+                  bonusColor: card.bonusColor,
+                  prestigePoints: card.prestigePoints,
+                  source: "reserved",
+                },
+                nextInput: {
+                  ...draft,
+                  selectedCardId: cardId,
+                },
+                nextStep: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
+              };
+            });
+        }),
+    ),
+  )
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const actorId = context.actorId;

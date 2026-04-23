@@ -1,7 +1,6 @@
 import type { SplendorTerminalSession } from "./session.ts";
 import type {
   MenuOption,
-  SplendorCommandData,
   SplendorTerminalCommand,
   SplendorTerminalDiscoveryRequest,
   SplendorTerminalDiscoveryOption,
@@ -11,13 +10,12 @@ import {
   developmentCardsById,
   nobleTilesById,
   SPLENDOR_DISCOVERY_STEPS,
-  type BuyFaceUpCardInput,
   type BuyReservedCardInput,
   type ChooseNobleInput,
   type ReserveDeckCardInput,
-  type ReserveFaceUpCardInput,
   type TakeThreeDistinctGemsInput,
   type TakeTwoSameGemsInput,
+  type SplendorDiscoveryStep,
 } from "splendor-example";
 
 export const COMMAND_LABELS: Record<string, string> = {
@@ -47,11 +45,14 @@ export async function buildCommandFromDiscovery(
     discovery: SplendorTerminalOpenDiscovery,
   ) => Promise<SplendorTerminalDiscoveryOption>,
 ): Promise<SplendorTerminalCommand> {
-  let nextDiscovery: SplendorTerminalDiscoveryRequest = {
-    type: commandType,
+  const startStep = getCommandDiscoveryStartStep(commandType);
+  const normalizedCommandType = commandType as SplendorTerminalCommand["type"];
+  let nextDiscovery = {
+    type: normalizedCommandType,
     actorId,
+    step: startStep,
     input: {},
-  };
+  } as SplendorTerminalDiscoveryRequest;
 
   for (;;) {
     const discovery = session.discoverCommand(nextDiscovery);
@@ -62,10 +63,10 @@ export async function buildCommandFromDiscovery(
 
     if (discovery.complete) {
       return {
-        type: commandType,
+        type: normalizedCommandType,
         actorId,
         input: discovery.input,
-      };
+      } as SplendorTerminalCommand;
     }
 
     if (discovery.options.length === 0) {
@@ -74,9 +75,11 @@ export async function buildCommandFromDiscovery(
 
     const choice = await chooseOption(discovery);
     nextDiscovery = {
-      ...nextDiscovery,
-      input: choice.nextInput,
-    };
+      type: normalizedCommandType,
+      actorId,
+      step: choice.nextStep as SplendorTerminalDiscoveryRequest["step"],
+      input: choice.nextInput as SplendorTerminalDiscoveryRequest["input"],
+    } as SplendorTerminalDiscoveryRequest;
   }
 }
 
@@ -102,7 +105,10 @@ export function chooseRandomDiscoveryOption(
     throw new Error(`no_discovery_options:${discovery.step}`);
   }
 
-  return pickRandom(discovery.options, random);
+  return pickRandom(
+    discovery.options as readonly SplendorTerminalDiscoveryOption[],
+    random,
+  );
 }
 
 export function describeCommand(command: SplendorTerminalCommand): string {
@@ -113,13 +119,13 @@ export function describeCommand(command: SplendorTerminalCommand): string {
       return `Take 2 ${readTwoGemColor(command)} gems`;
     case "reserve_face_up_card":
       return `Reserve ${describeFaceUpCard(
-        command.input as unknown as ReserveFaceUpCardInput,
+        command.input as Record<string, unknown>,
       )}`;
     case "reserve_deck_card":
       return `Reserve a level ${readDeckLevel(command)} deck card`;
     case "buy_face_up_card":
       return `Buy ${describeFaceUpCard(
-        command.input as unknown as BuyFaceUpCardInput,
+        command.input as Record<string, unknown>,
       )}`;
     case "buy_reserved_card":
       return `Buy reserved card ${String(readReservedCardId(command))}`;
@@ -128,7 +134,10 @@ export function describeCommand(command: SplendorTerminalCommand): string {
         (command.input as ChooseNobleInput).nobleId,
       )}`;
     default:
-      return COMMAND_LABELS[command.type] ?? command.type;
+      return (
+        COMMAND_LABELS[(command as { type: string }).type] ??
+        (command as { type: string }).type
+      );
   }
 }
 
@@ -148,10 +157,8 @@ export function describeDiscoveryPrompt(
       return "Choose a token to return";
     case SPLENDOR_DISCOVERY_STEPS.selectNoble:
       return "Choose a noble to visit";
-    case SPLENDOR_DISCOVERY_STEPS.complete:
-      return "Command complete";
     default:
-      return discovery.step;
+      return (discovery as { step: string }).step;
   }
 }
 
@@ -159,23 +166,72 @@ export function describeDiscoveryOption(
   discovery: SplendorTerminalOpenDiscovery,
   option: SplendorTerminalDiscoveryOption,
 ): string {
-  const metadata = option.metadata ?? {};
-
   switch (discovery.step) {
-    case SPLENDOR_DISCOVERY_STEPS.selectGemColor:
-      return `Take ${String(metadata.color ?? option.id)}`;
-    case SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard:
-      return describeCardSelection(option.nextInput);
-    case SPLENDOR_DISCOVERY_STEPS.selectDeckLevel:
-      return `Level ${String(metadata.level ?? option.id)} deck`;
-    case SPLENDOR_DISCOVERY_STEPS.selectReservedCard:
-      return describeReservedCardSelection(option.nextInput);
-    case SPLENDOR_DISCOVERY_STEPS.selectReturnToken:
-      return `Return ${String(metadata.color ?? option.id)}`;
-    case SPLENDOR_DISCOVERY_STEPS.selectNoble:
-      return String(metadata.name ?? option.id);
+    case SPLENDOR_DISCOVERY_STEPS.selectGemColor: {
+      const output = option.output as {
+        color: string;
+        selectedCount: number;
+        requiredCount: number;
+      };
+
+      return `Take ${String(output.color)} (${String(
+        output.selectedCount,
+      )}/${String(output.requiredCount)})`;
+    }
+    case SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard: {
+      const output = option.output as {
+        level: number;
+        cardId: number;
+        bonusColor: string;
+        prestigePoints: number;
+      };
+
+      return `L${String(output.level)} #${String(output.cardId)} ${String(
+        output.bonusColor,
+      )} ${String(output.prestigePoints)}pt`;
+    }
+    case SPLENDOR_DISCOVERY_STEPS.selectDeckLevel: {
+      const output = option.output as {
+        level: number;
+        cardCount: number;
+      };
+
+      return `Level ${String(output.level)} deck (${String(
+        output.cardCount,
+      )} cards)`;
+    }
+    case SPLENDOR_DISCOVERY_STEPS.selectReservedCard: {
+      const output = option.output as {
+        level: number;
+        cardId: number;
+        bonusColor: string;
+        prestigePoints: number;
+      };
+
+      return `L${String(output.level)} #${String(output.cardId)} ${String(
+        output.bonusColor,
+      )} ${String(output.prestigePoints)}pt`;
+    }
+    case SPLENDOR_DISCOVERY_STEPS.selectReturnToken: {
+      const output = option.output as {
+        color: string;
+        selectedCount: number;
+        requiredReturnCount: number;
+      };
+
+      return `Return ${String(output.color)} (${String(
+        output.selectedCount,
+      )}/${String(output.requiredReturnCount)})`;
+    }
+    case SPLENDOR_DISCOVERY_STEPS.selectNoble: {
+      const output = option.output as {
+        name: string;
+      };
+
+      return String(output.name);
+    }
     default:
-      return option.id;
+      return (option as { id: string }).id;
   }
 }
 
@@ -184,32 +240,28 @@ function pickRandom<T>(items: readonly T[], random: () => number): T {
   return items[index]!;
 }
 
-function describeCardSelection(input: SplendorCommandData): string {
-  const cardId = readCardId(input);
-  const level = readLevel(input);
-  const card = developmentCardsById[cardId];
-
-  if (!card) {
-    return `Level ${String(level)} card ${String(cardId)}`;
+function getCommandDiscoveryStartStep(
+  commandType: string,
+): SplendorDiscoveryStep {
+  switch (commandType) {
+    case "take_three_distinct_gems":
+    case "take_two_same_gems":
+      return SPLENDOR_DISCOVERY_STEPS.selectGemColor;
+    case "reserve_face_up_card":
+    case "buy_face_up_card":
+      return SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard;
+    case "reserve_deck_card":
+      return SPLENDOR_DISCOVERY_STEPS.selectDeckLevel;
+    case "buy_reserved_card":
+      return SPLENDOR_DISCOVERY_STEPS.selectReservedCard;
+    case "choose_noble":
+      return SPLENDOR_DISCOVERY_STEPS.selectNoble;
+    default:
+      throw new Error(`unknown_discovery_start_step:${commandType}`);
   }
-
-  return `L${String(level)} #${String(card.id)} ${card.bonusColor} ${card.prestigePoints}pt`;
 }
 
-function describeReservedCardSelection(input: SplendorCommandData): string {
-  const cardId = readCardId(input);
-  const card = developmentCardsById[cardId];
-
-  if (!card) {
-    return `Reserved card ${String(cardId)}`;
-  }
-
-  return `#${String(card.id)} ${card.bonusColor} ${card.prestigePoints}pt`;
-}
-
-function describeFaceUpCard(
-  input: Partial<ReserveFaceUpCardInput> | Partial<BuyFaceUpCardInput>,
-): string {
+function describeFaceUpCard(input: Record<string, unknown>): string {
   const cardId = readCardId(input);
   const level = readLevel(input);
 
@@ -248,7 +300,7 @@ function readReservedCardId(
   return input?.cardId ?? "unknown";
 }
 
-function readCardId(input: SplendorCommandData): number {
+function readCardId(input: Record<string, unknown>): number {
   return (
     (input.cardId as number | undefined) ??
     (input.selectedCardId as number | undefined) ??
@@ -256,7 +308,7 @@ function readCardId(input: SplendorCommandData): number {
   );
 }
 
-function readLevel(input: SplendorCommandData): number {
+function readLevel(input: Record<string, unknown>): number {
   return (
     (input.level as number | undefined) ??
     (input.selectedLevel as number | undefined) ??

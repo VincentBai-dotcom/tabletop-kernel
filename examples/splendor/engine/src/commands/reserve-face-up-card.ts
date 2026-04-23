@@ -1,9 +1,5 @@
 import { t } from "tabletop-engine";
-import {
-  completeDiscovery,
-  createReturnTokenDiscovery,
-  SPLENDOR_DISCOVERY_STEPS,
-} from "../discovery.ts";
+import { completeDiscovery, createReturnTokenDiscovery } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
   guardedAvailability,
@@ -21,71 +17,105 @@ const reserveFaceUpCardCommandSchema = t.object({
 export type ReserveFaceUpCardInput =
   typeof reserveFaceUpCardCommandSchema.static;
 
-const reserveFaceUpCardDiscoverySchema = t.object({
+const selectFaceUpCardDiscoveryInputSchema = t.object({
   selectedLevel: t.optional(t.number()),
   selectedCardId: t.optional(t.number()),
   returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+const selectFaceUpCardDiscoveryOutputSchema = t.object({
+  level: t.number(),
+  cardId: t.number(),
+  bonusColor: t.string(),
+  prestigePoints: t.number(),
+  source: t.string(),
+});
+
+const selectReturnTokenDiscoveryInputSchema = t.object({
+  selectedLevel: t.number(),
+  selectedCardId: t.number(),
+  returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+const selectReturnTokenDiscoveryOutputSchema = t.object({
+  color: t.string(),
+  selectedCount: t.number(),
+  requiredReturnCount: t.number(),
 });
 
 const reserveFaceUpCardCommand = defineSplendorCommand({
   commandId: "reserve_face_up_card",
   commandSchema: reserveFaceUpCardCommandSchema,
 })
-  .discoverable({
-    discoverySchema: reserveFaceUpCardDiscoverySchema,
-    discover(context) {
-      const actorId = context.actorId;
-      const game = context.game;
-      const draft = context.discovery.input;
-      const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
-        [string, number[]]
-      >;
+  .discoverable((flow) =>
+    flow
+      .step("select_face_up_card", (step) =>
+        step
+          .input(selectFaceUpCardDiscoveryInputSchema)
+          .output(selectFaceUpCardDiscoveryOutputSchema)
+          .resolve(({ game, discovery }) => {
+            const draft = discovery.input;
+            const faceUpEntries = Object.entries(
+              game.board.faceUpByLevel,
+            ) as Array<[string, number[]]>;
 
-      if (!draft?.selectedLevel || !draft?.selectedCardId) {
-        return {
-          complete: false as const,
-          step: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
-          options: faceUpEntries.flatMap(([level, cardIds]) =>
-            cardIds.map((cardId: number) => ({
-              id: `${level}:${cardId}`,
-              nextInput: {
-                ...(draft ?? {}),
-                selectedLevel: Number(level),
-                selectedCardId: cardId,
-              },
-              metadata: {
-                level: Number(level),
-                cardId,
-                source: "face_up",
-              },
-            })),
-          ),
-        };
-      }
+            if (draft.selectedLevel && draft.selectedCardId) {
+              return null;
+            }
 
-      const player = game.getPlayer(actorId).clone();
+            return faceUpEntries.flatMap(([level, cardIds]) =>
+              cardIds.map((cardId: number) => {
+                const card = game.getCard(cardId);
 
-      if (game.bank.gold > 0) {
-        player.tokens.adjustColor("gold", 1);
-      }
+                return {
+                  id: `${level}:${cardId}`,
+                  output: {
+                    level: Number(level),
+                    cardId,
+                    bonusColor: card.bonusColor,
+                    prestigePoints: card.prestigePoints,
+                    source: "face_up",
+                  },
+                  nextInput: {
+                    ...draft,
+                    selectedLevel: Number(level),
+                    selectedCardId: cardId,
+                  },
+                };
+              }),
+            );
+          }),
+      )
+      .step("select_return_token", (step) =>
+        step
+          .input(selectReturnTokenDiscoveryInputSchema)
+          .output(selectReturnTokenDiscoveryOutputSchema)
+          .resolve(({ actorId, game, discovery }) => {
+            const draft = discovery.input;
+            const player = game.getPlayer(actorId).clone();
 
-      const requiredReturnCount = player.getRequiredReturnCount();
-      const returnDiscovery = createReturnTokenDiscovery(
-        draft,
-        player.tokens,
-        requiredReturnCount,
-      );
+            if (game.bank.gold > 0) {
+              player.tokens.adjustColor("gold", 1);
+            }
 
-      return (
-        returnDiscovery ??
-        completeDiscovery({
-          level: draft.selectedLevel,
-          cardId: draft.selectedCardId,
-          returnTokens: draft.returnTokens,
-        })
-      );
-    },
-  })
+            const requiredReturnCount = player.getRequiredReturnCount();
+            const returnDiscovery = createReturnTokenDiscovery(
+              draft,
+              player.tokens,
+              requiredReturnCount,
+            );
+
+            return (
+              returnDiscovery ??
+              completeDiscovery({
+                level: draft.selectedLevel,
+                cardId: draft.selectedCardId,
+                returnTokens: draft.returnTokens,
+              })
+            );
+          }),
+      ),
+  )
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const actorId = context.actorId;
