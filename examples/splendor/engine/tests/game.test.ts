@@ -199,7 +199,6 @@ test("splendor commands declare step-authored discovery flows", () => {
   expect(takeThreeDistinctGems?.discovery?.steps).toHaveLength(2);
   expect(takeThreeDistinctGems?.discovery?.steps[0]).toMatchObject({
     stepId: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
-    defaultNextStep: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,
   });
   expect(takeThreeDistinctGems?.discovery?.steps[1]).toMatchObject({
     stepId: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,

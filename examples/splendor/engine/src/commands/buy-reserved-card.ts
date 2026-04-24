@@ -1,4 +1,4 @@
-import { t } from "tabletop-engine";
+import { discoveryStep, t } from "tabletop-engine";
 import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   defineSplendorCommand,
@@ -28,48 +28,48 @@ const buyReservedCardCommand = defineSplendorCommand({
   commandId: "buy_reserved_card",
   commandSchema: buyReservedCardCommandSchema,
 })
-  .discoverable((flow) =>
-    flow.step("select_reserved_card", (step) =>
-      step
-        .input(selectReservedCardDiscoveryInputSchema)
-        .output(selectReservedCardDiscoveryOutputSchema)
-        .resolve(({ actorId, game, discovery }) => {
-          const draft = discovery.input;
-          const player = game.getPlayer(actorId);
+  .discoverable(
+    discoveryStep("select_reserved_card")
+      .initial()
+      .input(selectReservedCardDiscoveryInputSchema)
+      .output(selectReservedCardDiscoveryOutputSchema)
+      .resolve(({ actorId, game, discovery }) => {
+        const draft = discovery.input;
+        const player = game.getPlayer(actorId);
 
-          if (draft.selectedCardId) {
-            return completeDiscovery({
-              cardId: draft.selectedCardId,
-            });
-          }
+        if (draft.selectedCardId) {
+          return completeDiscovery({
+            cardId: draft.selectedCardId,
+          });
+        }
 
-          return player.reservedCardIds
-            .filter((cardId: number) => {
-              const card = game.getCard(cardId);
+        return player.reservedCardIds
+          .filter((cardId: number) => {
+            const card = game.getCard(cardId);
 
-              return player.getAffordablePayment(card) !== null;
-            })
-            .map((cardId: number) => {
-              const card = game.getCard(cardId);
+            return player.getAffordablePayment(card) !== null;
+          })
+          .map((cardId: number) => {
+            const card = game.getCard(cardId);
 
-              return {
-                id: String(cardId),
-                output: {
-                  cardId,
-                  level: card.level,
-                  bonusColor: card.bonusColor,
-                  prestigePoints: card.prestigePoints,
-                  source: "reserved",
-                },
-                nextInput: {
-                  ...draft,
-                  selectedCardId: cardId,
-                },
-                nextStep: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
-              };
-            });
-        }),
-    ),
+            return {
+              id: String(cardId),
+              output: {
+                cardId,
+                level: card.level,
+                bonusColor: card.bonusColor,
+                prestigePoints: card.prestigePoints,
+                source: "reserved",
+              },
+              nextInput: {
+                ...draft,
+                selectedCardId: cardId,
+              },
+              nextStep: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
+            };
+          });
+      })
+      .build(),
   )
   .isAvailable((context) => {
     return guardedAvailability(() => {

@@ -1,4 +1,4 @@
-import { t } from "tabletop-engine";
+import { discoveryStep, t } from "tabletop-engine";
 import { completeDiscovery, createNobleDiscovery } from "../discovery.ts";
 import {
   defineSplendorCommand,
@@ -34,24 +34,24 @@ const chooseNobleCommand = defineSplendorCommand({
   commandId: "choose_noble",
   commandSchema: chooseNobleCommandSchema,
 })
-  .discoverable((flow) =>
-    flow.step("select_noble", (step) =>
-      step
-        .input(selectNobleDiscoveryInputSchema)
-        .output(selectNobleDiscoveryOutputSchema)
-        .resolve(({ actorId, discovery, game }) => {
-          const draft = discovery.input;
-          const player = game.getPlayer(actorId);
+  .discoverable(
+    discoveryStep("select_noble")
+      .initial()
+      .input(selectNobleDiscoveryInputSchema)
+      .output(selectNobleDiscoveryOutputSchema)
+      .resolve(({ actorId, discovery, game }) => {
+        const draft = discovery.input;
+        const player = game.getPlayer(actorId);
 
-          if (draft.chosenNobleId) {
-            return completeDiscovery({
-              nobleId: draft.chosenNobleId,
-            });
-          }
+        if (draft.chosenNobleId) {
+          return completeDiscovery({
+            nobleId: draft.chosenNobleId,
+          });
+        }
 
-          return createNobleDiscovery(draft, game.getEligibleNobles(player));
-        }),
-    ),
+        return createNobleDiscovery(draft, game.getEligibleNobles(player));
+      })
+      .build(),
   )
   .isAvailable((context) => {
     return guardedAvailability(() => {

@@ -1,4 +1,4 @@
-import { t } from "tabletop-engine";
+import { discoveryStep, t } from "tabletop-engine";
 import { completeDiscovery, createReturnTokenDiscovery } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
@@ -41,66 +41,65 @@ const reserveDeckCardCommand = defineSplendorCommand({
   commandId: "reserve_deck_card",
   commandSchema: reserveDeckCardCommandSchema,
 })
-  .discoverable((flow) =>
-    flow
-      .step("select_deck_level", (step) =>
-        step
-          .input(selectDeckLevelDiscoveryInputSchema)
-          .output(selectDeckLevelDiscoveryOutputSchema)
-          .resolve(({ game, discovery }) => {
-            const draft = discovery.input;
-            const deckEntries = Object.entries(game.board.deckByLevel) as Array<
-              [string, number[]]
-            >;
+  .discoverable(
+    discoveryStep("select_deck_level")
+      .initial()
+      .input(selectDeckLevelDiscoveryInputSchema)
+      .output(selectDeckLevelDiscoveryOutputSchema)
+      .resolve(({ game, discovery }) => {
+        const draft = discovery.input;
+        const deckEntries = Object.entries(game.board.deckByLevel) as Array<
+          [string, number[]]
+        >;
 
-            if (draft.selectedLevel) {
-              return null;
-            }
+        if (draft.selectedLevel) {
+          return null;
+        }
 
-            return deckEntries
-              .filter(([, cardIds]) => cardIds.length > 0)
-              .map(([level, cardIds]) => ({
-                id: level,
-                output: {
-                  level: Number(level),
-                  cardCount: cardIds.length,
-                  source: "deck",
-                },
-                nextInput: {
-                  ...draft,
-                  selectedLevel: Number(level),
-                },
-              }));
-          }),
-      )
-      .step("select_return_token", (step) =>
-        step
-          .input(selectReturnTokenDiscoveryInputSchema)
-          .output(selectReturnTokenDiscoveryOutputSchema)
-          .resolve(({ actorId, game, discovery }) => {
-            const draft = discovery.input;
-            const player = game.getPlayer(actorId).clone();
+        return deckEntries
+          .filter(([, cardIds]) => cardIds.length > 0)
+          .map(([level, cardIds]) => ({
+            id: level,
+            output: {
+              level: Number(level),
+              cardCount: cardIds.length,
+              source: "deck",
+            },
+            nextInput: {
+              ...draft,
+              selectedLevel: Number(level),
+            },
+            nextStep: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,
+          }));
+      })
+      .build(),
+    discoveryStep("select_return_token")
+      .input(selectReturnTokenDiscoveryInputSchema)
+      .output(selectReturnTokenDiscoveryOutputSchema)
+      .resolve(({ actorId, game, discovery }) => {
+        const draft = discovery.input;
+        const player = game.getPlayer(actorId).clone();
 
-            if (game.bank.gold > 0) {
-              player.tokens.adjustColor("gold", 1);
-            }
+        if (game.bank.gold > 0) {
+          player.tokens.adjustColor("gold", 1);
+        }
 
-            const requiredReturnCount = player.getRequiredReturnCount();
-            const returnDiscovery = createReturnTokenDiscovery(
-              draft,
-              player.tokens,
-              requiredReturnCount,
-            );
+        const requiredReturnCount = player.getRequiredReturnCount();
+        const returnDiscovery = createReturnTokenDiscovery(
+          draft,
+          player.tokens,
+          requiredReturnCount,
+        );
 
-            return (
-              returnDiscovery ??
-              completeDiscovery({
-                level: draft.selectedLevel,
-                returnTokens: draft.returnTokens,
-              })
-            );
-          }),
-      ),
+        return (
+          returnDiscovery ??
+          completeDiscovery({
+            level: draft.selectedLevel,
+            returnTokens: draft.returnTokens,
+          })
+        );
+      })
+      .build(),
   )
   .isAvailable((context) => {
     return guardedAvailability(() => {
