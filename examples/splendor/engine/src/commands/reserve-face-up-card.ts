@@ -1,7 +1,12 @@
-import { discoveryStep, t } from "tabletop-engine";
-import { completeDiscovery, createReturnTokenDiscovery } from "../discovery.ts";
+import { t } from "tabletop-engine";
+import {
+  completeDiscovery,
+  createReturnTokenDiscovery,
+  SPLENDOR_DISCOVERY_STEPS,
+} from "../discovery.ts";
 import {
   assertDevelopmentLevel,
+  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
@@ -48,7 +53,7 @@ const reserveFaceUpCardCommand = defineSplendorCommand({
   commandSchema: reserveFaceUpCardCommandSchema,
 })
   .discoverable(
-    discoveryStep("select_face_up_card")
+    defineSplendorDiscoveryStep("select_face_up_card")
       .initial()
       .input(selectFaceUpCardDiscoveryInputSchema)
       .output(selectFaceUpCardDiscoveryOutputSchema)
@@ -86,7 +91,7 @@ const reserveFaceUpCardCommand = defineSplendorCommand({
         );
       })
       .build(),
-    discoveryStep("select_return_token")
+    defineSplendorDiscoveryStep("select_return_token")
       .input(selectReturnTokenDiscoveryInputSchema)
       .output(selectReturnTokenDiscoveryOutputSchema)
       .resolve(({ actorId, game, discovery }) => {

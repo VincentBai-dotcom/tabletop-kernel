@@ -1,7 +1,8 @@
-import { discoveryStep, t } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import { completeDiscovery, createNobleDiscovery } from "../discovery.ts";
 import {
   defineSplendorCommand,
+  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
 } from "./shared.ts";
@@ -35,7 +36,7 @@ const chooseNobleCommand = defineSplendorCommand({
   commandSchema: chooseNobleCommandSchema,
 })
   .discoverable(
-    discoveryStep("select_noble")
+    defineSplendorDiscoveryStep("select_noble")
       .initial()
       .input(selectNobleDiscoveryInputSchema)
       .output(selectNobleDiscoveryOutputSchema)

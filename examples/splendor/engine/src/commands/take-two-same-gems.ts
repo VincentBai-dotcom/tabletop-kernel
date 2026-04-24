@@ -1,8 +1,9 @@
-import { discoveryStep, t } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import { SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import { completeDiscovery, createReturnTokenDiscovery } from "../discovery.ts";
 import {
   assertGemTokenColor,
+  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
   isGemTokenColor,
@@ -42,7 +43,7 @@ const takeTwoSameGemsCommand = defineSplendorCommand({
   commandSchema: takeTwoSameGemsCommandSchema,
 })
   .discoverable(
-    discoveryStep("select_gem_color")
+    defineSplendorDiscoveryStep("select_gem_color")
       .initial()
       .input(selectGemColorDiscoveryInputSchema)
       .output(selectGemColorDiscoveryOutputSchema)
@@ -73,7 +74,7 @@ const takeTwoSameGemsCommand = defineSplendorCommand({
           }));
       })
       .build(),
-    discoveryStep("select_return_token")
+    defineSplendorDiscoveryStep("select_return_token")
       .input(selectReturnTokenDiscoveryInputSchema)
       .output(selectReturnTokenDiscoveryOutputSchema)
       .resolve(({ actorId, game, discovery }) => {

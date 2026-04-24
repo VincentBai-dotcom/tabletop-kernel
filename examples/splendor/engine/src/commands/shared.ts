@@ -9,6 +9,8 @@ import {
 } from "../state.ts";
 
 export const defineSplendorCommand = createCommandFactory<SplendorGameState>();
+export const defineSplendorDiscoveryStep: typeof defineSplendorCommand.discoveryStep =
+  defineSplendorCommand.discoveryStep;
 
 export type SplendorCommand = DefinedCommand<SplendorGameState>;
 

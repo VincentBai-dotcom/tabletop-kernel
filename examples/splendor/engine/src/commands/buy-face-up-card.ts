@@ -1,7 +1,8 @@
-import { discoveryStep, t } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
+  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
@@ -33,7 +34,7 @@ const buyFaceUpCardCommand = defineSplendorCommand({
   commandSchema: buyFaceUpCardCommandSchema,
 })
   .discoverable(
-    discoveryStep("select_face_up_card")
+    defineSplendorDiscoveryStep("select_face_up_card")
       .initial()
       .input(selectFaceUpCardDiscoveryInputSchema)
       .output(selectFaceUpCardDiscoveryOutputSchema)

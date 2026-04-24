@@ -47,7 +47,6 @@ export async function runGenerateSchemasCommand(
               stepId: step.stepId,
               input: step.inputSchema.schema,
               output: step.outputSchema.schema,
-              defaultNextStep: step.defaultNextStep,
             })),
           },
         ]),

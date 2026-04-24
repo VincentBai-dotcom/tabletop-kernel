@@ -1,7 +1,8 @@
-import { discoveryStep, t } from "tabletop-engine";
+import { t } from "tabletop-engine";
 import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   defineSplendorCommand,
+  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
 } from "./shared.ts";
@@ -29,7 +30,7 @@ const buyReservedCardCommand = defineSplendorCommand({
   commandSchema: buyReservedCardCommandSchema,
 })
   .discoverable(
-    discoveryStep("select_reserved_card")
+    defineSplendorDiscoveryStep("select_reserved_card")
       .initial()
       .input(selectReservedCardDiscoveryInputSchema)
       .output(selectReservedCardDiscoveryOutputSchema)

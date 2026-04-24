@@ -8,6 +8,7 @@ import type {
   DiscoverableCommandConfig,
   DiscoveryDefinition,
   DiscoveryStepBuilder,
+  DiscoveryStepFactory,
   DiscoveryStepInitialBuilder,
   DiscoveryStepInputBuilder,
   DiscoveryStepDefinition,
@@ -23,6 +24,7 @@ export interface CommandFactory<FacadeGameState extends object> {
   <TCommandInput extends Record<string, unknown>>(
     config: CommandBuilderBaseConfig<TCommandInput>,
   ): CommandBuilder<FacadeGameState, TCommandInput>;
+  discoveryStep: DiscoveryStepFactory<FacadeGameState>;
 }
 
 type DiscoveryStepAccumulator = {
@@ -33,7 +35,9 @@ type DiscoveryStepAccumulator = {
   resolve?: (...args: unknown[]) => unknown;
 };
 
-export function discoveryStep(stepId: string): DiscoveryStepBuilder {
+function createDiscoveryStepBuilder<FacadeGameState extends object>(
+  stepId: string,
+): DiscoveryStepBuilder<FacadeGameState> {
   const stepState: DiscoveryStepAccumulator = {
     stepId,
     initial: false,
@@ -43,7 +47,12 @@ export function discoveryStep(stepId: string): DiscoveryStepBuilder {
     TInput extends Record<string, unknown>,
     TOutput extends Record<string, unknown>,
     TInitial extends boolean,
-  >(): DiscoveryStepResolvedBuilder<object, TInput, TOutput, TInitial> {
+  >(): DiscoveryStepResolvedBuilder<
+    FacadeGameState,
+    TInput,
+    TOutput,
+    TInitial
+  > {
     return {
       build() {
         if (!stepState.inputSchema) {
@@ -70,7 +79,12 @@ export function discoveryStep(stepId: string): DiscoveryStepBuilder {
           inputSchema: stepState.inputSchema,
           outputSchema: stepState.outputSchema,
           resolve: stepState.resolve,
-        } as DiscoveryStepDefinition<object, TInput, TOutput, TInitial>;
+        } as DiscoveryStepDefinition<
+          FacadeGameState,
+          TInput,
+          TOutput,
+          TInitial
+        >;
       },
     };
   }
@@ -79,7 +93,7 @@ export function discoveryStep(stepId: string): DiscoveryStepBuilder {
     TInput extends Record<string, unknown>,
     TOutput extends Record<string, unknown>,
     TInitial extends boolean,
-  >(): DiscoveryStepReadyBuilder<object, TInput, TOutput, TInitial> {
+  >(): DiscoveryStepReadyBuilder<FacadeGameState, TInput, TOutput, TInitial> {
     return {
       resolve(resolve) {
         stepState.resolve = resolve as (...args: unknown[]) => unknown;
@@ -91,7 +105,7 @@ export function discoveryStep(stepId: string): DiscoveryStepBuilder {
   function createInputBuilder<
     TInitial extends boolean,
     TInput extends Record<string, unknown>,
-  >(): DiscoveryStepInputBuilder<object, TInput, TInitial> {
+  >(): DiscoveryStepInputBuilder<FacadeGameState, TInput, TInitial> {
     return {
       output<TNextOutput extends Record<string, unknown>>(
         schema: CommandSchema<TNextOutput>,
@@ -103,7 +117,7 @@ export function discoveryStep(stepId: string): DiscoveryStepBuilder {
     };
   }
 
-  function createStepBuilder(): DiscoveryStepBuilder<object> {
+  function createStepBuilder(): DiscoveryStepBuilder<FacadeGameState> {
     return {
       initial() {
         stepState.initial = true;
@@ -120,7 +134,7 @@ export function discoveryStep(stepId: string): DiscoveryStepBuilder {
     };
   }
 
-  function createInitialBuilder(): DiscoveryStepInitialBuilder<object> {
+  function createInitialBuilder(): DiscoveryStepInitialBuilder<FacadeGameState> {
     return {
       input<TNextInput extends Record<string, unknown>>(
         schema: CommandSchema<TNextInput>,
@@ -133,6 +147,10 @@ export function discoveryStep(stepId: string): DiscoveryStepBuilder {
   }
 
   return createStepBuilder();
+}
+
+export function discoveryStep(stepId: string): DiscoveryStepBuilder {
+  return createDiscoveryStepBuilder<object>(stepId);
 }
 
 export function createCommandFactory<FacadeGameState extends object>() {
@@ -348,7 +366,12 @@ export function createCommandFactory<FacadeGameState extends object>() {
     >);
   }
 
-  return defineCommand as CommandFactory<FacadeGameState>;
+  const defineCommandWithDiscoveryStep =
+    defineCommand as CommandFactory<FacadeGameState>;
+  defineCommandWithDiscoveryStep.discoveryStep = (stepId) =>
+    createDiscoveryStepBuilder<FacadeGameState>(stepId);
+
+  return defineCommandWithDiscoveryStep;
 }
 
 export type InferCommandInputFromSchema<

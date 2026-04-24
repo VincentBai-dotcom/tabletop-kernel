@@ -119,6 +119,12 @@ export interface DiscoveryStepDefinition<
   ): DiscoveryStepResult<DiscoveryData, TOutput, CommandData> | null;
 }
 
+export type DiscoveryStepFactory<FacadeGameState extends object = object> = <
+  TStepId extends string,
+>(
+  stepId: TStepId,
+) => DiscoveryStepBuilder<FacadeGameState>;
+
 export type DiscoveryStepBuilder<FacadeGameState extends object = object> = {
   initial(): DiscoveryStepInitialBuilder<FacadeGameState>;
   input<TNextInput extends DiscoveryData>(
