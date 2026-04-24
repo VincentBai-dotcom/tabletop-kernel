@@ -37,7 +37,7 @@ async function writeCliConfig(cwd: string): Promise<void> {
     "          colors: t.array(t.string()),",
     "        }),",
     "        discovery: {",
-    '          startStep: "select_gems",',
+    '          startStep: "confirm_selection",',
     "          steps: [",
     "            {",
     '              stepId: "select_gems",',
@@ -46,6 +46,15 @@ async function writeCliConfig(cwd: string): Promise<void> {
     "              outputSchema: t.object({",
     "                label: t.string(),",
     "                amount: t.number(),",
+    "              }),",
+    "              resolve: () => [],",
+    "            },",
+    "            {",
+    '              stepId: "confirm_selection",',
+    "              inputSchema: t.object({",
+    "              }),",
+    "              outputSchema: t.object({",
+    "                ready: t.boolean(),",
     "              }),",
     "              resolve: () => [],",
     "            },",
@@ -91,7 +100,14 @@ describe("generate client-sdk", () => {
       "export type TakeThreeDistinctGemsDiscoveryResult =",
     );
     expect(generated).toContain(
+      "export type TakeThreeDistinctGemsDiscoveryStart =",
+    );
+    expect(generated).toContain(
       "export const takeThreeDistinctGemsDiscoveryStart =",
+    );
+    expect(generated).toContain('step: "confirm_selection"');
+    expect(generated).toContain(
+      'export type TakeThreeDistinctGemsDiscoveryStart = Omit<Extract<TakeThreeDistinctGemsDiscoveryRequest, { step: "confirm_selection" }>, "actorId">;',
     );
     expect(generated).toContain("export type CommandRequest =");
     expect(generated).toContain("export type DiscoveryRequest =");

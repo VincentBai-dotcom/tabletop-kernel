@@ -96,7 +96,6 @@ interface DiscoveryStepDescriptor {
   stepId: string;
   inputSchema: { schema?: Record<string, unknown> };
   outputSchema: { schema?: Record<string, unknown> };
-  defaultNextStep?: string;
 }
 
 interface DiscoveryDescriptor {
@@ -229,15 +228,21 @@ function renderDiscoveryStartHelpers(
 
       const pascalName = toPascalCase(commandId);
       const camelName = toCamelCase(commandId);
-      const startStep = command.discovery.startStep;
+      const startStep = command.discovery.steps.find(
+        (step) => step.stepId === command.discovery?.startStep,
+      );
+
+      if (!startStep) {
+        return [];
+      }
 
       return [
         `export type ${pascalName}DiscoveryStart = Omit<Extract<${pascalName}DiscoveryRequest, { step: ${JSON.stringify(
-          startStep,
+          startStep.stepId,
         )} }>, "actorId">;\n`,
         `export const ${camelName}DiscoveryStart = {
   type: ${JSON.stringify(commandId)},
-  step: ${JSON.stringify(startStep)},
+  step: ${JSON.stringify(startStep.stepId)},
   input: {},
 } satisfies ${pascalName}DiscoveryStart;\n`,
       ];
