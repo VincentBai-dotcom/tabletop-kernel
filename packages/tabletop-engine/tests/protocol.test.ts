@@ -1,10 +1,6 @@
 import { expect, test } from "bun:test";
 import { GameDefinitionBuilder } from "../src/game-definition";
-import {
-  createCommandFactory,
-  describeGameProtocol,
-  discoveryStep,
-} from "../src/index";
+import { createCommandFactory, describeGameProtocol } from "../src/index";
 import {
   configureVisibility,
   State,
@@ -109,8 +105,8 @@ test("describeGameProtocol returns step-authored discovery metadata", () => {
     commandId: "gain_score",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable(
-      discoveryStep("confirm_selection")
+    .discoverable((step) => [
+      step("confirm_selection")
         .input(confirmSelectionInputSchema)
         .output(confirmSelectionOutputSchema)
         .resolve(() => ({
@@ -120,7 +116,7 @@ test("describeGameProtocol returns step-authored discovery metadata", () => {
           },
         }))
         .build(),
-      discoveryStep("select_amount")
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -138,7 +134,7 @@ test("describeGameProtocol returns step-authored discovery metadata", () => {
           },
         ])
         .build(),
-    )
+    ])
     .validate(() => {
       return { ok: true as const };
     })
@@ -254,8 +250,8 @@ test("describeGameProtocol rejects discovery commands without discovery steps", 
     commandId: "missing_discovery_steps",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -266,7 +262,7 @@ test("describeGameProtocol rejects discovery commands without discovery steps", 
           },
         }))
         .build(),
-    )
+    ])
     .validate(() => ({ ok: true as const }))
     .execute(() => {})
     .build();
@@ -292,8 +288,8 @@ test("describeGameProtocol rejects discovery commands with empty discovery steps
     commandId: "empty_discovery_steps",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -304,7 +300,7 @@ test("describeGameProtocol rejects discovery commands with empty discovery steps
           },
         }))
         .build(),
-    )
+    ])
     .validate(() => ({ ok: true as const }))
     .execute(() => {})
     .build();
@@ -328,8 +324,8 @@ test("describeGameProtocol rejects malformed discovery step entries", () => {
     commandId: "malformed_discovery_step",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -340,7 +336,7 @@ test("describeGameProtocol rejects malformed discovery step entries", () => {
           },
         }))
         .build(),
-    )
+    ])
     .validate(() => ({ ok: true as const }))
     .execute(() => {})
     .build();

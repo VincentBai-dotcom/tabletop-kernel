@@ -2,7 +2,6 @@ import { t } from "tabletop-engine";
 import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
-  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
@@ -33,8 +32,8 @@ const buyFaceUpCardCommand = defineSplendorCommand({
   commandId: "buy_face_up_card",
   commandSchema: buyFaceUpCardCommandSchema,
 })
-  .discoverable(
-    defineSplendorDiscoveryStep("select_face_up_card")
+  .discoverable((step) => [
+    step("select_face_up_card")
       .initial()
       .input(selectFaceUpCardDiscoveryInputSchema)
       .output(selectFaceUpCardDiscoveryOutputSchema)
@@ -82,7 +81,7 @@ const buyFaceUpCardCommand = defineSplendorCommand({
         );
       })
       .build(),
-  )
+  ])
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const actorId = context.actorId;

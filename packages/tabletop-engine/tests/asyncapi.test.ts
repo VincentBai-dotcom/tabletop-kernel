@@ -4,7 +4,6 @@ import {
   createCommandFactory,
   generateAsyncApi,
   describeGameProtocol,
-  discoveryStep,
 } from "../src/index";
 import {
   configureVisibility,
@@ -76,8 +75,8 @@ test("generateAsyncApi emits step-authored discovery channels and schemas", () =
     commandId: "gain_score",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -95,7 +94,7 @@ test("generateAsyncApi emits step-authored discovery channels and schemas", () =
           },
         ])
         .build(),
-      discoveryStep("confirm_selection")
+      step("confirm_selection")
         .input(confirmSelectionInputSchema)
         .output(confirmSelectionOutputSchema)
         .resolve(() => ({
@@ -105,7 +104,7 @@ test("generateAsyncApi emits step-authored discovery channels and schemas", () =
           },
         }))
         .build(),
-    )
+    ])
     .validate(() => {
       return { ok: true as const };
     })

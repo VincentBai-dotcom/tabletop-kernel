@@ -6,7 +6,6 @@ import {
 } from "../discovery.ts";
 import {
   assertDevelopmentLevel,
-  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
   isDevelopmentLevel,
@@ -46,8 +45,8 @@ const reserveDeckCardCommand = defineSplendorCommand({
   commandId: "reserve_deck_card",
   commandSchema: reserveDeckCardCommandSchema,
 })
-  .discoverable(
-    defineSplendorDiscoveryStep("select_deck_level")
+  .discoverable((step) => [
+    step("select_deck_level")
       .initial()
       .input(selectDeckLevelDiscoveryInputSchema)
       .output(selectDeckLevelDiscoveryOutputSchema)
@@ -78,7 +77,7 @@ const reserveDeckCardCommand = defineSplendorCommand({
           }));
       })
       .build(),
-    defineSplendorDiscoveryStep("select_return_token")
+    step("select_return_token")
       .input(selectReturnTokenDiscoveryInputSchema)
       .output(selectReturnTokenDiscoveryOutputSchema)
       .resolve(({ actorId, game, discovery }) => {
@@ -105,7 +104,7 @@ const reserveDeckCardCommand = defineSplendorCommand({
         );
       })
       .build(),
-  )
+  ])
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const actorId = context.actorId;

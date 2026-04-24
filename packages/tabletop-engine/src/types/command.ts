@@ -350,7 +350,7 @@ export type CommandBuilder<
         >[],
       ],
     >(
-      ...steps: TSteps
+      configure: (step: DiscoveryStepFactory<FacadeGameState>) => TSteps,
     ): CommandBuilder<
       FacadeGameState,
       TCommandInput,

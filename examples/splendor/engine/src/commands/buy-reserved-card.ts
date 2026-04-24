@@ -2,7 +2,6 @@ import { t } from "tabletop-engine";
 import { completeDiscovery, SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
 import {
   defineSplendorCommand,
-  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
 } from "./shared.ts";
@@ -29,8 +28,8 @@ const buyReservedCardCommand = defineSplendorCommand({
   commandId: "buy_reserved_card",
   commandSchema: buyReservedCardCommandSchema,
 })
-  .discoverable(
-    defineSplendorDiscoveryStep("select_reserved_card")
+  .discoverable((step) => [
+    step("select_reserved_card")
       .initial()
       .input(selectReservedCardDiscoveryInputSchema)
       .output(selectReservedCardDiscoveryOutputSchema)
@@ -71,7 +70,7 @@ const buyReservedCardCommand = defineSplendorCommand({
           });
       })
       .build(),
-  )
+  ])
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const actorId = context.actorId;

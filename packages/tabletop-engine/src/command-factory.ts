@@ -8,7 +8,6 @@ import type {
   DiscoverableCommandConfig,
   DiscoveryDefinition,
   DiscoveryStepBuilder,
-  DiscoveryStepFactory,
   DiscoveryStepInitialBuilder,
   DiscoveryStepInputBuilder,
   DiscoveryStepDefinition,
@@ -24,7 +23,6 @@ export interface CommandFactory<FacadeGameState extends object> {
   <TCommandInput extends Record<string, unknown>>(
     config: CommandBuilderBaseConfig<TCommandInput>,
   ): CommandBuilder<FacadeGameState, TCommandInput>;
-  discoveryStep: DiscoveryStepFactory<FacadeGameState>;
 }
 
 type DiscoveryStepAccumulator = {
@@ -149,10 +147,6 @@ function createDiscoveryStepBuilder<FacadeGameState extends object>(
   return createStepBuilder();
 }
 
-export function discoveryStep(stepId: string): DiscoveryStepBuilder {
-  return createDiscoveryStepBuilder<object>(stepId);
-}
-
 export function createCommandFactory<FacadeGameState extends object>() {
   function brandCommandDefinition<
     TCommandInput extends Record<string, unknown>,
@@ -232,7 +226,8 @@ export function createCommandFactory<FacadeGameState extends object>() {
     THasExecute
   > {
     return {
-      discoverable(...steps) {
+      discoverable(configure) {
+        const steps = configure(createDiscoveryStepBuilder<FacadeGameState>);
         const discovery = finalizeDiscoveryDefinition(
           steps as readonly DiscoveryStepDefinition<
             FacadeGameState,
@@ -366,12 +361,7 @@ export function createCommandFactory<FacadeGameState extends object>() {
     >);
   }
 
-  const defineCommandWithDiscoveryStep =
-    defineCommand as CommandFactory<FacadeGameState>;
-  defineCommandWithDiscoveryStep.discoveryStep = (stepId) =>
-    createDiscoveryStepBuilder<FacadeGameState>(stepId);
-
-  return defineCommandWithDiscoveryStep;
+  return defineCommand;
 }
 
 export type InferCommandInputFromSchema<

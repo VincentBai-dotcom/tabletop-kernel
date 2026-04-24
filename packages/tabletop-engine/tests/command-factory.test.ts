@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import * as tabletopEngine from "../src";
 
-const { createCommandFactory, discoveryStep, t } = tabletopEngine;
+const { createCommandFactory, t } = tabletopEngine;
 
 test("chained builder supports non-discoverable commands", () => {
   const defineCommand = createCommandFactory<{
@@ -49,8 +49,8 @@ test("chained builder supports step-authored discovery", () => {
     commandId: "gain_score",
     commandSchema,
   })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -68,7 +68,7 @@ test("chained builder supports step-authored discovery", () => {
           },
         ])
         .build(),
-    )
+    ])
     .isAvailable(({ game, runtime, actorId, commandType }) => {
       expect(typeof game.score).toBe("number");
       void runtime;
@@ -125,8 +125,8 @@ test("chained builder supports ordered discovery steps and completion", () => {
     commandId: "increment_with_discovery",
     commandSchema: incrementSchema,
   })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -143,7 +143,7 @@ test("chained builder supports ordered discovery steps and completion", () => {
           },
         ])
         .build(),
-      discoveryStep("select_target")
+      step("select_target")
         .input(selectTargetInputSchema)
         .output(selectTargetOutputSchema)
         .resolve(() => ({
@@ -153,7 +153,7 @@ test("chained builder supports ordered discovery steps and completion", () => {
           },
         }))
         .build(),
-    )
+    ])
     .validate(({ command }) => {
       void command.input?.amount;
       return { ok: true as const };
@@ -168,8 +168,8 @@ test("chained builder supports ordered discovery steps and completion", () => {
     commandSchema: incrementSchema,
   })
     .isAvailable(() => true)
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -180,7 +180,7 @@ test("chained builder supports ordered discovery steps and completion", () => {
           },
         }))
         .build(),
-    )
+    ])
     .validate(({ command }) => {
       void command.input?.amount;
       return { ok: true as const };
@@ -197,7 +197,7 @@ test("chained builder supports ordered discovery steps and completion", () => {
   expect(discoverableCommand.discovery?.steps[1]?.initial).toBeFalse();
 });
 
-test("chained builder supports explicit built discovery steps", () => {
+test("chained builder supports callback-scoped built discovery steps", () => {
   const defineCommand = createCommandFactory<{
     score: number;
   }>();
@@ -214,8 +214,8 @@ test("chained builder supports explicit built discovery steps", () => {
     commandId: "gain_score_with_explicit_step",
     commandSchema,
   })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(selectAmountInputSchema)
         .output(selectAmountOutputSchema)
@@ -233,7 +233,7 @@ test("chained builder supports explicit built discovery steps", () => {
           },
         ])
         .build(),
-    )
+    ])
     .validate(({ command }) => {
       expect(command.input?.amount).toBeNumber();
       return { ok: true as const };
@@ -247,7 +247,7 @@ test("chained builder supports explicit built discovery steps", () => {
   expect(command.discovery?.steps[0]?.stepId).toBe("select_amount");
 });
 
-test("chained builder rejects explicit discovery steps without an initial step", () => {
+test("chained builder rejects callback discovery steps without an initial step", () => {
   const defineCommand = createCommandFactory<{
     score: number;
   }>();
@@ -260,8 +260,8 @@ test("chained builder rejects explicit discovery steps without an initial step",
       commandId: "gain_score_missing_initial_step",
       commandSchema,
     })
-      .discoverable(
-        discoveryStep("select_amount")
+      .discoverable((step) => [
+        step("select_amount")
           .input(t.object({}))
           .output(
             t.object({
@@ -281,14 +281,14 @@ test("chained builder rejects explicit discovery steps without an initial step",
             },
           ])
           .build(),
-      )
+      ])
       .validate(() => ({ ok: true as const }))
       .execute(() => {})
       .build(),
   ).toThrow("command_builder_missing_initial_discovery_step");
 });
 
-test("chained builder rejects duplicate explicit initial discovery steps", () => {
+test("chained builder rejects duplicate callback initial discovery steps", () => {
   const defineCommand = createCommandFactory<{
     score: number;
   }>();
@@ -301,8 +301,8 @@ test("chained builder rejects duplicate explicit initial discovery steps", () =>
       commandId: "gain_score_duplicate_initial_step",
       commandSchema,
     })
-      .discoverable(
-        discoveryStep("select_amount")
+      .discoverable((step) => [
+        step("select_amount")
           .initial()
           .input(t.object({}))
           .output(
@@ -323,7 +323,7 @@ test("chained builder rejects duplicate explicit initial discovery steps", () =>
             },
           ])
           .build(),
-        discoveryStep("select_target")
+        step("select_target")
           .initial()
           .input(
             t.object({
@@ -342,14 +342,14 @@ test("chained builder rejects duplicate explicit initial discovery steps", () =>
             },
           }))
           .build(),
-      )
+      ])
       .validate(() => ({ ok: true as const }))
       .execute(() => {})
       .build(),
   ).toThrow("command_builder_duplicate_initial_discovery_step");
 });
 
-test("chained builder still rejects duplicate explicit discovery step ids", () => {
+test("chained builder still rejects duplicate callback discovery step ids", () => {
   const defineCommand = createCommandFactory<{
     score: number;
   }>();
@@ -362,8 +362,8 @@ test("chained builder still rejects duplicate explicit discovery step ids", () =
       commandId: "gain_score_duplicate_explicit_step_id",
       commandSchema,
     })
-      .discoverable(
-        discoveryStep("select_amount")
+      .discoverable((step) => [
+        step("select_amount")
           .initial()
           .input(t.object({}))
           .output(
@@ -384,7 +384,7 @@ test("chained builder still rejects duplicate explicit discovery step ids", () =
             },
           ])
           .build(),
-        discoveryStep("select_amount")
+        step("select_amount")
           .input(
             t.object({
               amount: t.number(),
@@ -402,7 +402,7 @@ test("chained builder still rejects duplicate explicit discovery step ids", () =
             },
           }))
           .build(),
-      )
+      ])
       .validate(() => ({ ok: true as const }))
       .execute(() => {})
       .build(),

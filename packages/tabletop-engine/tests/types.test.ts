@@ -19,7 +19,6 @@ import {
   createGameExecutor,
   createCommandFactory,
   createStageFactory,
-  discoveryStep,
   field,
   State,
   t,
@@ -37,12 +36,6 @@ import type { RuntimeState } from "../src/types/state";
 import { GameDefinitionBuilder } from "../src/game-definition";
 void (0 as unknown as RemovedCanonicalGameStateOf<never>);
 void (0 as unknown as RemovedCanonicalStateOf<never>);
-
-type DiscoveryStepFactory = typeof import("../src/index") extends {
-  discoveryStep: infer TFactory;
-}
-  ? TFactory
-  : never;
 
 @State()
 class TypedCounterChildState {
@@ -656,15 +649,13 @@ test("consumer command definitions infer step-authored discovery and reject lega
     amount: t.number(),
   });
 
-  function assertExplicitBuiltStepDiscoveryAccepted() {
-    const discoveryStep = null as unknown as DiscoveryStepFactory;
-
+  function assertCallbackDiscoveryAccepted() {
     const definition = defineCommand({
       commandId: "gain_score",
       commandSchema: gainScoreCommandSchema,
     })
-      .discoverable(
-        discoveryStep("select_amount")
+      .discoverable((step) => [
+        step("select_amount")
           .initial()
           .input(draftSchema)
           .output(outputSchema)
@@ -705,7 +696,7 @@ test("consumer command definitions infer step-authored discovery and reject lega
             },
           )
           .build(),
-      )
+      ])
       .validate(({ command }) => {
         const amount: number = command.input.amount;
 
@@ -727,21 +718,21 @@ test("consumer command definitions infer step-authored discovery and reject lega
     expect(definition.discovery?.steps[0]?.outputSchema).toBe(outputSchema);
   }
 
-  function assertLegacyFlowDiscoveryRejected() {
+  function assertLegacyVariadicDiscoveryRejected() {
     const invalidConfigDefinition = defineCommand({
       commandId: "legacy_gain_score",
       commandSchema: gainScoreCommandSchema,
     });
 
-    const invalidFlowDefinition =
-      // @ts-expect-error discoverable should reject the legacy flow callback builder
-      invalidConfigDefinition.discoverable(() => undefined);
+    const invalidVariadicDefinition =
+      // @ts-expect-error discoverable should reject helper-based variadic step authoring
+      invalidConfigDefinition.discoverable();
 
-    return invalidFlowDefinition;
+    return invalidVariadicDefinition;
   }
 
-  expect(assertExplicitBuiltStepDiscoveryAccepted).toBeFunction();
-  expect(assertLegacyFlowDiscoveryRejected).toBeFunction();
+  expect(assertCallbackDiscoveryAccepted).toBeFunction();
+  expect(assertLegacyVariadicDiscoveryRejected).toBeFunction();
 });
 
 test("command factory contextually types command lifecycle methods", () => {
@@ -769,8 +760,8 @@ test("command factory contextually types command lifecycle methods", () => {
       expect(commandType).toBe("gain_score");
       return true;
     })
-    .discoverable(
-      discoveryStep("select_amount")
+    .discoverable((step) => [
+      step("select_amount")
         .initial()
         .input(draftSchema)
         .output(t.object({ amount: t.number() }))
@@ -801,7 +792,7 @@ test("command factory contextually types command lifecycle methods", () => {
           };
         })
         .build(),
-    )
+    ])
     .validate(({ command }) => {
       expect(command.input.amount).toBeNumber();
       return { ok: true as const };
@@ -830,43 +821,52 @@ test("step builder only exposes resolve after input and output are set", () => {
     amount: t.number(),
   });
 
-  const step = discoveryStep("select_amount");
-
-  // @ts-expect-error resolve should not exist before input and output are set
-  void step.resolve;
-  // @ts-expect-error output should not exist before input is set
-  void step.output;
-
-  const withInitial = step.initial();
-
-  // @ts-expect-error initial should not exist after initial is set
-  void withInitial.initial;
-
-  const withInput = withInitial.input(stepInputSchema);
-
-  // @ts-expect-error input should not exist after input is set
-  void withInput.input;
-
-  const withOutput = withInput.output(stepOutputSchema);
-
-  // @ts-expect-error input should not exist after input and output are set
-  void withOutput.input;
-  // @ts-expect-error output should not exist after input and output are set
-  void withOutput.output;
-
-  const resolved = withOutput.resolve(({ discovery }) => {
-    void discovery.step;
-    return [];
+  const builderProbe = defineCommand({
+    commandId: "step_shape_probe",
+    commandSchema,
   });
 
-  // @ts-expect-error resolve should not exist after resolve is set
-  void resolved.resolve;
+  function assertStepBuilderSurface(
+    callbackStep: Parameters<
+      Parameters<typeof builderProbe.discoverable>[0]
+    >[0],
+  ) {
+    // @ts-expect-error resolve should not exist before input and output are set
+    void callbackStep.resolve;
+    // @ts-expect-error output should not exist before input is set
+    void callbackStep.output;
+
+    const withInitial = callbackStep("select_amount").initial();
+
+    // @ts-expect-error initial should not exist after initial is set
+    void withInitial.initial;
+
+    const withInput = withInitial.input(stepInputSchema);
+
+    // @ts-expect-error input should not exist after input is set
+    void withInput.input;
+
+    const withOutput = withInput.output(stepOutputSchema);
+
+    // @ts-expect-error input should not exist after input and output are set
+    void withOutput.input;
+    // @ts-expect-error output should not exist after input and output are set
+    void withOutput.output;
+
+    const resolved = withOutput.resolve(({ discovery }) => {
+      void discovery.step;
+      return [];
+    });
+
+    // @ts-expect-error resolve should not exist after resolve is set
+    void resolved.resolve;
+  }
 
   const command = defineCommand({
     commandId: "increment",
     commandSchema,
-  }).discoverable(
-    step
+  }).discoverable((step) => [
+    step("select_amount")
       .initial()
       .input(stepInputSchema)
       .output(stepOutputSchema)
@@ -875,9 +875,11 @@ test("step builder only exposes resolve after input and output are set", () => {
         return [];
       })
       .build(),
-  );
+  ]);
 
+  expect(assertStepBuilderSurface).toBeFunction();
   expect(command).toBeObject();
+  expect(builderProbe).toBeObject();
 });
 
 test("command builder hides invalid chained methods at each stage", () => {
@@ -915,8 +917,8 @@ test("command builder hides invalid chained methods at each stage", () => {
   // @ts-expect-error build should not exist before validate is set
   void executedBuilder.build;
 
-  const discoverableBuilder = baseBuilder.discoverable(
-    discoveryStep("select_amount")
+  const discoverableBuilder = baseBuilder.discoverable((step) => [
+    step("select_amount")
       .initial()
       .input(discoverySchema)
       .output(t.object({ amount: t.number() }))
@@ -944,7 +946,7 @@ test("command builder hides invalid chained methods at each stage", () => {
         };
       })
       .build(),
-  );
+  ]);
 
   // @ts-expect-error discovery should only be configurable once
   void discoverableBuilder.discoverable;

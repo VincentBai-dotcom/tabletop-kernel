@@ -6,7 +6,6 @@ import {
 } from "../discovery.ts";
 import {
   assertGemTokenColor,
-  defineSplendorDiscoveryStep,
   guardedAvailability,
   guardedValidate,
   isGemTokenColor,
@@ -47,8 +46,8 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
   commandId: "take_three_distinct_gems",
   commandSchema: takeThreeDistinctGemsCommandSchema,
 })
-  .discoverable(
-    defineSplendorDiscoveryStep("select_gem_color")
+  .discoverable((step) => [
+    step("select_gem_color")
       .initial()
       .input(selectGemColorDiscoveryInputSchema)
       .output(selectGemColorDiscoveryOutputSchema)
@@ -87,7 +86,7 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
           }));
       })
       .build(),
-    defineSplendorDiscoveryStep("select_return_token")
+    step("select_return_token")
       .input(selectReturnTokenDiscoveryInputSchema)
       .output(selectReturnTokenDiscoveryOutputSchema)
       .resolve(({ actorId, game, discovery }) => {
@@ -119,7 +118,7 @@ const takeThreeDistinctGemsCommand = defineSplendorCommand({
         );
       })
       .build(),
-  )
+  ])
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const game = context.game;
