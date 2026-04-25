@@ -42,6 +42,7 @@ async function writeCliConfig(cwd: string): Promise<void> {
     "            {",
     '              stepId: "select_gems",',
     "              inputSchema: t.object({",
+    "                selectedColor: t.string(),",
     "              }),",
     "              outputSchema: t.object({",
     "                label: t.string(),",
@@ -141,6 +142,10 @@ describe("generate client-sdk", () => {
     expect(generated).toContain("output:");
     expect(generated).toContain("nextStep:");
     expect(generated).toContain("nextInput:");
+    expect(generated).toContain('nextStep: "select_gems";');
+    expect(generated).toContain("selectedColor: string;");
+    expect(generated).toContain('nextStep: "confirm_selection";');
+    expect(generated).toContain("nextInput: {};");
     expect(generated).not.toContain("GameClientSdk");
     expect(generated).not.toContain("submitCommand");
     expect(generated).not.toContain("discover(");

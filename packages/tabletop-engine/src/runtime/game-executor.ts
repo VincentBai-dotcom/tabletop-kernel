@@ -591,7 +591,9 @@ export function createGameExecutor<
         discovery,
       );
 
-      const result = step.resolve(discoveryContext);
+      const result = (
+        step.resolve as (context: typeof discoveryContext) => unknown
+      )(discoveryContext);
 
       if (!result) {
         return null;
@@ -606,15 +608,20 @@ export function createGameExecutor<
           return null;
         }
 
+        const completion = result as {
+          complete: true;
+          input: Record<string, unknown>;
+        };
+
         try {
-          assertSchemaValue(definition.commandSchema, result.input);
+          assertSchemaValue(definition.commandSchema, completion.input);
         } catch {
           return null;
         }
 
         return {
           complete: true,
-          input: result.input,
+          input: completion.input,
         };
       }
 

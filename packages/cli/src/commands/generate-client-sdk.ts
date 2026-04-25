@@ -176,16 +176,6 @@ function renderDiscoveryResultType(command: {
     return "never";
   }
 
-  const stepIdType = renderStringLiteralUnion(
-    discovery.steps.map((step) => step.stepId),
-  );
-  const stepInputType = renderUnion(
-    discovery.steps.map((step) =>
-      renderSchemaTypeString(
-        step.inputSchema.schema as Record<string, unknown>,
-      ),
-    ),
-  );
   const completeResult = `{
   complete: true;
   input: ${renderSchemaTypeString(
@@ -195,16 +185,26 @@ function renderDiscoveryResultType(command: {
 
   const stepResults = discovery.steps.map((step) => {
     const outputSchema = step.outputSchema.schema as Record<string, unknown>;
+    const nextOptionType = renderUnion(
+      discovery.steps.map((targetStep) => {
+        const targetInputSchema = targetStep.inputSchema.schema as Record<
+          string,
+          unknown
+        >;
+
+        return `{
+    id: string;
+    output: ${renderSchemaTypeString(outputSchema)};
+    nextStep: ${JSON.stringify(targetStep.stepId)};
+    nextInput: ${renderSchemaTypeString(targetInputSchema)};
+  }`;
+      }),
+    );
 
     return `{
   complete: false;
   step: ${JSON.stringify(step.stepId)};
-  options: Array<{
-    id: string;
-    output: ${renderSchemaTypeString(outputSchema)};
-    nextStep: ${stepIdType};
-    nextInput: ${stepInputType};
-  }>;
+  options: Array<${nextOptionType}>;
 }`;
   });
 
@@ -262,10 +262,6 @@ function renderUnion(members: string[]): string {
   }
 
   return members.join(" |\n");
-}
-
-function renderStringLiteralUnion(values: string[]): string {
-  return values.map((value) => JSON.stringify(value)).join(" | ") || "never";
 }
 
 function toPascalCase(value: string): string {

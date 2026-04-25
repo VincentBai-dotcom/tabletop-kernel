@@ -274,10 +274,8 @@ test("chained builder rejects callback discovery steps without an initial step",
               output: {
                 amount: 1,
               },
-              nextInput: {
-                amount: 1,
-              },
-              nextStep: "select_amount",
+              nextInput: {},
+              nextStep: "select_amount" as const,
             },
           ])
           .build(),

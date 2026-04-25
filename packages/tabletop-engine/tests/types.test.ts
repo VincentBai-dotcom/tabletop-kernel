@@ -808,6 +808,93 @@ test("command factory contextually types command lifecycle methods", () => {
   expect(command.discovery?.steps[0]?.initial).toBeTrue();
 });
 
+test("discovery resolver typing keeps next-step input and completion input correlated", () => {
+  const defineCommand = createCommandFactory<{
+    score: number;
+  }>();
+
+  const commandSchema = t.object({
+    amount: t.number(),
+  });
+  const selectAmountInputSchema = t.object({});
+  const selectAmountOutputSchema = t.object({
+    amount: t.number(),
+  });
+  const confirmSelectionInputSchema = t.object({
+    amount: t.number(),
+  });
+  const confirmSelectionOutputSchema = t.object({
+    confirmed: t.boolean(),
+  });
+
+  defineCommand({
+    commandId: "gain_score",
+    commandSchema,
+  })
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => [
+          {
+            id: "one",
+            output: {
+              amount: 1,
+            },
+            nextInput: {
+              amount: 1,
+            },
+            nextStep: "confirm_selection",
+          },
+          {
+            id: "retry",
+            output: {
+              amount: 2,
+            },
+            nextInput: {},
+            nextStep: "select_amount",
+          },
+        ])
+        .build(),
+      step("confirm_selection")
+        .input(confirmSelectionInputSchema)
+        .output(confirmSelectionOutputSchema)
+        .resolve(() => ({
+          complete: true as const,
+          input: {
+            amount: 1,
+          },
+        }))
+        .build(),
+    ])
+    .validate(() => ({ ok: true as const }))
+    .execute(() => {});
+
+  defineCommand({
+    commandId: "gain_score_invalid_completion",
+    commandSchema,
+  })
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => ({
+          complete: true as const,
+          input: {
+            // @ts-expect-error completion input should match the command schema
+            selectedAmount: 1,
+          },
+        }))
+        .build(),
+    ])
+    .validate(() => ({ ok: true as const }))
+    .execute(() => {});
+
+  expect(true).toBeTrue();
+});
+
 test("step builder only exposes resolve after input and output are set", () => {
   const defineCommand = createCommandFactory<{
     counter: number;

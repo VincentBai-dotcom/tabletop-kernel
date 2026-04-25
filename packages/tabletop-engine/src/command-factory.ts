@@ -8,9 +8,11 @@ import type {
   DiscoverableCommandConfig,
   DiscoveryDefinition,
   DiscoveryStepBuilder,
+  DiscoveryStepContext,
   DiscoveryStepInitialBuilder,
   DiscoveryStepInputBuilder,
   DiscoveryStepDefinition,
+  DiscoveryStepResolveFn,
   DiscoveryStepReadyBuilder,
   DiscoveryStepResolvedBuilder,
   NonDiscoverableCommandAccumulator,
@@ -33,9 +35,15 @@ type DiscoveryStepAccumulator = {
   resolve?: (...args: unknown[]) => unknown;
 };
 
-function createDiscoveryStepBuilder<FacadeGameState extends object>(
-  stepId: string,
-): DiscoveryStepBuilder<FacadeGameState> {
+function createDiscoveryStepBuilder<
+  FacadeGameState extends object,
+  TCommandInput extends Record<string, unknown>,
+  TStepId extends string,
+  TSteps extends readonly DiscoveryStepDefinition[] =
+    readonly DiscoveryStepDefinition[],
+>(
+  stepId: TStepId,
+): DiscoveryStepBuilder<FacadeGameState, TCommandInput, TSteps, TStepId> {
   const stepState: DiscoveryStepAccumulator = {
     stepId,
     initial: false,
@@ -47,6 +55,9 @@ function createDiscoveryStepBuilder<FacadeGameState extends object>(
     TInitial extends boolean,
   >(): DiscoveryStepResolvedBuilder<
     FacadeGameState,
+    TCommandInput,
+    TSteps,
+    TStepId,
     TInput,
     TOutput,
     TInitial
@@ -72,16 +83,24 @@ function createDiscoveryStepBuilder<FacadeGameState extends object>(
         }
 
         return {
-          stepId: stepState.stepId,
+          stepId: stepState.stepId as TStepId,
           initial: stepState.initial as TInitial,
           inputSchema: stepState.inputSchema,
           outputSchema: stepState.outputSchema,
           resolve: stepState.resolve,
-        } as DiscoveryStepDefinition<
+        } as unknown as DiscoveryStepDefinition<
           FacadeGameState,
+          TStepId,
           TInput,
           TOutput,
-          TInitial
+          TInitial,
+          DiscoveryStepResolveFn<
+            FacadeGameState,
+            TCommandInput,
+            TSteps,
+            TInput,
+            TOutput
+          >
         >;
       },
     };
@@ -91,7 +110,15 @@ function createDiscoveryStepBuilder<FacadeGameState extends object>(
     TInput extends Record<string, unknown>,
     TOutput extends Record<string, unknown>,
     TInitial extends boolean,
-  >(): DiscoveryStepReadyBuilder<FacadeGameState, TInput, TOutput, TInitial> {
+  >(): DiscoveryStepReadyBuilder<
+    FacadeGameState,
+    TCommandInput,
+    TSteps,
+    TStepId,
+    TInput,
+    TOutput,
+    TInitial
+  > {
     return {
       resolve(resolve) {
         stepState.resolve = resolve as (...args: unknown[]) => unknown;
@@ -103,7 +130,14 @@ function createDiscoveryStepBuilder<FacadeGameState extends object>(
   function createInputBuilder<
     TInitial extends boolean,
     TInput extends Record<string, unknown>,
-  >(): DiscoveryStepInputBuilder<FacadeGameState, TInput, TInitial> {
+  >(): DiscoveryStepInputBuilder<
+    FacadeGameState,
+    TCommandInput,
+    TSteps,
+    TStepId,
+    TInput,
+    TInitial
+  > {
     return {
       output<TNextOutput extends Record<string, unknown>>(
         schema: CommandSchema<TNextOutput>,
@@ -115,7 +149,12 @@ function createDiscoveryStepBuilder<FacadeGameState extends object>(
     };
   }
 
-  function createStepBuilder(): DiscoveryStepBuilder<FacadeGameState> {
+  function createStepBuilder(): DiscoveryStepBuilder<
+    FacadeGameState,
+    TCommandInput,
+    TSteps,
+    TStepId
+  > {
     return {
       initial() {
         stepState.initial = true;
@@ -132,7 +171,12 @@ function createDiscoveryStepBuilder<FacadeGameState extends object>(
     };
   }
 
-  function createInitialBuilder(): DiscoveryStepInitialBuilder<FacadeGameState> {
+  function createInitialBuilder(): DiscoveryStepInitialBuilder<
+    FacadeGameState,
+    TCommandInput,
+    TSteps,
+    TStepId
+  > {
     return {
       input<TNextInput extends Record<string, unknown>>(
         schema: CommandSchema<TNextInput>,
@@ -166,11 +210,15 @@ export function createCommandFactory<FacadeGameState extends object>() {
   function finalizeDiscoveryDefinition(
     steps: readonly DiscoveryStepDefinition<
       FacadeGameState,
+      string,
       Record<string, unknown>,
       Record<string, unknown>,
-      boolean
+      boolean,
+      (
+        context: DiscoveryStepContext<FacadeGameState, Record<string, unknown>>,
+      ) => unknown
     >[],
-  ): DiscoveryDefinition<FacadeGameState> {
+  ): DiscoveryDefinition {
     if (steps.length === 0) {
       throw new Error("command_builder_missing_discovery_step");
     }
@@ -199,7 +247,7 @@ export function createCommandFactory<FacadeGameState extends object>() {
     return {
       startStep: initialStepId,
       steps,
-    } as DiscoveryDefinition<FacadeGameState>;
+    } as DiscoveryDefinition;
   }
 
   function createBuilder<
@@ -226,14 +274,46 @@ export function createCommandFactory<FacadeGameState extends object>() {
     THasExecute
   > {
     return {
-      discoverable(configure) {
-        const steps = configure(createDiscoveryStepBuilder<FacadeGameState>);
+      discoverable<
+        TSteps extends readonly [
+          DiscoveryStepDefinition,
+          ...DiscoveryStepDefinition[],
+        ],
+      >(
+        configure: (
+          step: <TStepId extends string>(
+            stepId: TStepId,
+          ) => DiscoveryStepBuilder<
+            FacadeGameState,
+            TCommandInput,
+            TSteps,
+            TStepId
+          >,
+        ) => TSteps,
+      ) {
+        function discoveryStepFactory<TStepId extends string>(stepId: TStepId) {
+          return createDiscoveryStepBuilder<
+            FacadeGameState,
+            TCommandInput,
+            TStepId,
+            TSteps
+          >(stepId);
+        }
+
+        const steps = configure(discoveryStepFactory);
         const discovery = finalizeDiscoveryDefinition(
           steps as readonly DiscoveryStepDefinition<
             FacadeGameState,
+            string,
             Record<string, unknown>,
             Record<string, unknown>,
-            boolean
+            boolean,
+            (
+              context: DiscoveryStepContext<
+                FacadeGameState,
+                Record<string, unknown>
+              >,
+            ) => unknown
           >[],
         );
 
