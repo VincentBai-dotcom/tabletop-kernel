@@ -44,6 +44,11 @@ const liveMessageSchema = t.Union([
     gameSessionId: t.String({ minLength: 1 }),
   }),
   t.Object({
+    type: t.Literal("game_discover"),
+    gameSessionId: t.String({ minLength: 1 }),
+    discovery: t.Any(),
+  }),
+  t.Object({
     type: t.Literal("game_command"),
     gameSessionId: t.String({ minLength: 1 }),
     command: t.Any(),

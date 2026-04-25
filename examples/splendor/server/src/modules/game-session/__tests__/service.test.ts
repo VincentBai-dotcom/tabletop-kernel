@@ -322,6 +322,7 @@ describe("createGameSessionService", () => {
       playerSessionId: "session-2",
       playerId: "player-2",
       view: expect.any(Object),
+      availableCommands: expect.any(Array),
     });
     expect(
       (await store.loadGameSession("game-1"))?.players[1]?.disconnectedAt,
@@ -342,6 +343,27 @@ describe("createGameSessionService", () => {
       playerSessionId: "session-host",
       playerId: "player-1",
       view: expect.any(Object),
+      availableCommands: expect.any(Array),
+    });
+  });
+
+  it("resolves typed discovery for a seated player", async () => {
+    const { service } = await createStartedGame();
+
+    const result = await service.discoverCommand({
+      gameSessionId: "game-1",
+      playerSessionId: "session-host",
+      discovery: {
+        type: "take_two_same_gems",
+        step: "select_gem_color",
+        input: {},
+      },
+    });
+
+    expect(result).toEqual({
+      complete: false,
+      step: "select_gem_color",
+      options: expect.any(Array),
     });
   });
 

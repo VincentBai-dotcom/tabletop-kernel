@@ -104,6 +104,27 @@ export function createLiveMessageHandler({
             }
             return;
 
+          case "game_discover": {
+            if (!gameSessionService) {
+              throw new AppError(
+                "game_commands_not_implemented",
+                501,
+                "Game commands are not implemented yet",
+              );
+            }
+
+            connection.send({
+              type: "game_discovery_result",
+              gameSessionId: message.gameSessionId,
+              result: await gameSessionService.discoverCommand({
+                gameSessionId: message.gameSessionId,
+                playerSessionId,
+                discovery: message.discovery,
+              }),
+            });
+            return;
+          }
+
           case "game_command": {
             if (!gameSessionService) {
               throw new AppError(
@@ -138,6 +159,7 @@ export function createLiveMessageHandler({
                 stateVersion: result.stateVersion,
                 events: result.events,
                 view: playerView.view,
+                availableCommands: playerView.availableCommands,
               });
             }
             return;

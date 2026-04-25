@@ -1,4 +1,4 @@
-import type { CanonicalState, Command } from "tabletop-engine";
+import type { CanonicalState, Command, Discovery } from "tabletop-engine";
 import { AppError } from "../errors";
 import { timestampBefore } from "../../lib/time";
 import type {
@@ -45,6 +45,51 @@ function toEngineCommand(command: unknown, actorId: string): Command {
   };
 }
 
+function toEngineDiscovery(discovery: unknown, actorId: string): Discovery {
+  if (typeof discovery !== "object" || discovery === null) {
+    throw new AppError(
+      "invalid_game_discovery",
+      400,
+      "Discovery must be an object",
+    );
+  }
+
+  const type = "type" in discovery ? discovery.type : undefined;
+  const step = "step" in discovery ? discovery.step : undefined;
+  const input = "input" in discovery ? discovery.input : {};
+
+  if (typeof type !== "string" || type.length === 0) {
+    throw new AppError(
+      "invalid_game_discovery",
+      400,
+      "Discovery type is required",
+    );
+  }
+
+  if (typeof step !== "string" || step.length === 0) {
+    throw new AppError(
+      "invalid_game_discovery",
+      400,
+      "Discovery step is required",
+    );
+  }
+
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new AppError(
+      "invalid_game_discovery",
+      400,
+      "Discovery input must be an object",
+    );
+  }
+
+  return {
+    type,
+    actorId,
+    step,
+    input: input as Record<string, unknown>,
+  };
+}
+
 export function createGameSessionService<
   TState extends CanonicalState<object>,
 >({
@@ -63,6 +108,9 @@ export function createGameSessionService<
       view: gameExecutor.getView(state, {
         kind: "player",
         playerId: player.playerId,
+      }),
+      availableCommands: gameExecutor.listAvailableCommands(state, {
+        actorId: player.playerId,
       }),
     }));
   }
@@ -89,6 +137,12 @@ export function createGameSessionService<
         kind: "player",
         playerId: player.playerId,
       }),
+      availableCommands: gameExecutor.listAvailableCommands(
+        gameSession.canonicalState,
+        {
+          actorId: player.playerId,
+        },
+      ),
     };
   }
 
@@ -214,6 +268,29 @@ export function createGameSessionService<
           persisted.players,
         ),
       };
+    },
+
+    async discoverCommand({ gameSessionId, playerSessionId, discovery }) {
+      const gameSession = await store.loadGameSession(gameSessionId);
+      if (!gameSession) {
+        throw new AppError("game_not_found", 404, "Game session not found");
+      }
+
+      const player = gameSession.players.find(
+        (candidate) => candidate.playerSessionId === playerSessionId,
+      );
+      if (!player) {
+        throw new AppError(
+          "game_player_not_found",
+          403,
+          "Player is not seated in this game",
+        );
+      }
+
+      return gameExecutor.discoverCommand(
+        gameSession.canonicalState,
+        toEngineDiscovery(discovery, player.playerId),
+      );
     },
 
     async markDisconnected({

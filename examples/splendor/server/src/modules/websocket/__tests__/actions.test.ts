@@ -84,6 +84,7 @@ function createFakeLivePresenceService(room: RoomSnapshot) {
         type: "game_snapshot",
         stateVersion: 0,
         view: { game: "view" },
+        availableCommands: ["take_three_distinct_gems"],
         events: [],
       };
     },
@@ -235,6 +236,28 @@ describe("createLiveMessageHandler", () => {
       type: "game_command",
       gameSessionId: "game-1",
       command: { type: "noop" },
+    });
+
+    expect(client.sent).toEqual([
+      {
+        type: "error",
+        code: "game_commands_not_implemented",
+        message: "Game commands are not implemented yet",
+      },
+    ]);
+  });
+
+  it("returns not implemented for game discovery until game service is wired", async () => {
+    const registry = createLiveConnectionRegistry();
+    const client = createRecordingConnection("conn-1");
+    const { roomService } = createFakeRoomService();
+    registry.register("session-1", client.connection);
+    const handler = createLiveMessageHandler({ registry, roomService });
+
+    await handler.handleMessage(client.connection, {
+      type: "game_discover",
+      gameSessionId: "game-1",
+      discovery: { type: "take_two_same_gems", step: "select_gem_color" },
     });
 
     expect(client.sent).toEqual([

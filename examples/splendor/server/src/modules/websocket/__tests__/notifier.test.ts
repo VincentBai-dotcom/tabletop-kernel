@@ -55,6 +55,7 @@ describe("createLiveNotifier", () => {
     notifier.publishGameUpdated("game-1", {
       stateVersion: 2,
       view: { game: "view" },
+      availableCommands: ["take_three_distinct_gems"],
       events: [{ type: "event" }],
     });
 
@@ -63,6 +64,7 @@ describe("createLiveNotifier", () => {
         type: "game_updated",
         stateVersion: 2,
         view: { game: "view" },
+        availableCommands: ["take_three_distinct_gems"],
         events: [{ type: "event" }],
       },
     ]);

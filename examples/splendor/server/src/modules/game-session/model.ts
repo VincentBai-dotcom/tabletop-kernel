@@ -1,6 +1,8 @@
 import type {
   CanonicalState,
+  CommandDiscoveryResult,
   Command,
+  Discovery,
   ExecutionResult,
   GameEvent,
   Viewer,
@@ -91,6 +93,13 @@ export interface HostedGameExecutor<TState extends CanonicalState<object>> {
   ): TState;
   /** Execute a player command against the current state. */
   executeCommand(state: TState, command: Command): ExecutionResult<TState>;
+  /** Return the currently available command types for a player. */
+  listAvailableCommands(state: TState, options: { actorId: string }): string[];
+  /** Resolve the next discovery step for a player command flow. */
+  discoverCommand(
+    state: TState,
+    discovery: Discovery,
+  ): CommandDiscoveryResult | null;
   /** Generate a player-specific view of the game state (hides opponent hands, etc.). */
   getView(state: TState, viewer: Viewer): unknown;
 }
@@ -125,11 +134,18 @@ export interface SubmitGameCommandInput {
   command: unknown;
 }
 
+export interface DiscoverGameCommandInput {
+  gameSessionId: string;
+  playerSessionId: string;
+  discovery: unknown;
+}
+
 /** A player's filtered view of the game state. */
 export interface GamePlayerView {
   playerSessionId: string;
   playerId: string;
   view: unknown;
+  availableCommands: string[];
 }
 
 /** Player-specific game snapshot sent when a client reconnects or subscribes. */
@@ -153,6 +169,8 @@ export type GameCommandResult =
       events: GameEvent[];
     };
 
+export type GameDiscoveryResult = CommandDiscoveryResult | null;
+
 export interface MarkDisconnectedInput {
   gameSessionId: string;
   playerSessionId: string;
@@ -174,6 +192,10 @@ export interface GameSessionService {
   ): Promise<GameStartedResult>;
   /** Validate and execute a player's command against the current game state. */
   submitCommand(input: SubmitGameCommandInput): Promise<GameCommandResult>;
+  /** Resolve the next discovery step for a player's command flow. */
+  discoverCommand(
+    input: DiscoverGameCommandInput,
+  ): Promise<GameDiscoveryResult>;
   /** Record a player disconnect without invalidating during the grace window. */
   markDisconnected(
     input: MarkDisconnectedInput,

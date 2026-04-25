@@ -58,6 +58,7 @@ export interface LiveConnectionRegistry {
 export interface GameUpdatePayload {
   stateVersion: number;
   view: unknown;
+  availableCommands: string[];
   events: unknown[];
 }
 
@@ -86,7 +87,14 @@ export type LiveServerMessage =
   | { type: "room_snapshot"; room: RoomSnapshot }
   | { type: "room_updated"; room: RoomSnapshot }
   | { type: "game_started"; gameSessionId: string }
-  | { type: "game_snapshot"; stateVersion: number; view: unknown; events: [] }
+  | {
+      type: "game_snapshot";
+      stateVersion: number;
+      view: unknown;
+      availableCommands: string[];
+      events: [];
+    }
+  | { type: "game_discovery_result"; gameSessionId: string; result: unknown }
   | ({ type: "game_updated" } & GameUpdatePayload)
   | { type: "game_ended"; result: GameEndedPayload }
   | {
@@ -105,4 +113,5 @@ export type LiveClientMessage =
   | { type: "room_leave"; roomId: string }
   | { type: "room_start_game"; roomId: string }
   | { type: "subscribe_game"; gameSessionId: string }
+  | { type: "game_discover"; gameSessionId: string; discovery: unknown }
   | { type: "game_command"; gameSessionId: string; command: unknown };

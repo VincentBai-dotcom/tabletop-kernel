@@ -55,6 +55,13 @@ function createFakeGameSessionService(
       throw new Error("not used");
     },
     submitCommand,
+    async discoverCommand() {
+      return {
+        complete: false,
+        step: "select_gem_color",
+        options: [],
+      };
+    },
     async markDisconnected() {
       return null;
     },
@@ -87,6 +94,7 @@ function createFakeLivePresenceService() {
         type: "game_snapshot",
         stateVersion: 3,
         view: { game: "snapshot" },
+        availableCommands: ["take_three_distinct_gems"],
         events: [],
       };
     },
@@ -157,11 +165,13 @@ describe("game websocket actions", () => {
             playerSessionId: "session-1",
             playerId: "player-1",
             view: { self: true },
+            availableCommands: ["take_three_distinct_gems"],
           },
           {
             playerSessionId: "session-2",
             playerId: "player-2",
             view: { self: false },
+            availableCommands: ["take_two_same_gems"],
           },
         ],
       })),
@@ -185,6 +195,7 @@ describe("game websocket actions", () => {
           },
         ],
         view: { self: true },
+        availableCommands: ["take_three_distinct_gems"],
       },
     ]);
     expect(second.sent).toEqual([
@@ -199,6 +210,64 @@ describe("game websocket actions", () => {
           },
         ],
         view: { self: false },
+        availableCommands: ["take_two_same_gems"],
+      },
+    ]);
+  });
+
+  it("returns discovery results to the requesting player", async () => {
+    const registry = createLiveConnectionRegistry();
+    const client = createRecordingConnection("conn-1");
+    registry.register("session-1", client.connection);
+    registry.subscribeToGame("session-1", "game-1");
+    const handler = createLiveMessageHandler({
+      registry,
+      roomService: createUnusedRoomService(),
+      gameSessionService: {
+        ...createFakeGameSessionService(async () => ({
+          accepted: false,
+          stateVersion: 0,
+          reason: "not used",
+          events: [],
+        })),
+        async discoverCommand(input) {
+          expect(input).toEqual({
+            gameSessionId: "game-1",
+            playerSessionId: "session-1",
+            discovery: {
+              type: "take_two_same_gems",
+              step: "select_gem_color",
+              input: {},
+            },
+          });
+          return {
+            complete: false,
+            step: "select_gem_color",
+            options: [],
+          };
+        },
+      },
+    });
+
+    await handler.handleMessage(client.connection, {
+      type: "game_discover",
+      gameSessionId: "game-1",
+      discovery: {
+        type: "take_two_same_gems",
+        step: "select_gem_color",
+        input: {},
+      },
+    });
+
+    expect(client.sent).toEqual([
+      {
+        type: "game_discovery_result",
+        gameSessionId: "game-1",
+        result: {
+          complete: false,
+          step: "select_gem_color",
+          options: [],
+        },
       },
     ]);
   });
@@ -267,6 +336,7 @@ describe("game websocket actions", () => {
         type: "game_snapshot",
         stateVersion: 3,
         view: { game: "snapshot" },
+        availableCommands: ["take_three_distinct_gems"],
         events: [],
       },
     ]);
