@@ -48,3 +48,5 @@ export function createApp({
     ? app.use(createDisconnectCleanupCron(disconnectCleanup))
     : app;
 }
+
+export type App = ReturnType<typeof createApp>;
