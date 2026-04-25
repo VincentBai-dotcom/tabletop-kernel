@@ -507,7 +507,7 @@ function createSingleActivePlayerBuilder<
       const nextAccumulator = {
         ...accumulator,
         nextStages,
-      } as SingleActivePlayerAccumulator<
+      } as unknown as SingleActivePlayerAccumulator<
         GameState,
         Commands,
         TExtractNextStages<typeof nextStages>
@@ -593,7 +593,7 @@ function createAutomaticBuilder<
       >({
         ...accumulator,
         nextStages,
-      } as AutomaticAccumulator<
+      } as unknown as AutomaticAccumulator<
         GameState,
         TExtractNextStages<typeof nextStages>
       >);
@@ -672,7 +672,7 @@ function createMultiActivePlayerBuilder<
         ...accumulator,
         memorySchema,
         memory,
-      } as MultiActivePlayerAccumulator<
+      } as unknown as MultiActivePlayerAccumulator<
         GameState,
         NextMemory,
         Commands,
@@ -801,7 +801,7 @@ function createMultiActivePlayerBuilder<
       >({
         ...accumulator,
         nextStages,
-      } as MultiActivePlayerAccumulator<
+      } as unknown as MultiActivePlayerAccumulator<
         GameState,
         Memory,
         Commands,

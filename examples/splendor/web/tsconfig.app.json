@@ -16,6 +16,7 @@
     "jsx": "react-jsx",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
+    "strict": true,
 
     /* Linting */
     "noUnusedLocals": true,

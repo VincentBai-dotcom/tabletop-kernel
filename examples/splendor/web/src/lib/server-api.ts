@@ -2,31 +2,33 @@ import type {
   CreateRoomResult,
   JoinRoomResult,
 } from "splendor-server/client-types";
+import type { App } from "splendor-server/app";
+import { treaty } from "@elysia/eden";
 import { splendorServerHttpUrl } from "../config";
+
+const api = treaty<App>(splendorServerHttpUrl);
+
+function getErrorMessage(
+  error: { value?: { message?: string } } | null,
+  fallback: string,
+): string {
+  return error?.value?.message ?? fallback;
+}
 
 export async function createRoom(input: {
   displayName: string;
   playerSessionToken: string | null;
 }): Promise<CreateRoomResult> {
-  const response = await fetch(`${splendorServerHttpUrl}/rooms`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      displayName: input.displayName,
-      playerSessionToken: input.playerSessionToken ?? undefined,
-    }),
+  const response = await api.rooms.post({
+    displayName: input.displayName,
+    playerSessionToken: input.playerSessionToken ?? undefined,
   });
 
-  if (!response.ok) {
-    const payload = (await response.json()) as {
-      error?: { message?: string };
-    };
-    throw new Error(payload.error?.message ?? "Failed to create room");
+  if (response.error) {
+    throw new Error(getErrorMessage(response.error, "Failed to create room"));
   }
 
-  return (await response.json()) as CreateRoomResult;
+  return response.data as CreateRoomResult;
 }
 
 export async function joinRoom(input: {
@@ -34,24 +36,15 @@ export async function joinRoom(input: {
   roomCode: string;
   playerSessionToken: string | null;
 }): Promise<JoinRoomResult> {
-  const response = await fetch(`${splendorServerHttpUrl}/rooms/join`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      displayName: input.displayName,
-      roomCode: input.roomCode,
-      playerSessionToken: input.playerSessionToken ?? undefined,
-    }),
+  const response = await api.rooms.join.post({
+    roomCode: input.roomCode,
+    displayName: input.displayName,
+    playerSessionToken: input.playerSessionToken ?? undefined,
   });
 
-  if (!response.ok) {
-    const payload = (await response.json()) as {
-      error?: { message?: string };
-    };
-    throw new Error(payload.error?.message ?? "Failed to join room");
+  if (response.error) {
+    throw new Error(getErrorMessage(response.error, "Failed to join room"));
   }
 
-  return (await response.json()) as JoinRoomResult;
+  return response.data as JoinRoomResult;
 }
