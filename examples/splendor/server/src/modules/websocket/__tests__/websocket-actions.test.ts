@@ -92,6 +92,7 @@ function createFakeLivePresenceService() {
       calls.handleGameSubscribed.push(input);
       return {
         type: "game_snapshot",
+        gameSessionId: "game-1",
         stateVersion: 3,
         view: { game: "snapshot" },
         availableCommands: ["take_three_distinct_gems"],
@@ -125,7 +126,8 @@ describe("game websocket actions", () => {
     });
 
     await handler.handleMessage(client.connection, {
-      type: "game_command",
+      type: "game_execute",
+      requestId: "request-1",
       gameSessionId: "game-1",
       command: { type: "unknown_command", input: {} },
     });
@@ -178,14 +180,31 @@ describe("game websocket actions", () => {
     });
 
     await handler.handleMessage(first.connection, {
-      type: "game_command",
+      type: "game_execute",
+      requestId: "request-1",
       gameSessionId: "game-1",
       command: { type: "take_three_distinct_gems", input: {} },
     });
 
     expect(first.sent).toEqual([
       {
-        type: "game_updated",
+        type: "game_execution_result",
+        requestId: "request-1",
+        gameSessionId: "game-1",
+        commandType: "take_three_distinct_gems",
+        accepted: true,
+        stateVersion: 2,
+        events: [
+          {
+            category: "command",
+            type: "command_executed",
+            payload: {},
+          },
+        ],
+      },
+      {
+        type: "game_snapshot",
+        gameSessionId: "game-1",
         stateVersion: 2,
         events: [
           {
@@ -200,7 +219,8 @@ describe("game websocket actions", () => {
     ]);
     expect(second.sent).toEqual([
       {
-        type: "game_updated",
+        type: "game_snapshot",
+        gameSessionId: "game-1",
         stateVersion: 2,
         events: [
           {
@@ -251,6 +271,7 @@ describe("game websocket actions", () => {
 
     await handler.handleMessage(client.connection, {
       type: "game_discover",
+      requestId: "request-1",
       gameSessionId: "game-1",
       discovery: {
         type: "take_two_same_gems",
@@ -262,6 +283,7 @@ describe("game websocket actions", () => {
     expect(client.sent).toEqual([
       {
         type: "game_discovery_result",
+        requestId: "request-1",
         gameSessionId: "game-1",
         result: {
           complete: false,
@@ -289,16 +311,22 @@ describe("game websocket actions", () => {
     });
 
     await handler.handleMessage(client.connection, {
-      type: "game_command",
+      type: "game_execute",
+      requestId: "request-1",
       gameSessionId: "game-1",
       command: { type: "take_three_distinct_gems", input: {} },
     });
 
     expect(client.sent).toEqual([
       {
-        type: "error",
-        code: "not_active_player",
-        message: "Command rejected",
+        type: "game_execution_result",
+        requestId: "request-1",
+        gameSessionId: "game-1",
+        commandType: "take_three_distinct_gems",
+        accepted: false,
+        stateVersion: 0,
+        reason: "not_active_player",
+        events: [],
       },
     ]);
   });
@@ -334,6 +362,7 @@ describe("game websocket actions", () => {
     expect(client.sent).toEqual([
       {
         type: "game_snapshot",
+        gameSessionId: "game-1",
         stateVersion: 3,
         view: { game: "snapshot" },
         availableCommands: ["take_three_distinct_gems"],

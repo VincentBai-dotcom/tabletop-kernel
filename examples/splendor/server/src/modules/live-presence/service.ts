@@ -67,6 +67,7 @@ export function createLivePresenceService({
 
       return {
         type: "game_snapshot",
+        gameSessionId,
         stateVersion: snapshot.stateVersion,
         view: snapshot.view,
         availableCommands: snapshot.availableCommands,

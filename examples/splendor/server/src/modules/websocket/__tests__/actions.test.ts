@@ -82,6 +82,7 @@ function createFakeLivePresenceService(room: RoomSnapshot) {
       calls.handleGameSubscribed.push(input);
       return {
         type: "game_snapshot",
+        gameSessionId: "game-1",
         stateVersion: 0,
         view: { game: "view" },
         availableCommands: ["take_three_distinct_gems"],
@@ -233,7 +234,8 @@ describe("createLiveMessageHandler", () => {
     const handler = createLiveMessageHandler({ registry, roomService });
 
     await handler.handleMessage(client.connection, {
-      type: "game_command",
+      type: "game_execute",
+      requestId: "request-1",
       gameSessionId: "game-1",
       command: { type: "noop" },
     });
@@ -256,6 +258,7 @@ describe("createLiveMessageHandler", () => {
 
     await handler.handleMessage(client.connection, {
       type: "game_discover",
+      requestId: "request-1",
       gameSessionId: "game-1",
       discovery: { type: "take_two_same_gems", step: "select_gem_color" },
     });

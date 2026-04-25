@@ -104,6 +104,29 @@ export function createLiveMessageHandler({
             }
             return;
 
+          case "game_list_available_commands": {
+            if (!gameSessionService) {
+              throw new AppError(
+                "game_commands_not_implemented",
+                501,
+                "Game commands are not implemented yet",
+              );
+            }
+
+            const snapshot = await gameSessionService.getPlayerSnapshot({
+              gameSessionId: message.gameSessionId,
+              playerSessionId,
+            });
+
+            connection.send({
+              type: "game_available_commands",
+              requestId: message.requestId,
+              gameSessionId: message.gameSessionId,
+              availableCommands: snapshot.availableCommands,
+            });
+            return;
+          }
+
           case "game_discover": {
             if (!gameSessionService) {
               throw new AppError(
@@ -115,6 +138,7 @@ export function createLiveMessageHandler({
 
             connection.send({
               type: "game_discovery_result",
+              requestId: message.requestId,
               gameSessionId: message.gameSessionId,
               result: await gameSessionService.discoverCommand({
                 gameSessionId: message.gameSessionId,
@@ -125,7 +149,7 @@ export function createLiveMessageHandler({
             return;
           }
 
-          case "game_command": {
+          case "game_execute": {
             if (!gameSessionService) {
               throw new AppError(
                 "game_commands_not_implemented",
@@ -140,12 +164,31 @@ export function createLiveMessageHandler({
               command: message.command,
             });
 
+            const commandType =
+              typeof message.command === "object" &&
+              message.command !== null &&
+              "type" in message.command &&
+              typeof message.command.type === "string"
+                ? message.command.type
+                : "unknown_command";
+
+            connection.send({
+              type: "game_execution_result",
+              requestId: message.requestId,
+              gameSessionId: message.gameSessionId,
+              commandType,
+              accepted: result.accepted,
+              stateVersion: result.stateVersion,
+              events: result.events,
+              ...(result.accepted === false
+                ? {
+                    reason: result.reason,
+                    metadata: result.metadata,
+                  }
+                : {}),
+            });
+
             if (result.accepted === false) {
-              connection.send({
-                type: "error",
-                code: result.reason,
-                message: "Command rejected",
-              });
               return;
             }
 
@@ -155,7 +198,8 @@ export function createLiveMessageHandler({
                 message.gameSessionId,
               );
               gameConnection?.send({
-                type: "game_updated",
+                type: "game_snapshot",
+                gameSessionId: message.gameSessionId,
                 stateVersion: result.stateVersion,
                 events: result.events,
                 view: playerView.view,

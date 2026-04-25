@@ -56,6 +56,7 @@ export interface LiveConnectionRegistry {
 }
 
 export interface GameUpdatePayload {
+  gameSessionId: string;
   stateVersion: number;
   view: unknown;
   availableCommands: string[];
@@ -87,16 +88,42 @@ export type LiveServerMessage =
   | { type: "room_snapshot"; room: RoomSnapshot }
   | { type: "room_updated"; room: RoomSnapshot }
   | { type: "game_started"; gameSessionId: string }
+  | ({ type: "game_snapshot" } & GameUpdatePayload)
   | {
-      type: "game_snapshot";
-      stateVersion: number;
-      view: unknown;
+      type: "game_available_commands";
+      requestId: string;
+      gameSessionId: string;
       availableCommands: string[];
-      events: [];
     }
-  | { type: "game_discovery_result"; gameSessionId: string; result: unknown }
-  | ({ type: "game_updated" } & GameUpdatePayload)
-  | { type: "game_ended"; result: GameEndedPayload }
+  | {
+      type: "game_discovery_result";
+      requestId: string;
+      gameSessionId: string;
+      result: unknown;
+    }
+  | (
+      | {
+          type: "game_execution_result";
+          requestId: string;
+          gameSessionId: string;
+          commandType: string;
+          accepted: true;
+          stateVersion: number;
+          events: unknown[];
+        }
+      | {
+          type: "game_execution_result";
+          requestId: string;
+          gameSessionId: string;
+          commandType: string;
+          accepted: false;
+          stateVersion: number;
+          reason: string;
+          metadata?: unknown;
+          events: unknown[];
+        }
+    )
+  | { type: "game_ended"; gameSessionId: string; result: GameEndedPayload }
   | {
       type: "player_disconnected";
       playerSessionId: string;
@@ -113,5 +140,20 @@ export type LiveClientMessage =
   | { type: "room_leave"; roomId: string }
   | { type: "room_start_game"; roomId: string }
   | { type: "subscribe_game"; gameSessionId: string }
-  | { type: "game_discover"; gameSessionId: string; discovery: unknown }
-  | { type: "game_command"; gameSessionId: string; command: unknown };
+  | {
+      type: "game_list_available_commands";
+      requestId: string;
+      gameSessionId: string;
+    }
+  | {
+      type: "game_discover";
+      requestId: string;
+      gameSessionId: string;
+      discovery: unknown;
+    }
+  | {
+      type: "game_execute";
+      requestId: string;
+      gameSessionId: string;
+      command: unknown;
+    };

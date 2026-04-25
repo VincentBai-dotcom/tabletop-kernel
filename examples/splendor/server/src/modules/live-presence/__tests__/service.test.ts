@@ -187,6 +187,7 @@ describe("createLivePresenceService", () => {
     ]);
     expect(message).toEqual({
       type: "game_snapshot",
+      gameSessionId: "game-1",
       stateVersion: 2,
       view: { game: "view" },
       availableCommands: ["take_three_distinct_gems"],
