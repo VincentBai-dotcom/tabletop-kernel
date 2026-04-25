@@ -1,9 +1,6 @@
 import { t } from "tabletop-engine";
-import {
-  completeDiscovery,
-  createReturnTokenDiscovery,
-  SPLENDOR_DISCOVERY_STEPS,
-} from "../discovery.ts";
+import { SPLENDOR_DISCOVERY_STEPS } from "../discovery.ts";
+import { completeDiscovery, createReturnTokenDiscovery } from "../discovery.ts";
 import {
   assertGemTokenColor,
   guardedAvailability,
@@ -19,67 +16,92 @@ const takeTwoSameGemsCommandSchema = t.object({
 
 export type TakeTwoSameGemsInput = typeof takeTwoSameGemsCommandSchema.static;
 
-const takeTwoSameGemsDiscoverySchema = t.object({
+const selectGemColorDiscoveryInputSchema = t.object({
   selectedColor: t.optional(t.string()),
   returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+const selectGemColorDiscoveryOutputSchema = t.object({
+  color: t.string(),
+  amount: t.number(),
+});
+
+const selectReturnTokenDiscoveryInputSchema = t.object({
+  selectedColor: t.string(),
+  returnTokens: t.optional(t.record(t.string(), t.number())),
+});
+
+const selectReturnTokenDiscoveryOutputSchema = t.object({
+  color: t.string(),
+  selectedCount: t.number(),
+  requiredReturnCount: t.number(),
 });
 
 const takeTwoSameGemsCommand = defineSplendorCommand({
   commandId: "take_two_same_gems",
   commandSchema: takeTwoSameGemsCommandSchema,
 })
-  .discoverable({
-    discoverySchema: takeTwoSameGemsDiscoverySchema,
-    discover(context) {
-      const actorId = context.actorId;
-      const game = context.game;
-      const draft = context.discovery.input;
+  .discoverable((step) => [
+    step("select_gem_color")
+      .initial()
+      .input(selectGemColorDiscoveryInputSchema)
+      .output(selectGemColorDiscoveryOutputSchema)
+      .resolve(({ game, discovery }) => {
+        const draft = discovery.input;
 
-      if (!draft?.selectedColor) {
+        if (draft.selectedColor) {
+          return null;
+        }
+
         const bankEntries = Object.entries(game.bank) as Array<
           [string, number]
         >;
 
-        return {
-          complete: false as const,
-          step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
-          options: bankEntries
-            .filter(([color, count]) => color !== "gold" && count >= 4)
-            .map(([color]) => ({
-              id: color,
-              nextInput: {
-                ...(draft ?? {}),
-                selectedColor: color,
-              },
-              metadata: {
-                color,
-                amount: 2,
-              },
-            })),
-        };
-      }
+        return bankEntries
+          .filter(([color, count]) => color !== "gold" && count >= 4)
+          .map(([color]) => ({
+            id: color,
+            output: {
+              color,
+              amount: 2,
+            },
+            nextInput: {
+              ...draft,
+              selectedColor: color,
+            },
+            nextStep: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,
+          }));
+      })
+      .build(),
+    step("select_return_token")
+      .input(selectReturnTokenDiscoveryInputSchema)
+      .output(selectReturnTokenDiscoveryOutputSchema)
+      .resolve(({ actorId, game, discovery }) => {
+        const draft = discovery.input;
+        const player = game.getPlayer(actorId).clone();
 
-      const player = game.getPlayer(actorId).clone();
-      if (!isGemTokenColor(draft.selectedColor)) {
-        throw new Error("invalid_color");
-      }
-      player.tokens.adjustColor(draft.selectedColor, 2);
-      const requiredReturnCount = player.getRequiredReturnCount();
-      const returnDiscovery = createReturnTokenDiscovery(
-        draft,
-        player.tokens,
-        requiredReturnCount,
-      );
+        if (!isGemTokenColor(draft.selectedColor)) {
+          throw new Error("invalid_color");
+        }
 
-      return (
-        returnDiscovery ??
-        completeDiscovery({
-          color: draft.selectedColor,
-          returnTokens: draft.returnTokens,
-        })
-      );
-    },
-  })
+        player.tokens.adjustColor(draft.selectedColor, 2);
+        const requiredReturnCount = player.getRequiredReturnCount();
+        const returnDiscovery = createReturnTokenDiscovery(
+          draft,
+          player.tokens,
+          requiredReturnCount,
+        );
+
+        return (
+          returnDiscovery ??
+          completeDiscovery({
+            color: draft.selectedColor,
+            returnTokens: draft.returnTokens,
+          })
+        );
+      })
+      .build(),
+  ])
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const game = context.game;

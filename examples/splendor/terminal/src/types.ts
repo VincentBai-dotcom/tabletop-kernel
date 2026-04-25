@@ -1,27 +1,22 @@
+import type { GameEvent, VisibleState } from "tabletop-engine";
 import type {
-  Command,
-  CommandDiscoveryResult,
-  Discovery,
-  GameEvent,
-  VisibleState,
-} from "tabletop-engine";
-import type {
-  SplendorDiscoveryOption,
+  CommandRequest as SplendorGeneratedCommandRequest,
+  DiscoveryRequest as SplendorGeneratedDiscoveryRequest,
+  DiscoveryResult as SplendorGeneratedDiscoveryResult,
   SplendorGeneratedVisibleState,
 } from "splendor-example";
 
 export type SplendorVisibleGame = SplendorGeneratedVisibleState["game"];
 export type SplendorVisibleState = VisibleState<SplendorVisibleGame>;
 export type SplendorVisiblePlayer = SplendorVisibleGame["players"][string];
-export type SplendorCommandData = Record<string, unknown>;
-export type SplendorTerminalCommand = Command<SplendorCommandData>;
-export type SplendorTerminalDiscoveryRequest = Discovery<SplendorCommandData>;
-export type SplendorTerminalDiscoveryOption =
-  SplendorDiscoveryOption<SplendorCommandData>;
-export type SplendorTerminalDiscoveryResult = CommandDiscoveryResult<
-  SplendorCommandData,
-  SplendorCommandData
->;
+export type SplendorTerminalCommand = SplendorGeneratedCommandRequest;
+export type SplendorTerminalDiscoveryRequest =
+  SplendorGeneratedDiscoveryRequest;
+export type SplendorTerminalDiscoveryResult = SplendorGeneratedDiscoveryResult;
+export type SplendorTerminalDiscoveryOption = Extract<
+  SplendorTerminalDiscoveryResult,
+  { complete: false }
+>["options"][number];
 export type SplendorTerminalOpenDiscovery = Extract<
   SplendorTerminalDiscoveryResult,
   { complete: false }

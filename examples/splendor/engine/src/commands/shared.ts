@@ -1,4 +1,8 @@
-import type { DefinedCommand, ValidationOutcome } from "tabletop-engine";
+import type {
+  CommandFactory,
+  DefinedCommand,
+  ValidationOutcome,
+} from "tabletop-engine";
 import { createCommandFactory } from "tabletop-engine";
 import {
   DEVELOPMENT_LEVELS,
@@ -8,7 +12,8 @@ import {
   type SplendorGameState,
 } from "../state.ts";
 
-export const defineSplendorCommand = createCommandFactory<SplendorGameState>();
+export const defineSplendorCommand: CommandFactory<SplendorGameState> =
+  createCommandFactory<SplendorGameState>();
 
 export type SplendorCommand = DefinedCommand<SplendorGameState>;
 

@@ -12,31 +12,47 @@ const chooseNobleCommandSchema = t.object({
 
 export type ChooseNobleInput = typeof chooseNobleCommandSchema.static;
 
-const chooseNobleDiscoverySchema = t.object({
+const selectNobleDiscoveryInputSchema = t.object({
   chosenNobleId: t.optional(t.number()),
+});
+
+const nobleRequirementsSchema = t.object({
+  White: t.number(),
+  Blue: t.number(),
+  Black: t.number(),
+  Red: t.number(),
+  Green: t.number(),
+});
+
+const selectNobleDiscoveryOutputSchema = t.object({
+  nobleId: t.number(),
+  name: t.string(),
+  requirements: nobleRequirementsSchema,
 });
 
 const chooseNobleCommand = defineSplendorCommand({
   commandId: "choose_noble",
   commandSchema: chooseNobleCommandSchema,
 })
-  .discoverable({
-    discoverySchema: chooseNobleDiscoverySchema,
-    discover(context) {
-      const actorId = context.actorId;
-      const player = context.game.getPlayer(actorId);
-      const draft = context.discovery.input;
-      const eligibleNobles = context.game.getEligibleNobles(player);
-      const nobleDiscovery = createNobleDiscovery(draft, eligibleNobles);
+  .discoverable((step) => [
+    step("select_noble")
+      .initial()
+      .input(selectNobleDiscoveryInputSchema)
+      .output(selectNobleDiscoveryOutputSchema)
+      .resolve(({ actorId, discovery, game }) => {
+        const draft = discovery.input;
+        const player = game.getPlayer(actorId);
 
-      return (
-        nobleDiscovery ??
-        completeDiscovery({
-          nobleId: draft.chosenNobleId!,
-        })
-      );
-    },
-  })
+        if (draft.chosenNobleId) {
+          return completeDiscovery({
+            nobleId: draft.chosenNobleId,
+          });
+        }
+
+        return createNobleDiscovery(draft, game.getEligibleNobles(player));
+      })
+      .build(),
+  ])
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const actorId = context.actorId;

@@ -15,60 +15,73 @@ const buyFaceUpCardCommandSchema = t.object({
 
 export type BuyFaceUpCardInput = typeof buyFaceUpCardCommandSchema.static;
 
-const buyFaceUpCardDiscoverySchema = t.object({
+const selectFaceUpCardDiscoveryInputSchema = t.object({
   selectedLevel: t.optional(t.number()),
   selectedCardId: t.optional(t.number()),
+});
+
+const selectFaceUpCardDiscoveryOutputSchema = t.object({
+  level: t.number(),
+  cardId: t.number(),
+  bonusColor: t.string(),
+  prestigePoints: t.number(),
+  source: t.string(),
 });
 
 const buyFaceUpCardCommand = defineSplendorCommand({
   commandId: "buy_face_up_card",
   commandSchema: buyFaceUpCardCommandSchema,
 })
-  .discoverable({
-    discoverySchema: buyFaceUpCardDiscoverySchema,
-    discover(context) {
-      const actorId = context.actorId;
-      const game = context.game;
-      const draft = context.discovery.input;
-      const player = game.getPlayer(actorId);
-      const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
-        [string, number[]]
-      >;
+  .discoverable((step) => [
+    step("select_face_up_card")
+      .initial()
+      .input(selectFaceUpCardDiscoveryInputSchema)
+      .output(selectFaceUpCardDiscoveryOutputSchema)
+      .resolve(({ actorId, game, discovery }) => {
+        const draft = discovery.input;
+        const player = game.getPlayer(actorId);
+        const faceUpEntries = Object.entries(game.board.faceUpByLevel) as Array<
+          [string, number[]]
+        >;
 
-      if (!draft?.selectedLevel || !draft?.selectedCardId) {
-        return {
-          complete: false as const,
-          step: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
-          options: faceUpEntries.flatMap(([level, cardIds]) =>
-            cardIds
-              .filter((cardId: number) => {
-                const card = game.getCard(cardId);
+        if (draft.selectedLevel && draft.selectedCardId) {
+          return completeDiscovery({
+            level: draft.selectedLevel,
+            cardId: draft.selectedCardId,
+          });
+        }
 
-                return player.getAffordablePayment(card) !== null;
-              })
-              .map((cardId: number) => ({
+        return faceUpEntries.flatMap(([level, cardIds]) =>
+          cardIds
+            .filter((cardId: number) => {
+              const card = game.getCard(cardId);
+
+              return player.getAffordablePayment(card) !== null;
+            })
+            .map((cardId: number) => {
+              const card = game.getCard(cardId);
+
+              return {
                 id: `${level}:${cardId}`,
+                output: {
+                  level: Number(level),
+                  cardId,
+                  bonusColor: card.bonusColor,
+                  prestigePoints: card.prestigePoints,
+                  source: "face_up",
+                },
                 nextInput: {
-                  ...(draft ?? {}),
+                  ...draft,
                   selectedLevel: Number(level),
                   selectedCardId: cardId,
                 },
-                metadata: {
-                  level: Number(level),
-                  cardId,
-                  source: "face_up",
-                },
-              })),
-          ),
-        };
-      }
-
-      return completeDiscovery({
-        level: draft.selectedLevel,
-        cardId: draft.selectedCardId,
-      });
-    },
-  })
+                nextStep: SPLENDOR_DISCOVERY_STEPS.selectFaceUpCard,
+              };
+            }),
+        );
+      })
+      .build(),
+  ])
   .isAvailable((context) => {
     return guardedAvailability(() => {
       const actorId = context.actorId;

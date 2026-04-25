@@ -12,8 +12,18 @@ import { createSelfLoopingTurnStage } from "./helpers/stages";
 const gainScoreCommandSchema = t.object({
   amount: t.number(),
 });
-const gainScoreDiscoverySchema = t.object({
+const selectAmountInputSchema = t.object({
   selectedAmount: t.optional(t.number()),
+});
+const selectAmountOutputSchema = t.object({
+  amount: t.number(),
+  label: t.string(),
+});
+const confirmSelectionInputSchema = t.object({
+  amount: t.number(),
+});
+const confirmSelectionOutputSchema = t.object({
+  confirmed: t.boolean(),
 });
 const hiddenViewSchema = t.object({
   count: t.number(),
@@ -89,22 +99,42 @@ configureVisibility(ProtocolDeckState, ({ field }) => ({
 const defineProtocolCommand = createCommandFactory<ProtocolRootState>();
 const definePlainProtocolCommand =
   createCommandFactory<PlainProtocolRootState>();
-test("describeGameProtocol returns command payload schemas", () => {
+
+test("describeGameProtocol returns step-authored discovery metadata", () => {
   const gainScoreCommand = defineProtocolCommand({
     commandId: "gain_score",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable({
-      discoverySchema: gainScoreDiscoverySchema,
-      discover() {
-        return {
+    .discoverable((step) => [
+      step("confirm_selection")
+        .input(confirmSelectionInputSchema)
+        .output(confirmSelectionOutputSchema)
+        .resolve(() => ({
           complete: true as const,
           input: {
             amount: 1,
           },
-        };
-      },
-    })
+        }))
+        .build(),
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => [
+          {
+            id: "preset_one",
+            output: {
+              amount: 1,
+              label: "One",
+            },
+            nextInput: {
+              selectedAmount: 1,
+            },
+            nextStep: "confirm_selection",
+          },
+        ])
+        .build(),
+    ])
     .validate(() => {
       return { ok: true as const };
     })
@@ -122,9 +152,34 @@ test("describeGameProtocol returns command payload schemas", () => {
   expect(protocol.commands.gain_score?.commandSchema).toBe(
     gainScoreCommandSchema,
   );
-  expect(protocol.commands.gain_score?.discoverySchema).toBe(
-    gainScoreDiscoverySchema,
+  expect(protocol.commands.gain_score?.discovery?.startStep).toBe(
+    "select_amount",
   );
+  expect(protocol.commands.gain_score?.discovery?.steps).toHaveLength(2);
+  expect(protocol.commands.gain_score?.discovery?.steps[0]?.stepId).toBe(
+    "confirm_selection",
+  );
+  expect(protocol.commands.gain_score?.discovery?.steps[0]?.inputSchema).toBe(
+    confirmSelectionInputSchema,
+  );
+  expect(protocol.commands.gain_score?.discovery?.steps[0]?.outputSchema).toBe(
+    confirmSelectionOutputSchema,
+  );
+  expect(protocol.commands.gain_score?.discovery?.steps[1]?.stepId).toBe(
+    "select_amount",
+  );
+  expect(protocol.commands.gain_score?.discovery?.steps[1]?.inputSchema).toBe(
+    selectAmountInputSchema,
+  );
+  expect(protocol.commands.gain_score?.discovery?.steps[1]?.outputSchema).toBe(
+    selectAmountOutputSchema,
+  );
+  expect(
+    "defaultNextStep" in protocol.commands.gain_score!.discovery!.steps[0]!,
+  ).toBe(false);
+  expect(
+    "defaultNextStep" in protocol.commands.gain_score!.discovery!.steps[1]!,
+  ).toBe(false);
   expect(protocol.viewSchema.type).toBe("object");
   expect(protocol.viewSchema.properties.game.type).toBe("object");
   expect(protocol.viewSchema.properties.progression.type).toBe("object");
@@ -190,68 +245,179 @@ test("describeGameProtocol rejects commands without commandSchema", () => {
   );
 });
 
-test("describeGameProtocol rejects discovery handlers without draft schemas", () => {
-  const missingDraftCommand = definePlainProtocolCommand({
-    commandId: "missing_draft",
+test("describeGameProtocol rejects discovery commands without discovery steps", () => {
+  const missingDiscoveryStepsCommand = definePlainProtocolCommand({
+    commandId: "missing_discovery_steps",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable({
-      discoverySchema: gainScoreDiscoverySchema,
-      discover: () => ({
-        complete: true as const,
-        input: {
-          amount: 1,
-        },
-      }),
-    })
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => ({
+          complete: true as const,
+          input: {
+            amount: 1,
+          },
+        }))
+        .build(),
+    ])
     .validate(() => ({ ok: true as const }))
     .execute(() => {})
     .build();
+
   delete (
-    missingDraftCommand as unknown as {
-      discoverySchema?: typeof gainScoreDiscoverySchema;
+    missingDiscoveryStepsCommand as unknown as {
+      discovery?: { steps?: unknown[] };
     }
-  ).discoverySchema;
+  ).discovery!.steps;
 
   const game = new GameDefinitionBuilder("invalid-discovery-protocol-game")
     .rootState(PlainProtocolRootState)
-    .initialStage(createSelfLoopingTurnStage([missingDraftCommand]))
+    .initialStage(createSelfLoopingTurnStage([missingDiscoveryStepsCommand]))
     .build();
 
   expect(() => describeGameProtocol(game)).toThrow(
-    "command_discovery_draft_schema_required:missing_draft",
+    "command_discovery_steps_required:missing_discovery_steps",
   );
 });
 
-test("describeGameProtocol rejects discovery draft schemas without handlers", () => {
-  const orphanDraftCommand = definePlainProtocolCommand({
-    commandId: "orphan_draft",
+test("describeGameProtocol rejects discovery commands with empty discovery steps", () => {
+  const emptyDiscoveryStepsCommand = definePlainProtocolCommand({
+    commandId: "empty_discovery_steps",
     commandSchema: gainScoreCommandSchema,
   })
-    .discoverable({
-      discoverySchema: gainScoreDiscoverySchema,
-      discover: () => ({
-        complete: true as const,
-        input: {
-          amount: 1,
-        },
-      }),
-    })
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => ({
+          complete: true as const,
+          input: {
+            amount: 1,
+          },
+        }))
+        .build(),
+    ])
     .validate(() => ({ ok: true as const }))
     .execute(() => {})
     .build();
-  delete (
-    orphanDraftCommand as unknown as {
-      discover?: () => { complete: true; input: { amount: number } };
-    }
-  ).discover;
 
-  const game = new GameDefinitionBuilder("orphan-discovery-draft-protocol-game")
+  (
+    emptyDiscoveryStepsCommand as unknown as { discovery: { steps: unknown[] } }
+  ).discovery.steps = [];
+
+  const game = new GameDefinitionBuilder("empty-discovery-protocol-game")
     .rootState(PlainProtocolRootState)
-    .initialStage(createSelfLoopingTurnStage([orphanDraftCommand]))
+    .initialStage(createSelfLoopingTurnStage([emptyDiscoveryStepsCommand]))
     .build();
 
   expect(() => describeGameProtocol(game)).toThrow(
-    "command_discovery_handler_required:orphan_draft",
+    "command_discovery_steps_required:empty_discovery_steps",
+  );
+});
+
+test("describeGameProtocol rejects malformed discovery step entries", () => {
+  const malformedStepCommand = definePlainProtocolCommand({
+    commandId: "malformed_discovery_step",
+    commandSchema: gainScoreCommandSchema,
+  })
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => ({
+          complete: true as const,
+          input: {
+            amount: 1,
+          },
+        }))
+        .build(),
+    ])
+    .validate(() => ({ ok: true as const }))
+    .execute(() => {})
+    .build();
+
+  const malformedStepsCommand = malformedStepCommand as unknown as {
+    discovery: { steps: unknown[] };
+  };
+
+  malformedStepsCommand.discovery.steps[0] = null;
+  const nullStepsGame = new GameDefinitionBuilder("null-discovery-step-game")
+    .rootState(PlainProtocolRootState)
+    .initialStage(createSelfLoopingTurnStage([malformedStepCommand]))
+    .build();
+
+  expect(() => describeGameProtocol(nullStepsGame)).toThrow(
+    "command_discovery_step_invalid:malformed_discovery_step:0",
+  );
+
+  malformedStepsCommand.discovery.steps[0] = {};
+  const emptyStepsGame = new GameDefinitionBuilder("empty-discovery-step-game")
+    .rootState(PlainProtocolRootState)
+    .initialStage(createSelfLoopingTurnStage([malformedStepCommand]))
+    .build();
+
+  expect(() => describeGameProtocol(emptyStepsGame)).toThrow(
+    "command_discovery_step_missing_step_id:malformed_discovery_step:0",
+  );
+
+  malformedStepsCommand.discovery.steps[0] = {
+    stepId: "select_amount",
+    outputSchema: selectAmountOutputSchema,
+    resolve: () => ({
+      complete: true as const,
+      input: {
+        amount: 1,
+      },
+    }),
+  };
+  const missingInputSchemaGame = new GameDefinitionBuilder(
+    "missing-input-schema-game",
+  )
+    .rootState(PlainProtocolRootState)
+    .initialStage(createSelfLoopingTurnStage([malformedStepCommand]))
+    .build();
+
+  expect(() => describeGameProtocol(missingInputSchemaGame)).toThrow(
+    "command_discovery_step_missing_input_schema:malformed_discovery_step:0",
+  );
+
+  malformedStepsCommand.discovery.steps[0] = {
+    stepId: "select_amount",
+    inputSchema: selectAmountInputSchema,
+    resolve: () => ({
+      complete: true as const,
+      input: {
+        amount: 1,
+      },
+    }),
+  };
+  const missingOutputSchemaGame = new GameDefinitionBuilder(
+    "missing-output-schema-game",
+  )
+    .rootState(PlainProtocolRootState)
+    .initialStage(createSelfLoopingTurnStage([malformedStepCommand]))
+    .build();
+
+  expect(() => describeGameProtocol(missingOutputSchemaGame)).toThrow(
+    "command_discovery_step_missing_output_schema:malformed_discovery_step:0",
+  );
+
+  malformedStepsCommand.discovery.steps[0] = {
+    stepId: "select_amount",
+    inputSchema: selectAmountInputSchema,
+    outputSchema: selectAmountOutputSchema,
+  };
+  const missingResolveGame = new GameDefinitionBuilder("missing-resolve-game")
+    .rootState(PlainProtocolRootState)
+    .initialStage(createSelfLoopingTurnStage([malformedStepCommand]))
+    .build();
+
+  expect(() => describeGameProtocol(missingResolveGame)).toThrow(
+    "command_discovery_step_missing_resolve:malformed_discovery_step:0",
   );
 });

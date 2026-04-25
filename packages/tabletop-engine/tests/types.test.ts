@@ -354,7 +354,7 @@ test("stage machine types support multi-active stage authoring", () => {
   expect(gameEndStage.id).toBe("gameEnd");
 });
 
-test("discovery types compose for draft-based next-step options and completion", () => {
+test("discovery types compose for step-authored options and completion", () => {
   type PlayCardDiscoveryInput = {
     step: string;
     cardId?: number;
@@ -393,6 +393,7 @@ test("discovery types compose for draft-based next-step options and completion",
   const discoveryRequest: Discovery<PlayCardDiscoveryInput> = {
     type: "play_card",
     actorId: "p1",
+    step: "select_target",
     input: {
       step: "select_target",
       cardId: 12,
@@ -408,7 +409,12 @@ test("discovery types compose for draft-based next-step options and completion",
   };
 
   const discoveryResult: CommandDiscoveryResult<
+    "select_target",
     PlayCardDiscoveryInput,
+    {
+      label: string;
+      targetId: number;
+    },
     PlayCardInput
   > = {
     complete: false,
@@ -416,17 +422,27 @@ test("discovery types compose for draft-based next-step options and completion",
     options: [
       {
         id: "target-1",
+        output: {
+          label: "Target 1",
+          targetId: 101,
+        },
         nextInput: {
           step: "complete",
           cardId: 12,
           targets: [101],
         },
+        nextStep: "complete",
       },
     ],
   };
 
   const completion: CommandDiscoveryResult<
+    "complete",
     PlayCardDiscoveryInput,
+    {
+      label: string;
+      targetId: number;
+    },
     PlayCardInput
   > = {
     complete: true,
@@ -437,6 +453,7 @@ test("discovery types compose for draft-based next-step options and completion",
   };
 
   expect(availabilityContext.actorId).toBe("p1");
+  expect(discoveryContext.discovery.step).toBe("select_target");
   expect(discoveryContext.discovery.input).toEqual({
     step: "select_target",
     cardId: 12,
@@ -468,6 +485,7 @@ test("strict command and discovery requests require actorId and input", () => {
   const discovery: Discovery<{ selectedAmount: number }> = {
     type: "gain_score",
     actorId: "p1",
+    step: "select_amount",
     input: { selectedAmount: 2 },
   };
 
@@ -486,6 +504,7 @@ test("strict command and discovery requests require actorId and input", () => {
   // @ts-expect-error discovery actorId is required
   const missingDiscoveryActorId: Discovery<{ selectedAmount: number }> = {
     type: "gain_score",
+    step: "select_amount",
     input: { selectedAmount: 2 },
   };
 
@@ -493,6 +512,7 @@ test("strict command and discovery requests require actorId and input", () => {
   const missingDiscoveryInput: Discovery<{ selectedAmount: number }> = {
     type: "gain_score",
     actorId: "p1",
+    step: "select_amount",
   };
 
   expect(command.actorId).toBe("p1");
@@ -613,7 +633,7 @@ test("game definition builder only exposes stage-based progression authoring", (
   expect(stageBuilder).toBeObject();
 });
 
-test("consumer command definitions only expose game state and command input generics", () => {
+test("consumer command definitions infer step-authored discovery and reject legacy config", () => {
   const defineCommand = createCommandFactory<{
     increment(): void;
   }>();
@@ -621,53 +641,98 @@ test("consumer command definitions only expose game state and command input gene
   const gainScoreCommandSchema = t.object({
     amount: t.number(),
   });
+  const draftSchema = t.object({
+    amount: t.optional(t.number()),
+  });
+  const outputSchema = t.object({
+    label: t.string(),
+    amount: t.number(),
+  });
 
-  const definition = defineCommand({
-    commandId: "gain_score",
-    commandSchema: gainScoreCommandSchema,
-  })
-    .discoverable({
-      discoverySchema: t.object({
-        amount: t.optional(t.number()),
-      }),
-      discover: ({ discovery }) => {
-        if (typeof discovery.input?.amount !== "number") {
-          return {
-            complete: false as const,
-            step: "select_amount",
-            options: [
-              {
-                id: "amount-1",
-                nextInput: { amount: 1 },
-              },
-            ],
-          };
-        }
+  function assertCallbackDiscoveryAccepted() {
+    const definition = defineCommand({
+      commandId: "gain_score",
+      commandSchema: gainScoreCommandSchema,
+    })
+      .discoverable((step) => [
+        step("select_amount")
+          .initial()
+          .input(draftSchema)
+          .output(outputSchema)
+          .resolve(
+            ({
+              discovery,
+            }: {
+              discovery: {
+                input: {
+                  amount?: number;
+                };
+              };
+            }) => {
+              const amount: number | undefined = discovery.input.amount;
+
+              if (typeof amount !== "number") {
+                return [
+                  {
+                    id: "amount-1",
+                    output: {
+                      label: "One",
+                      amount: 1,
+                    },
+                    nextInput: {
+                      amount: 1,
+                    },
+                    nextStep: "select_amount",
+                  },
+                ];
+              }
+
+              return {
+                complete: true as const,
+                input: {
+                  amount,
+                },
+              };
+            },
+          )
+          .build(),
+      ])
+      .validate(({ command }) => {
+        const amount: number = command.input.amount;
 
         return {
-          complete: true as const,
-          input: {
-            amount: discovery.input.amount,
-          },
+          ok: typeof amount === "number",
+          reason: "amount_required",
         };
-      },
-    })
-    .validate(({ command }) => {
-      const amount: number = command.input.amount;
+      })
+      .execute(({ game, command }) => {
+        game.increment();
+        const amount: number = command.input.amount;
+        void amount;
+      })
+      .build();
 
-      return {
-        ok: typeof amount === "number",
-        reason: "amount_required",
-      };
-    })
-    .execute(({ game, command }) => {
-      game.increment();
-      const amount: number = command.input.amount;
-      void amount;
-    })
-    .build();
+    expect(definition.commandId).toBe("gain_score");
+    expect(definition.discovery?.startStep).toBe("select_amount");
+    expect(definition.discovery?.steps[0]?.inputSchema).toBe(draftSchema);
+    expect(definition.discovery?.steps[0]?.outputSchema).toBe(outputSchema);
+  }
 
-  expect(definition.commandId).toBe("gain_score");
+  function assertLegacyVariadicDiscoveryRejected() {
+    const invalidConfigDefinition = defineCommand({
+      commandId: "legacy_gain_score",
+      commandSchema: gainScoreCommandSchema,
+    });
+
+    const invalidVariadicDefinition =
+      // @ts-expect-error discoverable should reject helper-based variadic step authoring
+      invalidConfigDefinition.discoverable();
+
+    return invalidVariadicDefinition;
+  }
+
+  expect(assertCallbackDiscoveryAccepted).toBeFunction();
+  expect(assertLegacyVariadicDiscoveryRejected).toBeFunction();
 });
 
 test("command factory contextually types command lifecycle methods", () => {
@@ -695,34 +760,39 @@ test("command factory contextually types command lifecycle methods", () => {
       expect(commandType).toBe("gain_score");
       return true;
     })
-    .discoverable({
-      discoverySchema: draftSchema,
-      discover({ discovery }) {
-        const selectedAmount = discovery.input.selectedAmount;
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(draftSchema)
+        .output(t.object({ amount: t.number() }))
+        .resolve(({ discovery }) => {
+          const selectedAmount: number | undefined =
+            discovery.input.selectedAmount;
 
-        if (typeof selectedAmount !== "number") {
-          return {
-            complete: false as const,
-            step: "select_amount",
-            options: [
+          if (typeof selectedAmount !== "number") {
+            return [
               {
                 id: "one",
+                output: {
+                  amount: 1,
+                },
                 nextInput: {
                   selectedAmount: 1,
                 },
+                nextStep: "select_amount",
               },
-            ],
-          };
-        }
+            ];
+          }
 
-        return {
-          complete: true as const,
-          input: {
-            amount: selectedAmount,
-          },
-        };
-      },
-    })
+          return {
+            complete: true as const,
+            input: {
+              amount: selectedAmount,
+            },
+          };
+        })
+        .build(),
+    ])
     .validate(({ command }) => {
       expect(command.input.amount).toBeNumber();
       return { ok: true as const };
@@ -735,10 +805,168 @@ test("command factory contextually types command lifecycle methods", () => {
 
   expect(command.commandId).toBe("gain_score");
   expect(command.commandSchema).toBe(commandSchema);
-  if (!("discoverySchema" in command)) {
-    throw new Error("expected_discovery_schema");
+  expect(command.discovery?.steps[0]?.initial).toBeTrue();
+});
+
+test("discovery resolver typing keeps next-step input and completion input correlated", () => {
+  const defineCommand = createCommandFactory<{
+    score: number;
+  }>();
+
+  const commandSchema = t.object({
+    amount: t.number(),
+  });
+  const selectAmountInputSchema = t.object({});
+  const selectAmountOutputSchema = t.object({
+    amount: t.number(),
+  });
+  const confirmSelectionInputSchema = t.object({
+    amount: t.number(),
+  });
+  const confirmSelectionOutputSchema = t.object({
+    confirmed: t.boolean(),
+  });
+
+  defineCommand({
+    commandId: "gain_score",
+    commandSchema,
+  })
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => [
+          {
+            id: "one",
+            output: {
+              amount: 1,
+            },
+            nextInput: {
+              amount: 1,
+            },
+            nextStep: "confirm_selection",
+          },
+          {
+            id: "retry",
+            output: {
+              amount: 2,
+            },
+            nextInput: {},
+            nextStep: "select_amount",
+          },
+        ])
+        .build(),
+      step("confirm_selection")
+        .input(confirmSelectionInputSchema)
+        .output(confirmSelectionOutputSchema)
+        .resolve(() => ({
+          complete: true as const,
+          input: {
+            amount: 1,
+          },
+        }))
+        .build(),
+    ])
+    .validate(() => ({ ok: true as const }))
+    .execute(() => {});
+
+  defineCommand({
+    commandId: "gain_score_invalid_completion",
+    commandSchema,
+  })
+    .discoverable((step) => [
+      step("select_amount")
+        .initial()
+        .input(selectAmountInputSchema)
+        .output(selectAmountOutputSchema)
+        .resolve(() => ({
+          complete: true as const,
+          input: {
+            // @ts-expect-error completion input should match the command schema
+            selectedAmount: 1,
+          },
+        }))
+        .build(),
+    ])
+    .validate(() => ({ ok: true as const }))
+    .execute(() => {});
+
+  expect(true).toBeTrue();
+});
+
+test("step builder only exposes resolve after input and output are set", () => {
+  const defineCommand = createCommandFactory<{
+    counter: number;
+  }>();
+
+  const commandSchema = t.object({
+    amount: t.number(),
+  });
+  const stepInputSchema = t.object({});
+  const stepOutputSchema = t.object({
+    amount: t.number(),
+  });
+
+  const builderProbe = defineCommand({
+    commandId: "step_shape_probe",
+    commandSchema,
+  });
+
+  function assertStepBuilderSurface(
+    callbackStep: Parameters<
+      Parameters<typeof builderProbe.discoverable>[0]
+    >[0],
+  ) {
+    // @ts-expect-error resolve should not exist before input and output are set
+    void callbackStep.resolve;
+    // @ts-expect-error output should not exist before input is set
+    void callbackStep.output;
+
+    const withInitial = callbackStep("select_amount").initial();
+
+    // @ts-expect-error initial should not exist after initial is set
+    void withInitial.initial;
+
+    const withInput = withInitial.input(stepInputSchema);
+
+    // @ts-expect-error input should not exist after input is set
+    void withInput.input;
+
+    const withOutput = withInput.output(stepOutputSchema);
+
+    // @ts-expect-error input should not exist after input and output are set
+    void withOutput.input;
+    // @ts-expect-error output should not exist after input and output are set
+    void withOutput.output;
+
+    const resolved = withOutput.resolve(({ discovery }) => {
+      void discovery.step;
+      return [];
+    });
+
+    // @ts-expect-error resolve should not exist after resolve is set
+    void resolved.resolve;
   }
-  expect(command.discoverySchema).toBe(draftSchema);
+
+  const command = defineCommand({
+    commandId: "increment",
+    commandSchema,
+  }).discoverable((step) => [
+    step("select_amount")
+      .initial()
+      .input(stepInputSchema)
+      .output(stepOutputSchema)
+      .resolve(({ discovery }) => {
+        void discovery.step;
+        return [];
+      })
+      .build(),
+  ]);
+
+  expect(assertStepBuilderSurface).toBeFunction();
+  expect(command).toBeObject();
+  expect(builderProbe).toBeObject();
 });
 
 test("command builder hides invalid chained methods at each stage", () => {
@@ -776,32 +1004,36 @@ test("command builder hides invalid chained methods at each stage", () => {
   // @ts-expect-error build should not exist before validate is set
   void executedBuilder.build;
 
-  const discoverableBuilder = baseBuilder.discoverable({
-    discoverySchema,
-    discover({ discovery }) {
-      if (typeof discovery.input?.selectedAmount !== "number") {
-        return {
-          complete: false as const,
-          step: "select_amount",
-          options: [
+  const discoverableBuilder = baseBuilder.discoverable((step) => [
+    step("select_amount")
+      .initial()
+      .input(discoverySchema)
+      .output(t.object({ amount: t.number() }))
+      .resolve(({ discovery }) => {
+        if (typeof discovery.input.selectedAmount !== "number") {
+          return [
             {
               id: "one",
+              output: {
+                amount: 1,
+              },
               nextInput: {
                 selectedAmount: 1,
               },
+              nextStep: "select_amount",
             },
-          ],
-        };
-      }
+          ];
+        }
 
-      return {
-        complete: true as const,
-        input: {
-          amount: discovery.input.selectedAmount,
-        },
-      };
-    },
-  });
+        return {
+          complete: true as const,
+          input: {
+            amount: discovery.input.selectedAmount,
+          },
+        };
+      })
+      .build(),
+  ]);
 
   // @ts-expect-error discovery should only be configurable once
   void discoverableBuilder.discoverable;

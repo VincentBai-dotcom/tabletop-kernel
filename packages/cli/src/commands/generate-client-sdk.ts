@@ -21,53 +21,265 @@ export async function runGenerateClientSdkCommand(
     cwd: options.cwd,
   });
   const protocol = describeGameProtocol(context.game);
-  const canonicalSchema = {
-    type: "object",
-    properties: {
-      game: context.game.canonicalGameStateSchema.schema,
-      runtime: context.game.runtimeStateSchema,
-    },
-    required: ["game", "runtime"],
-  } as const;
-  const commandUnion = Object.entries(protocol.commands)
-    .map(([commandId, command]) => {
-      return `{
-  type: ${JSON.stringify(commandId)};
-  actorId: string;
-  input: ${renderSchemaTypeString(command.commandSchema.schema as Record<string, unknown>)};
-}`;
-    })
-    .join(" |\n");
-  const discoveryUnion = Object.entries(protocol.commands)
-    .filter(([, command]) => command.discoverySchema)
-    .map(([commandId, command]) => {
-      return `{
-  type: ${JSON.stringify(commandId)};
-  actorId: string;
-  input: ${renderSchemaTypeString(command.discoverySchema!.schema as Record<string, unknown>)};
-}`;
-    })
-    .join(" |\n");
+  const commandTypeAliases = renderCommandTypeAliases(protocol.commands);
+  const discoveryStartHelpers = renderDiscoveryStartHelpers(protocol.commands);
+  const commandUnion = renderCommandRequestUnion(protocol.commands);
+  const discoveryRequestUnion = renderDiscoveryRequestUnion(protocol.commands);
+  const discoveryResultUnion = renderDiscoveryResultUnion(protocol.commands);
   const output = [
-    renderTypeDeclaration("CanonicalState", canonicalSchema),
     renderTypeDeclaration(
       "VisibleState",
       protocol.viewSchema as Record<string, unknown>,
     ),
+    commandTypeAliases,
     `export type CommandRequest = ${commandUnion || "never"};\n`,
-    `export type DiscoveryRequest = ${discoveryUnion || "never"};\n`,
-    [
-      "export interface GameClientSdk {",
-      "  getVisibleState(): Promise<VisibleState>;",
-      "  submitCommand(command: CommandRequest): Promise<CanonicalState>;",
-      "  discover(request: DiscoveryRequest): Promise<unknown>;",
-      "}",
-      "",
-    ].join("\n"),
+    `export type DiscoveryRequest = ${discoveryRequestUnion || "never"};\n`,
+    `export type DiscoveryResult = ${discoveryResultUnion || "never"};\n`,
+    discoveryStartHelpers,
   ].join("\n");
   const outputPath = `${context.outputDirectory}/client-sdk.generated.ts`;
 
   await writeOutputFile(outputPath, output);
 
   return success(`generated client sdk:${outputPath}`);
+}
+
+function renderCommandTypeAliases(
+  commands: Record<
+    string,
+    {
+      commandSchema: { schema?: Record<string, unknown> };
+      discovery?: DiscoveryDescriptor;
+    }
+  >,
+): string {
+  return Object.entries(commands)
+    .flatMap(([commandId, command]) => {
+      const typeName = toPascalCase(commandId);
+      const commandRequest = renderCommandRequestType(commandId, command);
+      const aliases = [
+        `export type ${typeName}CommandRequest = ${commandRequest};\n`,
+      ];
+
+      if (command.discovery) {
+        const discoveryRequest = renderDiscoveryRequestType(
+          commandId,
+          command.discovery,
+        );
+        const discoveryResult = renderDiscoveryResultType(command);
+
+        aliases.push(
+          `export type ${typeName}DiscoveryRequest = ${discoveryRequest};\n`,
+          `export type ${typeName}DiscoveryResult = ${discoveryResult};\n`,
+        );
+      }
+
+      return aliases;
+    })
+    .join("\n");
+}
+
+function renderCommandRequestUnion(
+  commands: Record<
+    string,
+    { commandSchema: { schema?: Record<string, unknown> } }
+  >,
+): string {
+  return renderUnion(
+    Object.keys(commands).map(
+      (commandId) => `${toPascalCase(commandId)}CommandRequest`,
+    ),
+  );
+}
+
+interface DiscoveryStepDescriptor {
+  stepId: string;
+  inputSchema: { schema?: Record<string, unknown> };
+  outputSchema: { schema?: Record<string, unknown> };
+}
+
+interface DiscoveryDescriptor {
+  startStep: string;
+  steps: DiscoveryStepDescriptor[];
+}
+
+function renderDiscoveryRequestUnion(
+  commands: Record<
+    string,
+    {
+      commandSchema: { schema?: Record<string, unknown> };
+      discovery?: DiscoveryDescriptor;
+    }
+  >,
+): string {
+  return renderUnion(
+    Object.entries(commands).flatMap(([commandId, command]) =>
+      command.discovery ? [`${toPascalCase(commandId)}DiscoveryRequest`] : [],
+    ),
+  );
+}
+
+function renderDiscoveryResultUnion(
+  commands: Record<
+    string,
+    {
+      commandSchema: { schema?: Record<string, unknown> };
+      discovery?: DiscoveryDescriptor;
+    }
+  >,
+): string {
+  return renderUnion(
+    Object.entries(commands).flatMap(([commandId, command]) =>
+      command.discovery ? [`${toPascalCase(commandId)}DiscoveryResult`] : [],
+    ),
+  );
+}
+
+function renderCommandRequestType(
+  commandId: string,
+  command: { commandSchema: { schema?: Record<string, unknown> } },
+): string {
+  const commandSchema = command.commandSchema.schema as Record<string, unknown>;
+
+  return `{
+  type: ${JSON.stringify(commandId)};
+  actorId: string;
+  input: ${renderSchemaTypeString(commandSchema)};
+}`;
+}
+
+function renderDiscoveryRequestType(
+  commandId: string,
+  discovery: DiscoveryDescriptor,
+): string {
+  return renderUnion(
+    discovery.steps.map((step) => {
+      const inputSchema = step.inputSchema.schema as Record<string, unknown>;
+
+      return `{
+  type: ${JSON.stringify(commandId)};
+  actorId: string;
+  step: ${JSON.stringify(step.stepId)};
+  input: ${renderSchemaTypeString(inputSchema)};
+}`;
+    }),
+  );
+}
+
+function renderDiscoveryResultType(command: {
+  commandSchema: { schema?: Record<string, unknown> };
+  discovery?: DiscoveryDescriptor;
+}): string {
+  const discovery = command.discovery;
+
+  if (!discovery) {
+    return "never";
+  }
+
+  const completeResult = `{
+  complete: true;
+  input: ${renderSchemaTypeString(
+    command.commandSchema.schema as Record<string, unknown>,
+  )};
+}`;
+
+  const stepResults = discovery.steps.map((step) => {
+    const outputSchema = step.outputSchema.schema as Record<string, unknown>;
+    const nextOptionType = renderUnion(
+      discovery.steps.map((targetStep) => {
+        const targetInputSchema = targetStep.inputSchema.schema as Record<
+          string,
+          unknown
+        >;
+
+        return `{
+    id: string;
+    output: ${renderSchemaTypeString(outputSchema)};
+    nextStep: ${JSON.stringify(targetStep.stepId)};
+    nextInput: ${renderSchemaTypeString(targetInputSchema)};
+  }`;
+      }),
+    );
+
+    return `{
+  complete: false;
+  step: ${JSON.stringify(step.stepId)};
+  options: Array<${nextOptionType}>;
+}`;
+  });
+
+  return renderUnion([...stepResults, completeResult]);
+}
+
+function renderDiscoveryStartHelpers(
+  commands: Record<
+    string,
+    {
+      commandSchema: { schema?: Record<string, unknown> };
+      discovery?: DiscoveryDescriptor;
+    }
+  >,
+): string {
+  return Object.entries(commands)
+    .flatMap(([commandId, command]) => {
+      if (!command.discovery) {
+        return [];
+      }
+
+      const pascalName = toPascalCase(commandId);
+      const camelName = toCamelCase(commandId);
+      const startStep = command.discovery.steps.find(
+        (step) => step.stepId === command.discovery?.startStep,
+      );
+
+      if (!startStep) {
+        return [];
+      }
+
+      return [
+        `export type ${pascalName}DiscoveryStart = Omit<Extract<${pascalName}DiscoveryRequest, { step: ${JSON.stringify(
+          startStep.stepId,
+        )} }>, "actorId">;\n`,
+        ...(hasRequiredProperties(
+          startStep.inputSchema.schema as Record<string, unknown>,
+        )
+          ? []
+          : [
+              `export const ${camelName}DiscoveryStart = {
+  type: ${JSON.stringify(commandId)},
+  step: ${JSON.stringify(startStep.stepId)},
+  input: {},
+} satisfies ${pascalName}DiscoveryStart;\n`,
+            ]),
+      ];
+    })
+    .join("\n");
+}
+
+function renderUnion(members: string[]): string {
+  if (members.length === 0) {
+    return "";
+  }
+
+  return members.join(" |\n");
+}
+
+function toPascalCase(value: string): string {
+  return value
+    .split(/[^A-Za-z0-9]+/u)
+    .filter((part) => part.length > 0)
+    .map((part) => `${part[0]!.toUpperCase()}${part.slice(1)}`)
+    .join("");
+}
+
+function toCamelCase(value: string): string {
+  const pascalCase = toPascalCase(value);
+  return `${pascalCase[0]!.toLowerCase()}${pascalCase.slice(1)}`;
+}
+
+function hasRequiredProperties(schema: Record<string, unknown>): boolean {
+  return (
+    Array.isArray(schema.required) &&
+    schema.required.some((property) => typeof property === "string")
+  );
 }

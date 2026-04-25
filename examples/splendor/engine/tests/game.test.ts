@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { createGameExecutor } from "tabletop-engine";
+import { SPLENDOR_DISCOVERY_STEPS } from "../src/discovery.ts";
 import { createCommands } from "../src/commands/index.ts";
 import { createSplendorGame } from "../src/game";
 
@@ -183,14 +184,25 @@ test("splendor exposes buy commands once the active player can afford them", () 
   expect(availableCommands).toContain("buy_reserved_card");
 });
 
-test("splendor commands declare explicit discovery draft schemas", () => {
+test("splendor commands declare step-authored discovery flows", () => {
   const commands = createCommands();
 
   expect(commands).not.toHaveLength(0);
 
-  for (const command of commands) {
-    expect(command.discoverySchema).toBeDefined();
-  }
+  const takeThreeDistinctGems = commands.find(
+    (command) => command.commandId === "take_three_distinct_gems",
+  );
+
+  expect(takeThreeDistinctGems?.discovery).toMatchObject({
+    startStep: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
+  });
+  expect(takeThreeDistinctGems?.discovery?.steps).toHaveLength(2);
+  expect(takeThreeDistinctGems?.discovery?.steps[0]).toMatchObject({
+    stepId: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
+  });
+  expect(takeThreeDistinctGems?.discovery?.steps[1]).toMatchObject({
+    stepId: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,
+  });
 });
 
 test("splendor discovers gem color choices before return tokens for three-distinct take", () => {
@@ -199,11 +211,21 @@ test("splendor discovers gem color choices before return tokens for three-distin
   const firstStep = gameExecutor.discoverCommand(state, {
     type: "take_three_distinct_gems",
     actorId: "p1",
+    step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
     input: {},
   });
   const secondStep = gameExecutor.discoverCommand(state, {
     type: "take_three_distinct_gems",
     actorId: "p1",
+    step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
+    input: {
+      selectedColors: ["white", "blue"],
+    },
+  });
+  const returnStep = gameExecutor.discoverCommand(state, {
+    type: "take_three_distinct_gems",
+    actorId: "p1",
+    step: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,
     input: {
       selectedColors: ["white", "blue", "green"],
     },
@@ -211,7 +233,7 @@ test("splendor discovers gem color choices before return tokens for three-distin
 
   expect(firstStep).toMatchObject({
     complete: false,
-    step: "select_gem_color",
+    step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
   });
   if (!firstStep || firstStep.complete) {
     throw new Error("expected_incomplete_discovery");
@@ -219,52 +241,105 @@ test("splendor discovers gem color choices before return tokens for three-distin
   expect(firstStep.options).toHaveLength(5);
   expect(firstStep.options[0]).toMatchObject({
     id: expect.any(String),
+    output: {
+      color: expect.any(String),
+      selectedCount: 1,
+      requiredCount: 3,
+    },
     nextInput: {
       selectedColors: [expect.any(String)],
     },
+    nextStep: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
   });
   expect(secondStep).toMatchObject({
+    complete: false,
+    step: SPLENDOR_DISCOVERY_STEPS.selectGemColor,
+  });
+  if (!secondStep || secondStep.complete) {
+    throw new Error("expected_looping_discovery");
+  }
+  expect(secondStep.options[0]).toMatchObject({
+    id: expect.any(String),
+    output: {
+      color: expect.any(String),
+      selectedCount: 3,
+      requiredCount: 3,
+    },
+    nextInput: {
+      selectedColors: [
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+      ],
+    },
+    nextStep: SPLENDOR_DISCOVERY_STEPS.selectReturnToken,
+  });
+  expect(returnStep).toMatchObject({
     complete: true,
   });
-  if (!secondStep || !secondStep.complete) {
+  if (!returnStep || !returnStep.complete) {
     throw new Error("expected_complete_discovery");
   }
-  expect(secondStep.input).toEqual({
+  expect(returnStep.input).toEqual({
     colors: ["white", "blue", "green"],
   });
 });
 
-test("splendor buy discovery no longer asks for noble selection", () => {
+test("splendor buy reserved discovery completes after selecting a card", () => {
   const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
-  state.game.board.nobleIds = [6, 7];
+  state.game.players.p1!.reservedCardIds = [45];
   state.game.players.p1!.tokens.white = 0;
   state.game.players.p1!.tokens.blue = 0;
   state.game.players.p1!.tokens.green = 0;
   state.game.players.p1!.tokens.red = 0;
   state.game.players.p1!.tokens.black = 0;
   state.game.players.p1!.tokens.gold = 20;
-  state.game.players.p1!.reservedCardIds = [45];
-  state.game.players.p1!.purchasedCardIds = [
-    17, 18, 19, 20, 33, 34, 35, 36, 1, 2, 3,
-  ];
-  state.game.players.p1!.nobleIds = [];
 
   const discovery = gameExecutor.discoverCommand(state, {
     type: "buy_reserved_card",
     actorId: "p1",
+    step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
+    input: {},
+  });
+
+  expect(discovery).toMatchObject({
+    complete: false,
+    step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
+  });
+  if (!discovery || discovery.complete) {
+    throw new Error("expected_incomplete_discovery");
+  }
+  expect(discovery.options[0]).toMatchObject({
+    id: "45",
+    output: {
+      cardId: 45,
+      level: expect.any(Number),
+      bonusColor: expect.any(String),
+      prestigePoints: expect.any(Number),
+    },
+    nextInput: {
+      selectedCardId: 45,
+    },
+    nextStep: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
+  });
+
+  const completeDiscovery = gameExecutor.discoverCommand(state, {
+    type: "buy_reserved_card",
+    actorId: "p1",
+    step: SPLENDOR_DISCOVERY_STEPS.selectReservedCard,
     input: {
       selectedCardId: 45,
     },
   });
 
-  expect(discovery).toMatchObject({
+  expect(completeDiscovery).toMatchObject({
     complete: true,
   });
-  if (!discovery || !discovery.complete) {
+  if (!completeDiscovery || !completeDiscovery.complete) {
     throw new Error("expected_complete_discovery");
   }
-  expect(discovery.input).toEqual({
+  expect(completeDiscovery.input).toEqual({
     cardId: 45,
   });
 });

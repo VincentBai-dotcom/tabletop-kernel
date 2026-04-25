@@ -15,6 +15,7 @@ import type {
   Command,
   Discovery,
   InternalCommandDefinition,
+  DiscoveryStepResolvedOption,
 } from "../types/command";
 import type { CommandDiscoveryResult } from "../types/command";
 import type { GameEvent } from "../types/event";
@@ -510,10 +511,11 @@ export function createGameExecutor<
       }
 
       const definition = game.commands[discovery.type];
-
-      if (!definition?.discover) {
+      if (!definition) {
         return null;
       }
+
+      const discoveryDefinition = definition?.discovery;
 
       if (
         typeof discovery.actorId !== "string" ||
@@ -552,21 +554,116 @@ export function createGameExecutor<
         return null;
       }
 
-      return definition.discover(
-        createDiscoveryContext(
-          state,
-          createCommandGameView(
-            game as GameExecutorDefinition<
-              CanonicalGameState,
-              FacadeGameState,
-              SetupInput
-            >,
-            state,
-            { readonly: true },
-          ),
-          discovery,
-        ),
+      if (!discoveryDefinition) {
+        return null;
+      }
+
+      const step = discoveryDefinition.steps.find(
+        (candidate) => candidate.stepId === discovery.step,
       );
+
+      if (!step) {
+        return null;
+      }
+
+      try {
+        assertSchemaValue(step.inputSchema, discovery.input);
+      } catch {
+        return null;
+      }
+
+      const discoveryContext = createDiscoveryContext<
+        CanonicalGameState,
+        FacadeGameState,
+        RuntimeState,
+        typeof discovery.input
+      >(
+        state,
+        createCommandGameView(
+          game as GameExecutorDefinition<
+            CanonicalGameState,
+            FacadeGameState,
+            SetupInput
+          >,
+          state,
+          { readonly: true },
+        ),
+        discovery,
+      );
+
+      const result = (
+        step.resolve as (context: typeof discoveryContext) => unknown
+      )(discoveryContext);
+
+      if (!result) {
+        return null;
+      }
+
+      if (!Array.isArray(result)) {
+        if (
+          typeof result !== "object" ||
+          result === null ||
+          (result as { complete?: unknown }).complete !== true
+        ) {
+          return null;
+        }
+
+        const completion = result as {
+          complete: true;
+          input: Record<string, unknown>;
+        };
+
+        try {
+          assertSchemaValue(definition.commandSchema, completion.input);
+        } catch {
+          return null;
+        }
+
+        return {
+          complete: true,
+          input: completion.input,
+        };
+      }
+
+      const discoveryOptions: Array<DiscoveryStepResolvedOption> = [];
+
+      for (const option of result) {
+        try {
+          assertSchemaValue(step.outputSchema, option.output);
+        } catch {
+          return null;
+        }
+
+        let nextStepDefinition:
+          | (typeof discoveryDefinition.steps)[number]
+          | undefined;
+
+        if (
+          typeof option.nextStep !== "string" ||
+          option.nextStep.length === 0 ||
+          !(nextStepDefinition = discoveryDefinition.steps.find(
+            (candidate) => candidate.stepId === option.nextStep,
+          ))
+        ) {
+          return null;
+        }
+
+        try {
+          assertSchemaValue(nextStepDefinition.inputSchema, option.nextInput);
+        } catch {
+          return null;
+        }
+
+        discoveryOptions.push({
+          ...option,
+        });
+      }
+
+      return {
+        complete: false,
+        step: discovery.step,
+        options: discoveryOptions,
+      };
     },
 
     executeCommand(state, command) {

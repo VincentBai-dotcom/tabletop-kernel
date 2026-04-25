@@ -8,10 +8,21 @@ import type {
 } from "../state-facade/metadata";
 import type { CompiledStateFacadeDefinition } from "../state-facade/compile";
 
+export interface ProtocolDiscoveryStepDescriptor {
+  stepId: string;
+  inputSchema: CommandSchema<Record<string, unknown>>;
+  outputSchema: CommandSchema<Record<string, unknown>>;
+}
+
+export interface ProtocolDiscoveryDescriptor {
+  startStep: string;
+  steps: ProtocolDiscoveryStepDescriptor[];
+}
+
 export interface ProtocolCommandDescriptor {
   commandId: string;
   commandSchema: CommandSchema<Record<string, unknown>>;
-  discoverySchema?: CommandSchema<Record<string, unknown>>;
+  discovery?: ProtocolDiscoveryDescriptor;
 }
 
 export interface GameProtocolDescriptor {
@@ -40,18 +51,14 @@ export function describeGameProtocol<
       throw new Error(`command_payload_schema_required:${commandId}`);
     }
 
-    if (typeof command.discover === "function" && !command.discoverySchema) {
-      throw new Error(`command_discovery_draft_schema_required:${commandId}`);
-    }
-
-    if (command.discoverySchema && typeof command.discover !== "function") {
-      throw new Error(`command_discovery_handler_required:${commandId}`);
-    }
+    const discovery = command.discovery
+      ? normalizeDiscoveryDescriptor(commandId, command.discovery)
+      : undefined;
 
     commands[commandId] = {
       commandId,
       commandSchema: command.commandSchema,
-      discoverySchema: command.discoverySchema,
+      discovery,
     };
   }
 
@@ -60,6 +67,78 @@ export function describeGameProtocol<
     commands,
     viewSchema: createVisibleStateSchema(game.stateFacade),
   };
+}
+
+function normalizeDiscoveryDescriptor(
+  commandId: string,
+  discovery: ProtocolDiscoveryDescriptor,
+): ProtocolDiscoveryDescriptor {
+  if (!Array.isArray(discovery.steps) || discovery.steps.length === 0) {
+    throw new Error(`command_discovery_steps_required:${commandId}`);
+  }
+
+  const normalizedSteps: ProtocolDiscoveryStepDescriptor[] = [];
+  const knownStepIds = new Set<string>();
+
+  for (const [index, step] of discovery.steps.entries()) {
+    if (!isObjectRecord(step)) {
+      throw new Error(`command_discovery_step_invalid:${commandId}:${index}`);
+    }
+
+    if (typeof step.stepId !== "string" || step.stepId.length === 0) {
+      throw new Error(
+        `command_discovery_step_missing_step_id:${commandId}:${index}`,
+      );
+    }
+
+    if (knownStepIds.has(step.stepId)) {
+      throw new Error(
+        `command_discovery_duplicate_step_id:${commandId}:${step.stepId}`,
+      );
+    }
+    knownStepIds.add(step.stepId);
+
+    if (!isObjectRecord(step.inputSchema)) {
+      throw new Error(
+        `command_discovery_step_missing_input_schema:${commandId}:${index}`,
+      );
+    }
+
+    if (!isObjectRecord(step.outputSchema)) {
+      throw new Error(
+        `command_discovery_step_missing_output_schema:${commandId}:${index}`,
+      );
+    }
+
+    if (typeof (step as { resolve?: unknown }).resolve !== "function") {
+      throw new Error(
+        `command_discovery_step_missing_resolve:${commandId}:${index}`,
+      );
+    }
+
+    normalizedSteps.push({
+      stepId: step.stepId,
+      inputSchema: step.inputSchema,
+      outputSchema: step.outputSchema,
+    });
+  }
+
+  if (
+    typeof discovery.startStep !== "string" ||
+    discovery.startStep.length === 0 ||
+    !knownStepIds.has(discovery.startStep)
+  ) {
+    throw new Error(`command_discovery_unknown_start_step:${commandId}`);
+  }
+
+  return {
+    startStep: discovery.startStep,
+    steps: normalizedSteps,
+  };
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function createVisibleStateSchema(
