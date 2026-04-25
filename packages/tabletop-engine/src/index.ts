@@ -5,6 +5,7 @@ export { createGameExecutor } from "./runtime/game-executor";
 export { assertSchemaValue } from "./runtime/validation";
 export { generateAsyncApi } from "./protocol/asyncapi";
 export { describeGameProtocol } from "./protocol/describe";
+export { describeEngineWebSocketProtocol } from "./protocol/engine-websocket";
 export { t } from "./schema";
 export {
   configureVisibility,
@@ -31,6 +32,11 @@ export type {
   AsyncApiDocument,
   AsyncApiOptions,
 } from "./protocol/asyncapi";
+export type {
+  EngineWebSocketMessageNames,
+  EngineWebSocketProtocolDescriptor,
+  EngineWebSocketProtocolOptions,
+} from "./protocol/engine-websocket";
 export type {
   GameProtocolDescriptor,
   ProtocolCommandDescriptor,

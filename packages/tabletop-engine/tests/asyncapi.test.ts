@@ -2,13 +2,14 @@ import { expect, test } from "bun:test";
 import { GameDefinitionBuilder } from "../src/game-definition";
 import {
   createCommandFactory,
-  generateAsyncApi,
+  describeEngineWebSocketProtocol,
   describeGameProtocol,
+  generateAsyncApi,
 } from "../src/index";
 import {
   configureVisibility,
-  State,
   field,
+  State,
 } from "../src/state-facade/metadata";
 import { t } from "../src/schema";
 import { createSelfLoopingTurnStage } from "./helpers/stages";
@@ -70,7 +71,7 @@ configureVisibility(AsyncApiDeckState, ({ field }) => ({
 
 const defineAsyncApiCommand = createCommandFactory<AsyncApiRootState>();
 
-test("generateAsyncApi emits step-authored discovery channels and schemas", () => {
+test("generateAsyncApi emits hosted engine websocket channels and schemas", () => {
   const gainScoreCommand = defineAsyncApiCommand({
     commandId: "gain_score",
     commandSchema: gainScoreCommandSchema,
@@ -105,9 +106,7 @@ test("generateAsyncApi emits step-authored discovery channels and schemas", () =
         }))
         .build(),
     ])
-    .validate(() => {
-      return { ok: true as const };
-    })
+    .validate(() => ({ ok: true as const }))
     .execute(() => {})
     .build();
 
@@ -117,85 +116,107 @@ test("generateAsyncApi emits step-authored discovery channels and schemas", () =
     .build();
 
   const protocol = describeGameProtocol(game);
+  const websocket = describeEngineWebSocketProtocol(game);
   const document = generateAsyncApi(game);
 
   expect(document.asyncapi).toBe("2.6.0");
   expect(document.info.title).toBe("asyncapi-game");
-  expect(document.info.version).toBe("1.0.0");
-  expect(document.channels["command.submit"]!.subscribe!.message.$ref).toBe(
-    "#/components/messages/SubmitCommand",
-  );
-  expect(document.channels["command.discover"]!.subscribe!.message.$ref).toBe(
-    "#/components/messages/DiscoverCommand",
-  );
-  expect(document.channels["command.discovered"]!.publish!.message.$ref).toBe(
-    "#/components/messages/DiscoveryResult",
+  expect(
+    document.channels["game_list_available_commands"]!.subscribe!.message.$ref,
+  ).toBe("#/components/messages/GameListAvailableCommands");
+  expect(
+    document.channels["game_available_commands"]!.publish!.message.$ref,
+  ).toBe("#/components/messages/GameAvailableCommands");
+  expect(document.channels["game_discover"]!.subscribe!.message.$ref).toBe(
+    "#/components/messages/GameDiscover",
   );
   expect(
-    document.channels["command.discovery_rejected"]!.publish!.message.$ref,
-  ).toBe("#/components/messages/DiscoveryRejected");
-  expect(document.channels["match.view"]!.publish!.message.$ref).toBe(
-    "#/components/messages/MatchView",
+    document.channels["game_discovery_result"]!.publish!.message.$ref,
+  ).toBe("#/components/messages/GameDiscoveryResult");
+  expect(document.channels["game_execute"]!.subscribe!.message.$ref).toBe(
+    "#/components/messages/GameExecute",
   );
-  expect(document.channels["command.rejected"]!.publish!.message.$ref).toBe(
-    "#/components/messages/CommandRejected",
+  expect(
+    document.channels["game_execution_result"]!.publish!.message.$ref,
+  ).toBe("#/components/messages/GameExecutionResult");
+  expect(document.channels["game_snapshot"]!.publish!.message.$ref).toBe(
+    "#/components/messages/GameSnapshot",
+  );
+  expect(document.channels["game_ended"]!.publish!.message.$ref).toBe(
+    "#/components/messages/GameEnded",
   );
 
-  const submitPayload = document.components.messages.SubmitCommand!.payload;
-  const submitVariants = submitPayload.anyOf ?? [submitPayload];
+  expect(websocket.messages.execute).toBe("game_execute");
 
-  expect(submitVariants).toHaveLength(1);
-  expect(submitVariants[0]!.properties.type.const).toBe("gain_score");
-  expect(submitVariants[0]!.required).toEqual(["type", "actorId", "input"]);
-  expect(submitVariants[0]!.properties.actorId.type).toBe("string");
-  expect(submitVariants[0]!.properties.input).toEqual(
+  const executePayload = document.components.messages.GameExecute!.payload;
+  expect(executePayload.properties.type.const).toBe("game_execute");
+  expect(executePayload.required).toEqual([
+    "type",
+    "requestId",
+    "gameSessionId",
+    "command",
+  ]);
+  const commandVariants =
+    "anyOf" in executePayload.properties.command &&
+    executePayload.properties.command.anyOf
+      ? executePayload.properties.command.anyOf
+      : [executePayload.properties.command];
+  expect(commandVariants).toHaveLength(1);
+  expect(commandVariants[0]!.properties.type.const).toBe("gain_score");
+  expect(commandVariants[0]!.properties.input).toEqual(
     gainScoreCommandSchema.schema,
   );
 
-  const discoverPayload = document.components.messages.DiscoverCommand!.payload;
-  const discoverVariants = discoverPayload.anyOf ?? [discoverPayload];
-
-  expect(discoverVariants).toHaveLength(2);
-  expect(discoverVariants[0]!.properties.type.const).toBe("gain_score");
-  expect(discoverVariants[0]!.properties.step.const).toBe("select_amount");
-  expect(discoverVariants[0]!.required).toEqual([
+  const discoverPayload = document.components.messages.GameDiscover!.payload;
+  expect(discoverPayload.properties.type.const).toBe("game_discover");
+  expect(discoverPayload.required).toEqual([
     "type",
-    "actorId",
-    "step",
-    "input",
+    "requestId",
+    "gameSessionId",
+    "discovery",
   ]);
-  expect(discoverVariants[0]!.properties.actorId.type).toBe("string");
-  expect(discoverVariants[0]!.properties.requestId.type).toBe("string");
-  expect(discoverVariants[0]!.properties.input).toEqual(
+  const discoveryVariants =
+    "anyOf" in discoverPayload.properties.discovery &&
+    discoverPayload.properties.discovery.anyOf
+      ? discoverPayload.properties.discovery.anyOf
+      : [discoverPayload.properties.discovery];
+  expect(discoveryVariants).toHaveLength(2);
+  expect(discoveryVariants[0]!.properties.type.const).toBe("gain_score");
+  expect(discoveryVariants[0]!.properties.step.const).toBe("select_amount");
+  expect(discoveryVariants[0]!.properties.input).toEqual(
     selectAmountInputSchema.schema,
   );
-  expect(discoverVariants[1]!.properties.step.const).toBe("confirm_selection");
-  expect(discoverVariants[1]!.properties.input).toEqual(
+  expect(discoveryVariants[1]!.properties.step.const).toBe("confirm_selection");
+  expect(discoveryVariants[1]!.properties.input).toEqual(
     confirmSelectionInputSchema.schema,
   );
 
   const discoveryResultPayload =
-    document.components.messages.DiscoveryResult!.payload;
-  const discoveryResultVariants = discoveryResultPayload.anyOf ?? [
-    discoveryResultPayload,
-  ];
-
-  expect(discoveryResultVariants).toHaveLength(1);
-  expect(discoveryResultVariants[0]!.properties.type.const).toBe("gain_score");
-  expect(discoveryResultVariants[0]!.properties.result.anyOf).toHaveLength(3);
+    document.components.messages.GameDiscoveryResult!.payload;
+  expect(discoveryResultPayload.properties.type.const).toBe(
+    "game_discovery_result",
+  );
+  expect(discoveryResultPayload.properties.requestId.type).toBe("string");
+  expect(discoveryResultPayload.properties.result.anyOf).toHaveLength(2);
+  expect(discoveryResultPayload.properties.result.anyOf[1]!.type).toBe("null");
+  expect(discoveryResultPayload.properties.result.anyOf[0]!.anyOf).toHaveLength(
+    3,
+  );
   expect(
-    discoveryResultVariants[0]!.properties.result.anyOf[0]!.properties.step
+    discoveryResultPayload.properties.result.anyOf[0]!.anyOf[0]!.properties.type
       .const,
+  ).toBe("gain_score");
+  expect(
+    discoveryResultPayload.properties.result.anyOf[0]!.anyOf[0]!.properties
+      .result.properties.step.const,
   ).toBe("select_amount");
   expect(
-    discoveryResultVariants[0]!.properties.result.anyOf[0]!.properties.options
-      .items.anyOf,
+    discoveryResultPayload.properties.result.anyOf[0]!.anyOf[0]!.properties
+      .result.properties.options.items.anyOf,
   ).toMatchObject([
     {
       properties: {
-        id: {
-          type: "string",
-        },
+        id: { type: "string" },
         output: selectAmountOutputSchema.schema,
         nextStep: {
           const: "select_amount",
@@ -206,9 +227,7 @@ test("generateAsyncApi emits step-authored discovery channels and schemas", () =
     },
     {
       properties: {
-        id: {
-          type: "string",
-        },
+        id: { type: "string" },
         output: selectAmountOutputSchema.schema,
         nextStep: {
           const: "confirm_selection",
@@ -219,41 +238,36 @@ test("generateAsyncApi emits step-authored discovery channels and schemas", () =
     },
   ]);
   expect(
-    discoveryResultVariants[0]!.properties.result.anyOf[0]!.required,
-  ).toEqual(["complete", "step", "options"]);
-  expect(
-    discoveryResultVariants[0]!.properties.result.anyOf[1]!.required,
-  ).toEqual(["complete", "step", "options"]);
-  expect(
-    discoveryResultVariants[0]!.properties.result.anyOf[2]!.required,
-  ).toEqual(["complete", "input"]);
-  expect(
-    discoveryResultVariants[0]!.properties.result.anyOf[2]!.properties.input,
+    discoveryResultPayload.properties.result.anyOf[0]!.anyOf[2]!.properties
+      .result.properties.input,
   ).toEqual(gainScoreCommandSchema.schema);
 
-  expect(document.components.schemas.DiscoveryResult).toBeDefined();
-  expect(document.components.schemas.DiscoveryRejected).toBeDefined();
-  expect(document.components.schemas.GainScoreDiscoveryRejected).toBeDefined();
+  const gameSnapshotPayload =
+    document.components.messages.GameSnapshot!.payload;
+  expect(gameSnapshotPayload.properties.type.const).toBe("game_snapshot");
+  expect(gameSnapshotPayload.properties.gameSessionId.type).toBe("string");
+  expect(gameSnapshotPayload.properties.view).toEqual(protocol.viewSchema);
+  expect(gameSnapshotPayload.properties.availableCommands.type).toBe("array");
+
+  const gameEndedPayload = document.components.messages.GameEnded!.payload;
+  expect(gameEndedPayload.properties.type.const).toBe("game_ended");
   expect(
-    document.components.schemas.GainScoreSelectAmountDiscoveryInput,
-  ).toBeDefined();
-  expect(
-    document.components.schemas.GainScoreSelectAmountDiscoveryOutput,
-  ).toBeDefined();
-  expect(
-    document.components.schemas.GainScoreSelectAmountDiscoveryResult,
-  ).toBeDefined();
-  expect(
-    document.components.schemas.GainScoreConfirmSelectionDiscoveryInput,
-  ).toBeDefined();
-  expect(
-    document.components.schemas.GainScoreConfirmSelectionDiscoveryOutput,
-  ).toBeDefined();
-  expect(
-    document.components.schemas.GainScoreConfirmSelectionDiscoveryResult,
-  ).toBeDefined();
-  expect(document.components.schemas.VisibleState).toEqual(protocol.viewSchema);
-  expect(document.components.schemas.MatchView!.properties.view).toEqual(
-    protocol.viewSchema,
+    gameEndedPayload.properties.result.properties.reason.anyOf,
+  ).toHaveLength(2);
+
+  const executionResultPayload =
+    document.components.messages.GameExecutionResult!.payload;
+  expect(executionResultPayload.anyOf).toHaveLength(2);
+  expect(executionResultPayload.anyOf[0]!.properties.accepted.const).toBe(true);
+  expect(executionResultPayload.anyOf[1]!.properties.accepted.const).toBe(
+    false,
   );
+
+  expect(document.components.schemas.VisibleState).toEqual(protocol.viewSchema);
+  expect(document.components.schemas.CommandPayload).toBeDefined();
+  expect(document.components.schemas.DiscoveryPayload).toBeDefined();
+  expect(document.components.schemas.DiscoveryResult).toBeDefined();
+  expect(document.components.schemas.GameExecutionResult).toBeDefined();
+  expect(document.components.schemas.GameSnapshot).toBeDefined();
+  expect(document.components.schemas.GameEnded).toBeDefined();
 });
