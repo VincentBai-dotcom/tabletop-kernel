@@ -122,6 +122,12 @@ describe("generate client-sdk", () => {
       "export type TakeThreeDistinctGemsDiscoveryResult =",
     );
     expect(generated).toContain(
+      "export type TakeThreeDistinctGemsCommandPayload =",
+    );
+    expect(generated).toContain(
+      "export type TakeThreeDistinctGemsDiscoveryPayload =",
+    );
+    expect(generated).toContain(
       "export type TakeThreeDistinctGemsDiscoveryStart =",
     );
     expect(generated).toContain(
@@ -129,7 +135,7 @@ describe("generate client-sdk", () => {
     );
     expect(generated).toContain('step: "confirm_selection"');
     expect(generated).toContain(
-      'export type TakeThreeDistinctGemsDiscoveryStart = Omit<Extract<TakeThreeDistinctGemsDiscoveryRequest, { step: "confirm_selection" }>, "actorId">;',
+      "export type TakeThreeDistinctGemsDiscoveryStart = {",
     );
     expect(generated).toContain("export type SeededTargetDiscoveryStart =");
     expect(generated).not.toContain(
@@ -146,8 +152,17 @@ describe("generate client-sdk", () => {
     expect(generated).toContain("selectedColor: string;");
     expect(generated).toContain('nextStep: "confirm_selection";');
     expect(generated).toContain("nextInput: {};");
-    expect(generated).not.toContain("GameClientSdk");
-    expect(generated).not.toContain("submitCommand");
-    expect(generated).not.toContain("discover(");
+    expect(generated).toContain("export interface GameEngineClient");
+    expect(generated).toContain("export function createGameEngineClient");
+    expect(generated).toContain("onGameSnapshot(");
+    expect(generated).toContain("onGameEnded(");
+    expect(generated).toContain("onDiscoveryResult(");
+    expect(generated).toContain("onExecutionResult(");
+    expect(generated).toContain("discoverTakeThreeDistinctGems(");
+    expect(generated).toContain("executeTakeThreeDistinctGems(");
+    expect(generated).toContain('type: "game_discover"');
+    expect(generated).toContain('type: "game_execute"');
+    expect(generated).toContain('type: "game_snapshot"');
+    expect(generated).toContain('type: "game_execution_result"');
   });
 });
