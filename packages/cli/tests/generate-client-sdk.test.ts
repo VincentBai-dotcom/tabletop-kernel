@@ -176,6 +176,18 @@ describe("generate client-sdk", () => {
     expect(generated).toContain('type: "game_execution_result"');
     expect(generated).toContain('case "error":');
     expect(generated).toContain(".reject(error)");
+    expect(generated).toContain(
+      'socket.addEventListener("close", handleSocketClosed);',
+    );
+    expect(generated).toContain(
+      'socket.addEventListener("error", handleSocketErrored);',
+    );
+    expect(generated).toContain(
+      'rejectPendingRequests("Game engine socket closed");',
+    );
+    expect(generated).toContain(
+      'rejectPendingRequests("Game engine socket errored");',
+    );
     expect(generated).not.toContain("commandType: CommandType;");
   });
 });

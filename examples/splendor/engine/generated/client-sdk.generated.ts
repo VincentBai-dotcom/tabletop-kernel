@@ -952,10 +952,12 @@ export interface GameEngineSocketLike {
     type: "message",
     listener: (event: { data: unknown }) => void,
   ): void;
+  addEventListener(type: "close" | "error", listener: () => void): void;
   removeEventListener(
     type: "message",
     listener: (event: { data: unknown }) => void,
   ): void;
+  removeEventListener(type: "close" | "error", listener: () => void): void;
 }
 
 export interface GameEngineClientOptions {
@@ -1206,7 +1208,17 @@ export function createGameEngineClient(
     }
   };
 
+  const handleSocketClosed = () => {
+    rejectPendingRequests("Game engine socket closed");
+  };
+
+  const handleSocketErrored = () => {
+    rejectPendingRequests("Game engine socket errored");
+  };
+
   socket.addEventListener("message", handleMessage);
+  socket.addEventListener("close", handleSocketClosed);
+  socket.addEventListener("error", handleSocketErrored);
 
   const send = (message: GameEngineClientMessage) => {
     socket.send(JSON.stringify(message));
@@ -1496,6 +1508,8 @@ export function createGameEngineClient(
     dispose() {
       rejectPendingRequests("Game engine client disposed");
       socket.removeEventListener("message", handleMessage);
+      socket.removeEventListener("close", handleSocketClosed);
+      socket.removeEventListener("error", handleSocketErrored);
       gameSnapshotListeners.clear();
       gameEndedListeners.clear();
       discoveryResultListeners.clear();
