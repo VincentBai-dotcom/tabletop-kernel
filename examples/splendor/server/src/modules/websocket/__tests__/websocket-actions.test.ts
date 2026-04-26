@@ -191,7 +191,6 @@ describe("game websocket actions", () => {
         type: "game_execution_result",
         requestId: "request-1",
         gameSessionId: "game-1",
-        commandType: "take_three_distinct_gems",
         accepted: true,
         stateVersion: 2,
         events: [
@@ -322,7 +321,6 @@ describe("game websocket actions", () => {
         type: "game_execution_result",
         requestId: "request-1",
         gameSessionId: "game-1",
-        commandType: "take_three_distinct_gems",
         accepted: false,
         stateVersion: 0,
         reason: "not_active_player",

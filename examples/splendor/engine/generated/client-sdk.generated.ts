@@ -810,7 +810,6 @@ export type GameExecutionResultMessage =
       type: "game_execution_result";
       requestId: string;
       gameSessionId: string;
-      commandType: CommandType;
       accepted: true;
       stateVersion: number;
       events: unknown[];
@@ -819,7 +818,6 @@ export type GameExecutionResultMessage =
       type: "game_execution_result";
       requestId: string;
       gameSessionId: string;
-      commandType: CommandType;
       accepted: false;
       stateVersion: number;
       reason: string;

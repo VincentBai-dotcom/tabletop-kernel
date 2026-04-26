@@ -197,7 +197,6 @@ function renderHostedMessageTypes(
       type: ${JSON.stringify(messageNames.executionResult)};
       requestId: string;
       gameSessionId: string;
-      commandType: CommandType;
       accepted: true;
       stateVersion: number;
       events: unknown[];
@@ -206,7 +205,6 @@ function renderHostedMessageTypes(
       type: ${JSON.stringify(messageNames.executionResult)};
       requestId: string;
       gameSessionId: string;
-      commandType: CommandType;
       accepted: false;
       stateVersion: number;
       reason: string;

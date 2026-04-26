@@ -164,19 +164,10 @@ export function createLiveMessageHandler({
               command: message.command,
             });
 
-            const commandType =
-              typeof message.command === "object" &&
-              message.command !== null &&
-              "type" in message.command &&
-              typeof message.command.type === "string"
-                ? message.command.type
-                : "unknown_command";
-
             connection.send({
               type: "game_execution_result",
               requestId: message.requestId,
               gameSessionId: message.gameSessionId,
-              commandType,
               accepted: result.accepted,
               stateVersion: result.stateVersion,
               events: result.events,

@@ -283,9 +283,11 @@ export function useSplendorApp() {
         }
         gameEngineClient = null;
 
-        if (liveRef.current === connection) {
-          liveRef.current = null;
+        if (liveRef.current !== connection) {
+          return;
         }
+
+        liveRef.current = null;
 
         startTransition(() => {
           setLiveStatus("idle");

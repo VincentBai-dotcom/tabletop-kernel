@@ -164,5 +164,6 @@ describe("generate client-sdk", () => {
     expect(generated).toContain('type: "game_execute"');
     expect(generated).toContain('type: "game_snapshot"');
     expect(generated).toContain('type: "game_execution_result"');
+    expect(generated).not.toContain("commandType: CommandType;");
   });
 });

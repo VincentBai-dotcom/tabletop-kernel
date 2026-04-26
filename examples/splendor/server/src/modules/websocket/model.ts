@@ -106,7 +106,6 @@ export type LiveServerMessage =
           type: "game_execution_result";
           requestId: string;
           gameSessionId: string;
-          commandType: string;
           accepted: true;
           stateVersion: number;
           events: unknown[];
@@ -115,7 +114,6 @@ export type LiveServerMessage =
           type: "game_execution_result";
           requestId: string;
           gameSessionId: string;
-          commandType: string;
           accepted: false;
           stateVersion: number;
           reason: string;
