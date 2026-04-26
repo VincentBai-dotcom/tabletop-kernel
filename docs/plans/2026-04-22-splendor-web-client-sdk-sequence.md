@@ -132,9 +132,9 @@ import without starting the server process.
 
 Expected outcome:
 
-```ts
-export type App = typeof app;
-```
+This is already satisfied by the current server app factory layout. The web
+package can import the app type from the server workspace package without
+triggering process startup.
 
 If the current entrypoint starts listening at import time, split app creation
 from process startup so Eden can import only the type safely.
@@ -186,6 +186,8 @@ Do not generate:
 - WebSocket connection code
 - server-specific lifecycle envelopes
 
+This is already satisfied by the current CLI and engine package surface.
+
 ### Step 4: Generate SDK Into The Engine Package
 
 Use the Splendor engine package's existing `tabletop.config.ts` output
@@ -197,8 +199,8 @@ Expected output:
 examples/splendor/engine/generated/client-sdk.generated.ts
 ```
 
-The generated file should be re-exported by the Splendor engine package, so web
-UI code imports game protocol types from `splendor-example`.
+The generated file is already re-exported by the Splendor engine package, so
+web UI code can import game protocol types from `splendor-example`.
 
 ### Step 5: Build The First Web Vertical Slice
 
@@ -232,11 +234,18 @@ bun test --cwd examples/splendor/server
 After the web vertical slice exists, also run the web package's typecheck and
 build scripts.
 
-## Open Questions
+## Current Status
 
-1. Discovery result typing still needs a concrete implementation decision. The
-   current generated SDK should at least type discovery requests. The open part
-   is whether discovery results can be rendered precisely from the current
-   protocol descriptor, or whether the engine descriptor needs additional
-   metadata to distinguish intermediate discovery steps from completed command
-   input.
+The discovery typing question that originally blocked this sequence is now
+resolved.
+
+The current engine and CLI surface already provide:
+
+- typed discovery requests keyed by `step`
+- typed discovery results that distinguish incomplete step results from
+  completed command input
+- correlated `nextStep` and `nextInput` option typing in the generated SDK
+- generated SDK re-exports from the Splendor engine package
+
+That means this sequence is now ready for direct implementation in the web
+package without further protocol-design work.

@@ -101,46 +101,66 @@ export type TakeThreeDistinctGemsDiscoveryResult =
   | {
       complete: false;
       step: "select_gem_color";
-      options: Array<{
-        id: string;
-        output: {
-          color: string;
-          selectedCount: number;
-          requiredCount: number;
-        };
-        nextStep: "select_gem_color" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredCount: number;
+            };
+            nextStep: "select_gem_color";
+            nextInput: {
               selectedColors?: string[];
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredCount: number;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedColors: string[];
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: false;
       step: "select_return_token";
-      options: Array<{
-        id: string;
-        output: {
-          color: string;
-          selectedCount: number;
-          requiredReturnCount: number;
-        };
-        nextStep: "select_gem_color" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_gem_color";
+            nextInput: {
               selectedColors?: string[];
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedColors: string[];
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: true;
@@ -183,45 +203,64 @@ export type TakeTwoSameGemsDiscoveryResult =
   | {
       complete: false;
       step: "select_gem_color";
-      options: Array<{
-        id: string;
-        output: {
-          color: string;
-          amount: number;
-        };
-        nextStep: "select_gem_color" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              color: string;
+              amount: number;
+            };
+            nextStep: "select_gem_color";
+            nextInput: {
               selectedColor?: string;
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              color: string;
+              amount: number;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedColor: string;
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: false;
       step: "select_return_token";
-      options: Array<{
-        id: string;
-        output: {
-          color: string;
-          selectedCount: number;
-          requiredReturnCount: number;
-        };
-        nextStep: "select_gem_color" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_gem_color";
+            nextInput: {
               selectedColor?: string;
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedColor: string;
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: true;
@@ -267,52 +306,74 @@ export type ReserveFaceUpCardDiscoveryResult =
   | {
       complete: false;
       step: "select_face_up_card";
-      options: Array<{
-        id: string;
-        output: {
-          level: number;
-          cardId: number;
-          bonusColor: string;
-          prestigePoints: number;
-          source: string;
-        };
-        nextStep: "select_face_up_card" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              level: number;
+              cardId: number;
+              bonusColor: string;
+              prestigePoints: number;
+              source: string;
+            };
+            nextStep: "select_face_up_card";
+            nextInput: {
               selectedLevel?: number;
               selectedCardId?: number;
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              level: number;
+              cardId: number;
+              bonusColor: string;
+              prestigePoints: number;
+              source: string;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedLevel: number;
               selectedCardId: number;
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: false;
       step: "select_return_token";
-      options: Array<{
-        id: string;
-        output: {
-          color: string;
-          selectedCount: number;
-          requiredReturnCount: number;
-        };
-        nextStep: "select_face_up_card" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_face_up_card";
+            nextInput: {
               selectedLevel?: number;
               selectedCardId?: number;
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedLevel: number;
               selectedCardId: number;
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: true;
@@ -356,46 +417,66 @@ export type ReserveDeckCardDiscoveryResult =
   | {
       complete: false;
       step: "select_deck_level";
-      options: Array<{
-        id: string;
-        output: {
-          level: number;
-          cardCount: number;
-          source: string;
-        };
-        nextStep: "select_deck_level" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              level: number;
+              cardCount: number;
+              source: string;
+            };
+            nextStep: "select_deck_level";
+            nextInput: {
               selectedLevel?: number;
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              level: number;
+              cardCount: number;
+              source: string;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedLevel: number;
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: false;
       step: "select_return_token";
-      options: Array<{
-        id: string;
-        output: {
-          color: string;
-          selectedCount: number;
-          requiredReturnCount: number;
-        };
-        nextStep: "select_deck_level" | "select_return_token";
-        nextInput:
-          | {
+      options: Array<
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_deck_level";
+            nextInput: {
               selectedLevel?: number;
               returnTokens?: Record<string, number>;
-            }
-          | {
+            };
+          }
+        | {
+            id: string;
+            output: {
+              color: string;
+              selectedCount: number;
+              requiredReturnCount: number;
+            };
+            nextStep: "select_return_token";
+            nextInput: {
               selectedLevel: number;
               returnTokens?: Record<string, number>;
             };
-      }>;
+          }
+      >;
     }
   | {
       complete: true;
@@ -569,79 +650,871 @@ export type DiscoveryResult =
   | BuyReservedCardDiscoveryResult
   | ChooseNobleDiscoveryResult;
 
-export type TakeThreeDistinctGemsDiscoveryStart = Omit<
-  Extract<TakeThreeDistinctGemsDiscoveryRequest, { step: "select_gem_color" }>,
-  "actorId"
->;
+export type CommandType =
+  | "take_three_distinct_gems"
+  | "take_two_same_gems"
+  | "reserve_face_up_card"
+  | "reserve_deck_card"
+  | "buy_face_up_card"
+  | "buy_reserved_card"
+  | "choose_noble";
+
+export type WithoutActorId<T> = T extends unknown ? Omit<T, "actorId"> : never;
+
+export type WithoutType<T> = T extends unknown ? Omit<T, "type"> : never;
+
+export type TakeThreeDistinctGemsCommandPayload =
+  WithoutActorId<TakeThreeDistinctGemsCommandRequest>;
+
+export type TakeThreeDistinctGemsDiscoveryPayload =
+  WithoutActorId<TakeThreeDistinctGemsDiscoveryRequest>;
+
+export type TakeTwoSameGemsCommandPayload =
+  WithoutActorId<TakeTwoSameGemsCommandRequest>;
+
+export type TakeTwoSameGemsDiscoveryPayload =
+  WithoutActorId<TakeTwoSameGemsDiscoveryRequest>;
+
+export type ReserveFaceUpCardCommandPayload =
+  WithoutActorId<ReserveFaceUpCardCommandRequest>;
+
+export type ReserveFaceUpCardDiscoveryPayload =
+  WithoutActorId<ReserveFaceUpCardDiscoveryRequest>;
+
+export type ReserveDeckCardCommandPayload =
+  WithoutActorId<ReserveDeckCardCommandRequest>;
+
+export type ReserveDeckCardDiscoveryPayload =
+  WithoutActorId<ReserveDeckCardDiscoveryRequest>;
+
+export type BuyFaceUpCardCommandPayload =
+  WithoutActorId<BuyFaceUpCardCommandRequest>;
+
+export type BuyFaceUpCardDiscoveryPayload =
+  WithoutActorId<BuyFaceUpCardDiscoveryRequest>;
+
+export type BuyReservedCardCommandPayload =
+  WithoutActorId<BuyReservedCardCommandRequest>;
+
+export type BuyReservedCardDiscoveryPayload =
+  WithoutActorId<BuyReservedCardDiscoveryRequest>;
+
+export type ChooseNobleCommandPayload =
+  WithoutActorId<ChooseNobleCommandRequest>;
+
+export type ChooseNobleDiscoveryPayload =
+  WithoutActorId<ChooseNobleDiscoveryRequest>;
+
+export type CommandPayload =
+  | TakeThreeDistinctGemsCommandPayload
+  | TakeTwoSameGemsCommandPayload
+  | ReserveFaceUpCardCommandPayload
+  | ReserveDeckCardCommandPayload
+  | BuyFaceUpCardCommandPayload
+  | BuyReservedCardCommandPayload
+  | ChooseNobleCommandPayload;
+
+export type DiscoveryPayload =
+  | TakeThreeDistinctGemsDiscoveryPayload
+  | TakeTwoSameGemsDiscoveryPayload
+  | ReserveFaceUpCardDiscoveryPayload
+  | ReserveDeckCardDiscoveryPayload
+  | BuyFaceUpCardDiscoveryPayload
+  | BuyReservedCardDiscoveryPayload
+  | ChooseNobleDiscoveryPayload;
+
+export interface GameListAvailableCommandsRequest {
+  gameSessionId: string;
+}
+
+export interface GameAvailableCommandsMessage {
+  type: "game_available_commands";
+  requestId: string;
+  gameSessionId: string;
+  availableCommands: CommandType[];
+}
+
+export interface GameDiscoverRequest {
+  gameSessionId: string;
+  discovery: DiscoveryPayload;
+}
+
+export type GameDiscoveryResultEnvelope =
+  | {
+      type: "take_three_distinct_gems";
+      result: TakeThreeDistinctGemsDiscoveryResult;
+    }
+  | {
+      type: "take_two_same_gems";
+      result: TakeTwoSameGemsDiscoveryResult;
+    }
+  | {
+      type: "reserve_face_up_card";
+      result: ReserveFaceUpCardDiscoveryResult;
+    }
+  | {
+      type: "reserve_deck_card";
+      result: ReserveDeckCardDiscoveryResult;
+    }
+  | {
+      type: "buy_face_up_card";
+      result: BuyFaceUpCardDiscoveryResult;
+    }
+  | {
+      type: "buy_reserved_card";
+      result: BuyReservedCardDiscoveryResult;
+    }
+  | {
+      type: "choose_noble";
+      result: ChooseNobleDiscoveryResult;
+    };
+
+export interface GameDiscoveryResultMessage {
+  type: "game_discovery_result";
+  requestId: string;
+  gameSessionId: string;
+  result: GameDiscoveryResultEnvelope | null;
+}
+
+export interface GameExecuteRequest {
+  gameSessionId: string;
+  command: CommandPayload;
+}
+
+export type GameExecutionResultMessage =
+  | {
+      type: "game_execution_result";
+      requestId: string;
+      gameSessionId: string;
+      accepted: true;
+      stateVersion: number;
+      events: unknown[];
+    }
+  | {
+      type: "game_execution_result";
+      requestId: string;
+      gameSessionId: string;
+      accepted: false;
+      stateVersion: number;
+      reason: string;
+      metadata?: unknown;
+      events: unknown[];
+    };
+
+export interface GameSnapshotMessage {
+  type: "game_snapshot";
+  gameSessionId: string;
+  stateVersion: number;
+  view: VisibleState;
+  availableCommands: CommandType[];
+  events: unknown[];
+}
+
+export interface GameEndedResult {
+  reason: "completed" | "invalidated";
+  winnerPlayerIds?: string[];
+  message?: string;
+}
+
+export interface GameEndedMessage {
+  type: "game_ended";
+  gameSessionId: string;
+  result: GameEndedResult;
+}
+
+export interface GameEngineErrorMessage {
+  type: "error";
+  requestId?: string;
+  code: string;
+  message?: string;
+}
+
+export type GameEngineClientMessage =
+  | {
+      type: "game_list_available_commands";
+      requestId: string;
+      gameSessionId: string;
+    }
+  | {
+      type: "game_discover";
+      requestId: string;
+      gameSessionId: string;
+      discovery: DiscoveryPayload;
+    }
+  | {
+      type: "game_execute";
+      requestId: string;
+      gameSessionId: string;
+      command: CommandPayload;
+    };
+
+export type GameEngineServerMessage =
+  | GameAvailableCommandsMessage
+  | GameDiscoveryResultMessage
+  | GameExecutionResultMessage
+  | GameSnapshotMessage
+  | GameEndedMessage
+  | GameEngineErrorMessage;
+
+export type TakeThreeDistinctGemsDiscoveryStart = {
+  step: "select_gem_color";
+  input: {
+    selectedColors?: string[];
+    returnTokens?: Record<string, number>;
+  };
+};
 
 export const takeThreeDistinctGemsDiscoveryStart = {
-  type: "take_three_distinct_gems",
   step: "select_gem_color",
   input: {},
 } satisfies TakeThreeDistinctGemsDiscoveryStart;
 
-export type TakeTwoSameGemsDiscoveryStart = Omit<
-  Extract<TakeTwoSameGemsDiscoveryRequest, { step: "select_gem_color" }>,
-  "actorId"
->;
+export type TakeTwoSameGemsDiscoveryStart = {
+  step: "select_gem_color";
+  input: {
+    selectedColor?: string;
+    returnTokens?: Record<string, number>;
+  };
+};
 
 export const takeTwoSameGemsDiscoveryStart = {
-  type: "take_two_same_gems",
   step: "select_gem_color",
   input: {},
 } satisfies TakeTwoSameGemsDiscoveryStart;
 
-export type ReserveFaceUpCardDiscoveryStart = Omit<
-  Extract<ReserveFaceUpCardDiscoveryRequest, { step: "select_face_up_card" }>,
-  "actorId"
->;
+export type ReserveFaceUpCardDiscoveryStart = {
+  step: "select_face_up_card";
+  input: {
+    selectedLevel?: number;
+    selectedCardId?: number;
+    returnTokens?: Record<string, number>;
+  };
+};
 
 export const reserveFaceUpCardDiscoveryStart = {
-  type: "reserve_face_up_card",
   step: "select_face_up_card",
   input: {},
 } satisfies ReserveFaceUpCardDiscoveryStart;
 
-export type ReserveDeckCardDiscoveryStart = Omit<
-  Extract<ReserveDeckCardDiscoveryRequest, { step: "select_deck_level" }>,
-  "actorId"
->;
+export type ReserveDeckCardDiscoveryStart = {
+  step: "select_deck_level";
+  input: {
+    selectedLevel?: number;
+    returnTokens?: Record<string, number>;
+  };
+};
 
 export const reserveDeckCardDiscoveryStart = {
-  type: "reserve_deck_card",
   step: "select_deck_level",
   input: {},
 } satisfies ReserveDeckCardDiscoveryStart;
 
-export type BuyFaceUpCardDiscoveryStart = Omit<
-  Extract<BuyFaceUpCardDiscoveryRequest, { step: "select_face_up_card" }>,
-  "actorId"
->;
+export type BuyFaceUpCardDiscoveryStart = {
+  step: "select_face_up_card";
+  input: {
+    selectedLevel?: number;
+    selectedCardId?: number;
+  };
+};
 
 export const buyFaceUpCardDiscoveryStart = {
-  type: "buy_face_up_card",
   step: "select_face_up_card",
   input: {},
 } satisfies BuyFaceUpCardDiscoveryStart;
 
-export type BuyReservedCardDiscoveryStart = Omit<
-  Extract<BuyReservedCardDiscoveryRequest, { step: "select_reserved_card" }>,
-  "actorId"
->;
+export type BuyReservedCardDiscoveryStart = {
+  step: "select_reserved_card";
+  input: {
+    selectedCardId?: number;
+  };
+};
 
 export const buyReservedCardDiscoveryStart = {
-  type: "buy_reserved_card",
   step: "select_reserved_card",
   input: {},
 } satisfies BuyReservedCardDiscoveryStart;
 
-export type ChooseNobleDiscoveryStart = Omit<
-  Extract<ChooseNobleDiscoveryRequest, { step: "select_noble" }>,
-  "actorId"
->;
+export type ChooseNobleDiscoveryStart = {
+  step: "select_noble";
+  input: {
+    chosenNobleId?: number;
+  };
+};
 
 export const chooseNobleDiscoveryStart = {
-  type: "choose_noble",
   step: "select_noble",
   input: {},
 } satisfies ChooseNobleDiscoveryStart;
+
+export interface GameEngineSocketLike {
+  send(data: string): void;
+  addEventListener(
+    type: "message",
+    listener: (event: { data: unknown }) => void,
+  ): void;
+  addEventListener(type: "close" | "error", listener: () => void): void;
+  removeEventListener(
+    type: "message",
+    listener: (event: { data: unknown }) => void,
+  ): void;
+  removeEventListener(type: "close" | "error", listener: () => void): void;
+}
+
+export interface GameEngineClientOptions {
+  createRequestId?: () => string;
+}
+
+export interface GameEngineClient {
+  listAvailableCommands(
+    request: GameListAvailableCommandsRequest,
+  ): Promise<GameAvailableCommandsMessage>;
+  discover(request: GameDiscoverRequest): Promise<GameDiscoveryResultMessage>;
+  execute(request: GameExecuteRequest): Promise<GameExecutionResultMessage>;
+  discoverTakeThreeDistinctGems(
+    request: {
+      gameSessionId: string;
+    } & WithoutType<TakeThreeDistinctGemsDiscoveryPayload>,
+  ): Promise<GameDiscoveryResultMessage>;
+  discoverTakeTwoSameGems(
+    request: {
+      gameSessionId: string;
+    } & WithoutType<TakeTwoSameGemsDiscoveryPayload>,
+  ): Promise<GameDiscoveryResultMessage>;
+  discoverReserveFaceUpCard(
+    request: {
+      gameSessionId: string;
+    } & WithoutType<ReserveFaceUpCardDiscoveryPayload>,
+  ): Promise<GameDiscoveryResultMessage>;
+  discoverReserveDeckCard(
+    request: {
+      gameSessionId: string;
+    } & WithoutType<ReserveDeckCardDiscoveryPayload>,
+  ): Promise<GameDiscoveryResultMessage>;
+  discoverBuyFaceUpCard(
+    request: {
+      gameSessionId: string;
+    } & WithoutType<BuyFaceUpCardDiscoveryPayload>,
+  ): Promise<GameDiscoveryResultMessage>;
+  discoverBuyReservedCard(
+    request: {
+      gameSessionId: string;
+    } & WithoutType<BuyReservedCardDiscoveryPayload>,
+  ): Promise<GameDiscoveryResultMessage>;
+  discoverChooseNoble(
+    request: {
+      gameSessionId: string;
+    } & WithoutType<ChooseNobleDiscoveryPayload>,
+  ): Promise<GameDiscoveryResultMessage>;
+  executeTakeThreeDistinctGems(request: {
+    gameSessionId: string;
+    input: TakeThreeDistinctGemsCommandPayload["input"];
+  }): Promise<GameExecutionResultMessage>;
+  executeTakeTwoSameGems(request: {
+    gameSessionId: string;
+    input: TakeTwoSameGemsCommandPayload["input"];
+  }): Promise<GameExecutionResultMessage>;
+  executeReserveFaceUpCard(request: {
+    gameSessionId: string;
+    input: ReserveFaceUpCardCommandPayload["input"];
+  }): Promise<GameExecutionResultMessage>;
+  executeReserveDeckCard(request: {
+    gameSessionId: string;
+    input: ReserveDeckCardCommandPayload["input"];
+  }): Promise<GameExecutionResultMessage>;
+  executeBuyFaceUpCard(request: {
+    gameSessionId: string;
+    input: BuyFaceUpCardCommandPayload["input"];
+  }): Promise<GameExecutionResultMessage>;
+  executeBuyReservedCard(request: {
+    gameSessionId: string;
+    input: BuyReservedCardCommandPayload["input"];
+  }): Promise<GameExecutionResultMessage>;
+  executeChooseNoble(request: {
+    gameSessionId: string;
+    input: ChooseNobleCommandPayload["input"];
+  }): Promise<GameExecutionResultMessage>;
+  onGameSnapshot(handler: (message: GameSnapshotMessage) => void): () => void;
+  onGameEnded(handler: (message: GameEndedMessage) => void): () => void;
+  onDiscoveryResult(
+    handler: (message: GameDiscoveryResultMessage) => void,
+  ): () => void;
+  onExecutionResult(
+    handler: (message: GameExecutionResultMessage) => void,
+  ): () => void;
+  onMessage(handler: (message: GameEngineServerMessage) => void): () => void;
+  dispose(): void;
+}
+
+export function createGameEngineClient(
+  socket: GameEngineSocketLike,
+  options: GameEngineClientOptions = {},
+): GameEngineClient {
+  const pendingAvailableCommands = new Map<
+    string,
+    {
+      resolve: (message: GameAvailableCommandsMessage) => void;
+      reject: (error: Error) => void;
+    }
+  >();
+  const pendingDiscovery = new Map<
+    string,
+    {
+      resolve: (message: GameDiscoveryResultMessage) => void;
+      reject: (error: Error) => void;
+    }
+  >();
+  const pendingExecution = new Map<
+    string,
+    {
+      resolve: (message: GameExecutionResultMessage) => void;
+      reject: (error: Error) => void;
+    }
+  >();
+  const gameSnapshotListeners = new Set<
+    (message: GameSnapshotMessage) => void
+  >();
+  const gameEndedListeners = new Set<(message: GameEndedMessage) => void>();
+  const discoveryResultListeners = new Set<
+    (message: GameDiscoveryResultMessage) => void
+  >();
+  const executionResultListeners = new Set<
+    (message: GameExecutionResultMessage) => void
+  >();
+  const messageListeners = new Set<
+    (message: GameEngineServerMessage) => void
+  >();
+  let requestCounter = 0;
+
+  const createRequestId =
+    options.createRequestId ??
+    (() => {
+      requestCounter += 1;
+
+      if (
+        typeof globalThis.crypto !== "undefined" &&
+        typeof globalThis.crypto.randomUUID === "function"
+      ) {
+        return globalThis.crypto.randomUUID();
+      }
+
+      return `game-engine-request-${requestCounter}`;
+    });
+
+  const parseIncomingMessage = (
+    raw: unknown,
+  ): GameEngineServerMessage | null => {
+    if (typeof raw === "string") {
+      try {
+        return JSON.parse(raw) as GameEngineServerMessage;
+      } catch {
+        return null;
+      }
+    }
+
+    if (typeof raw === "object" && raw !== null) {
+      return raw as GameEngineServerMessage;
+    }
+
+    return null;
+  };
+
+  const handleMessage = (event: { data: unknown }) => {
+    const message = parseIncomingMessage(event.data);
+
+    if (!message) {
+      return;
+    }
+
+    for (const listener of messageListeners) {
+      listener(message);
+    }
+
+    switch (message.type) {
+      case "game_available_commands": {
+        const pending = pendingAvailableCommands.get(message.requestId);
+        if (pending) {
+          pendingAvailableCommands.delete(message.requestId);
+          pending.resolve(message);
+        }
+        return;
+      }
+
+      case "game_discovery_result": {
+        for (const listener of discoveryResultListeners) {
+          listener(message);
+        }
+        const pending = pendingDiscovery.get(message.requestId);
+        if (pending) {
+          pendingDiscovery.delete(message.requestId);
+          pending.resolve(message);
+        }
+        return;
+      }
+
+      case "game_execution_result": {
+        for (const listener of executionResultListeners) {
+          listener(message);
+        }
+        const pending = pendingExecution.get(message.requestId);
+        if (pending) {
+          pendingExecution.delete(message.requestId);
+          pending.resolve(message);
+        }
+        return;
+      }
+
+      case "error":
+        if (!message.requestId) {
+          return;
+        }
+
+        {
+          const error = new Error(message.message ?? message.code);
+          const availableCommandsPending = pendingAvailableCommands.get(
+            message.requestId,
+          );
+          if (availableCommandsPending) {
+            pendingAvailableCommands.delete(message.requestId);
+            availableCommandsPending.reject(error);
+            return;
+          }
+
+          const discoveryPending = pendingDiscovery.get(message.requestId);
+          if (discoveryPending) {
+            pendingDiscovery.delete(message.requestId);
+            discoveryPending.reject(error);
+            return;
+          }
+
+          const executionPending = pendingExecution.get(message.requestId);
+          if (executionPending) {
+            pendingExecution.delete(message.requestId);
+            executionPending.reject(error);
+          }
+        }
+        return;
+
+      case "game_snapshot":
+        for (const listener of gameSnapshotListeners) {
+          listener(message);
+        }
+        return;
+
+      case "game_ended":
+        for (const listener of gameEndedListeners) {
+          listener(message);
+        }
+        return;
+    }
+  };
+
+  const handleSocketClosed = () => {
+    rejectPendingRequests("Game engine socket closed");
+  };
+
+  const handleSocketErrored = () => {
+    rejectPendingRequests("Game engine socket errored");
+  };
+
+  socket.addEventListener("message", handleMessage);
+  socket.addEventListener("close", handleSocketClosed);
+  socket.addEventListener("error", handleSocketErrored);
+
+  const send = (message: GameEngineClientMessage) => {
+    socket.send(JSON.stringify(message));
+  };
+
+  const rejectPendingRequests = (reason: string) => {
+    const error = new Error(reason);
+
+    for (const [requestId, pending] of pendingAvailableCommands) {
+      pending.reject(error);
+      pendingAvailableCommands.delete(requestId);
+    }
+
+    for (const [requestId, pending] of pendingDiscovery) {
+      pending.reject(error);
+      pendingDiscovery.delete(requestId);
+    }
+
+    for (const [requestId, pending] of pendingExecution) {
+      pending.reject(error);
+      pendingExecution.delete(requestId);
+    }
+  };
+
+  return {
+    listAvailableCommands(request) {
+      const requestId = createRequestId();
+      return new Promise<GameAvailableCommandsMessage>((resolve, reject) => {
+        pendingAvailableCommands.set(requestId, { resolve, reject });
+        send({
+          type: "game_list_available_commands",
+          requestId,
+          gameSessionId: request.gameSessionId,
+        });
+      });
+    },
+    discover(request) {
+      const requestId = createRequestId();
+      return new Promise<GameDiscoveryResultMessage>((resolve, reject) => {
+        pendingDiscovery.set(requestId, { resolve, reject });
+        send({
+          type: "game_discover",
+          requestId,
+          gameSessionId: request.gameSessionId,
+          discovery: request.discovery,
+        });
+      });
+    },
+    execute(request) {
+      const requestId = createRequestId();
+      return new Promise<GameExecutionResultMessage>((resolve, reject) => {
+        pendingExecution.set(requestId, { resolve, reject });
+        send({
+          type: "game_execute",
+          requestId,
+          gameSessionId: request.gameSessionId,
+          command: request.command,
+        });
+      });
+    },
+    discoverTakeThreeDistinctGems(
+      request: {
+        gameSessionId: string;
+      } & WithoutType<TakeThreeDistinctGemsDiscoveryPayload>,
+    ) {
+      const discovery = {
+        type: "take_three_distinct_gems",
+        step: request.step,
+        input: request.input,
+      } as TakeThreeDistinctGemsDiscoveryPayload;
+
+      return this.discover({
+        gameSessionId: request.gameSessionId,
+        discovery,
+      });
+    },
+    discoverTakeTwoSameGems(
+      request: {
+        gameSessionId: string;
+      } & WithoutType<TakeTwoSameGemsDiscoveryPayload>,
+    ) {
+      const discovery = {
+        type: "take_two_same_gems",
+        step: request.step,
+        input: request.input,
+      } as TakeTwoSameGemsDiscoveryPayload;
+
+      return this.discover({
+        gameSessionId: request.gameSessionId,
+        discovery,
+      });
+    },
+    discoverReserveFaceUpCard(
+      request: {
+        gameSessionId: string;
+      } & WithoutType<ReserveFaceUpCardDiscoveryPayload>,
+    ) {
+      const discovery = {
+        type: "reserve_face_up_card",
+        step: request.step,
+        input: request.input,
+      } as ReserveFaceUpCardDiscoveryPayload;
+
+      return this.discover({
+        gameSessionId: request.gameSessionId,
+        discovery,
+      });
+    },
+    discoverReserveDeckCard(
+      request: {
+        gameSessionId: string;
+      } & WithoutType<ReserveDeckCardDiscoveryPayload>,
+    ) {
+      const discovery = {
+        type: "reserve_deck_card",
+        step: request.step,
+        input: request.input,
+      } as ReserveDeckCardDiscoveryPayload;
+
+      return this.discover({
+        gameSessionId: request.gameSessionId,
+        discovery,
+      });
+    },
+    discoverBuyFaceUpCard(
+      request: {
+        gameSessionId: string;
+      } & WithoutType<BuyFaceUpCardDiscoveryPayload>,
+    ) {
+      const discovery = {
+        type: "buy_face_up_card",
+        step: request.step,
+        input: request.input,
+      } as BuyFaceUpCardDiscoveryPayload;
+
+      return this.discover({
+        gameSessionId: request.gameSessionId,
+        discovery,
+      });
+    },
+    discoverBuyReservedCard(
+      request: {
+        gameSessionId: string;
+      } & WithoutType<BuyReservedCardDiscoveryPayload>,
+    ) {
+      const discovery = {
+        type: "buy_reserved_card",
+        step: request.step,
+        input: request.input,
+      } as BuyReservedCardDiscoveryPayload;
+
+      return this.discover({
+        gameSessionId: request.gameSessionId,
+        discovery,
+      });
+    },
+    discoverChooseNoble(
+      request: {
+        gameSessionId: string;
+      } & WithoutType<ChooseNobleDiscoveryPayload>,
+    ) {
+      const discovery = {
+        type: "choose_noble",
+        step: request.step,
+        input: request.input,
+      } as ChooseNobleDiscoveryPayload;
+
+      return this.discover({
+        gameSessionId: request.gameSessionId,
+        discovery,
+      });
+    },
+    executeTakeThreeDistinctGems(request: {
+      gameSessionId: string;
+      input: TakeThreeDistinctGemsCommandPayload["input"];
+    }) {
+      return this.execute({
+        gameSessionId: request.gameSessionId,
+        command: {
+          type: "take_three_distinct_gems",
+          input: request.input,
+        },
+      });
+    },
+    executeTakeTwoSameGems(request: {
+      gameSessionId: string;
+      input: TakeTwoSameGemsCommandPayload["input"];
+    }) {
+      return this.execute({
+        gameSessionId: request.gameSessionId,
+        command: {
+          type: "take_two_same_gems",
+          input: request.input,
+        },
+      });
+    },
+    executeReserveFaceUpCard(request: {
+      gameSessionId: string;
+      input: ReserveFaceUpCardCommandPayload["input"];
+    }) {
+      return this.execute({
+        gameSessionId: request.gameSessionId,
+        command: {
+          type: "reserve_face_up_card",
+          input: request.input,
+        },
+      });
+    },
+    executeReserveDeckCard(request: {
+      gameSessionId: string;
+      input: ReserveDeckCardCommandPayload["input"];
+    }) {
+      return this.execute({
+        gameSessionId: request.gameSessionId,
+        command: {
+          type: "reserve_deck_card",
+          input: request.input,
+        },
+      });
+    },
+    executeBuyFaceUpCard(request: {
+      gameSessionId: string;
+      input: BuyFaceUpCardCommandPayload["input"];
+    }) {
+      return this.execute({
+        gameSessionId: request.gameSessionId,
+        command: {
+          type: "buy_face_up_card",
+          input: request.input,
+        },
+      });
+    },
+    executeBuyReservedCard(request: {
+      gameSessionId: string;
+      input: BuyReservedCardCommandPayload["input"];
+    }) {
+      return this.execute({
+        gameSessionId: request.gameSessionId,
+        command: {
+          type: "buy_reserved_card",
+          input: request.input,
+        },
+      });
+    },
+    executeChooseNoble(request: {
+      gameSessionId: string;
+      input: ChooseNobleCommandPayload["input"];
+    }) {
+      return this.execute({
+        gameSessionId: request.gameSessionId,
+        command: {
+          type: "choose_noble",
+          input: request.input,
+        },
+      });
+    },
+    onGameSnapshot(handler) {
+      gameSnapshotListeners.add(handler);
+      return () => {
+        gameSnapshotListeners.delete(handler);
+      };
+    },
+    onGameEnded(handler) {
+      gameEndedListeners.add(handler);
+      return () => {
+        gameEndedListeners.delete(handler);
+      };
+    },
+    onDiscoveryResult(handler) {
+      discoveryResultListeners.add(handler);
+      return () => {
+        discoveryResultListeners.delete(handler);
+      };
+    },
+    onExecutionResult(handler) {
+      executionResultListeners.add(handler);
+      return () => {
+        executionResultListeners.delete(handler);
+      };
+    },
+    onMessage(handler) {
+      messageListeners.add(handler);
+      return () => {
+        messageListeners.delete(handler);
+      };
+    },
+    dispose() {
+      rejectPendingRequests("Game engine client disposed");
+      socket.removeEventListener("message", handleMessage);
+      socket.removeEventListener("close", handleSocketClosed);
+      socket.removeEventListener("error", handleSocketErrored);
+      gameSnapshotListeners.clear();
+      gameEndedListeners.clear();
+      discoveryResultListeners.clear();
+      executionResultListeners.clear();
+      messageListeners.clear();
+    },
+  };
+}

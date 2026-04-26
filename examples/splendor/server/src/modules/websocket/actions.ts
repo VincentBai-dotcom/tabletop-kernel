@@ -23,10 +23,15 @@ export interface LiveMessageHandlerDeps {
   livePresenceService?: LivePresenceService;
 }
 
-function sendError(connection: LiveConnection, error: unknown) {
+function sendError(
+  connection: LiveConnection,
+  error: unknown,
+  requestId?: string,
+) {
   const response = toErrorResponse(error);
   connection.send({
     type: "error",
+    ...(requestId ? { requestId } : {}),
     code: response.body.error.code,
     message: response.body.error.message,
   } satisfies LiveServerMessage);
@@ -104,7 +109,66 @@ export function createLiveMessageHandler({
             }
             return;
 
-          case "game_command": {
+          case "game_list_available_commands": {
+            if (!gameSessionService) {
+              throw new AppError(
+                "game_commands_not_implemented",
+                501,
+                "Game commands are not implemented yet",
+              );
+            }
+
+            const snapshot = await gameSessionService.getPlayerSnapshot({
+              gameSessionId: message.gameSessionId,
+              playerSessionId,
+            });
+
+            connection.send({
+              type: "game_available_commands",
+              requestId: message.requestId,
+              gameSessionId: message.gameSessionId,
+              availableCommands: snapshot.availableCommands,
+            });
+            return;
+          }
+
+          case "game_discover": {
+            if (!gameSessionService) {
+              throw new AppError(
+                "game_commands_not_implemented",
+                501,
+                "Game commands are not implemented yet",
+              );
+            }
+
+            const discoveryResult = await gameSessionService.discoverCommand({
+              gameSessionId: message.gameSessionId,
+              playerSessionId,
+              discovery: message.discovery,
+            });
+            const discoveryType =
+              typeof message.discovery === "object" &&
+              message.discovery !== null &&
+              "type" in message.discovery &&
+              typeof message.discovery.type === "string"
+                ? message.discovery.type
+                : "unknown_discovery";
+
+            connection.send({
+              type: "game_discovery_result",
+              requestId: message.requestId,
+              gameSessionId: message.gameSessionId,
+              result: discoveryResult
+                ? {
+                    type: discoveryType,
+                    result: discoveryResult,
+                  }
+                : null,
+            });
+            return;
+          }
+
+          case "game_execute": {
             if (!gameSessionService) {
               throw new AppError(
                 "game_commands_not_implemented",
@@ -119,12 +183,22 @@ export function createLiveMessageHandler({
               command: message.command,
             });
 
-            if (!result.accepted) {
-              connection.send({
-                type: "error",
-                code: result.reason,
-                message: "Command rejected",
-              });
+            connection.send({
+              type: "game_execution_result",
+              requestId: message.requestId,
+              gameSessionId: message.gameSessionId,
+              accepted: result.accepted,
+              stateVersion: result.stateVersion,
+              events: result.events,
+              ...(result.accepted === false
+                ? {
+                    reason: result.reason,
+                    metadata: result.metadata,
+                  }
+                : {}),
+            });
+
+            if (result.accepted === false) {
               return;
             }
 
@@ -134,17 +208,25 @@ export function createLiveMessageHandler({
                 message.gameSessionId,
               );
               gameConnection?.send({
-                type: "game_updated",
+                type: "game_snapshot",
+                gameSessionId: message.gameSessionId,
                 stateVersion: result.stateVersion,
                 events: result.events,
                 view: playerView.view,
+                availableCommands: playerView.availableCommands,
               });
             }
             return;
           }
         }
       } catch (error) {
-        sendError(connection, error);
+        sendError(
+          connection,
+          error,
+          "requestId" in message && typeof message.requestId === "string"
+            ? message.requestId
+            : undefined,
+        );
       }
     },
   };

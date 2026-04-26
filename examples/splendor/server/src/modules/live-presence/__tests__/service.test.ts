@@ -73,6 +73,9 @@ function createFakeGameSessionService() {
     async submitCommand() {
       throw new Error("not used");
     },
+    async discoverCommand() {
+      throw new Error("not used");
+    },
     async markDisconnected(input) {
       calls.markDisconnected.push(input);
       return null;
@@ -85,6 +88,7 @@ function createFakeGameSessionService() {
         playerSessionId: input.playerSessionId,
         playerId: "player-1",
         view: { game: "view" },
+        availableCommands: ["take_three_distinct_gems"],
       };
     },
     async getPlayerSnapshot() {
@@ -183,8 +187,10 @@ describe("createLivePresenceService", () => {
     ]);
     expect(message).toEqual({
       type: "game_snapshot",
+      gameSessionId: "game-1",
       stateVersion: 2,
       view: { game: "view" },
+      availableCommands: ["take_three_distinct_gems"],
       events: [],
     });
   });

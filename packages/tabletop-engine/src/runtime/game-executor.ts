@@ -792,7 +792,7 @@ export function createGameExecutor<
         ),
       );
 
-      if (!validation.ok) {
+      if (validation.ok === false) {
         const failure: ExecutionFailure<CanonicalState<CanonicalGameState>> = {
           ok: false,
           state,

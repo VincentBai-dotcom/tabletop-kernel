@@ -48,3 +48,16 @@ export function createApp({
     ? app.use(createDisconnectCleanupCron(disconnectCleanup))
     : app;
 }
+
+export type App = ReturnType<typeof createApp>;
+export type {
+  CreateRoomResult,
+  JoinRoomResult,
+  RoomPlayerSnapshot,
+  RoomSnapshot,
+} from "./modules/room";
+export type {
+  GameEndedPayload,
+  LiveClientMessage,
+  LiveServerMessage,
+} from "./modules/websocket";

@@ -50,6 +50,9 @@ function createFakeGameSessionService() {
     async submitCommand() {
       throw new Error("not used");
     },
+    async discoverCommand() {
+      throw new Error("not used");
+    },
     async markDisconnected() {
       return null;
     },

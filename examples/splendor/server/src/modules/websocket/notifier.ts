@@ -37,7 +37,7 @@ export function createLiveNotifier(
 
     publishGameUpdated(gameSessionId: string, payload: GameUpdatePayload) {
       sendToConnections(registry.getGameConnections(gameSessionId), {
-        type: "game_updated",
+        type: "game_snapshot",
         ...payload,
       });
     },
@@ -45,6 +45,7 @@ export function createLiveNotifier(
     publishGameEnded(gameSessionId: string, result: GameEndedPayload) {
       sendToConnections(registry.getGameConnections(gameSessionId), {
         type: "game_ended",
+        gameSessionId,
         result,
       });
     },

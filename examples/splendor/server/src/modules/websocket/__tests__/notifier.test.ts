@@ -53,16 +53,20 @@ describe("createLiveNotifier", () => {
     registry.subscribeToGame("session-1", "game-1");
 
     notifier.publishGameUpdated("game-1", {
+      gameSessionId: "game-1",
       stateVersion: 2,
       view: { game: "view" },
+      availableCommands: ["take_three_distinct_gems"],
       events: [{ type: "event" }],
     });
 
     expect(client.sent).toEqual([
       {
-        type: "game_updated",
+        type: "game_snapshot",
+        gameSessionId: "game-1",
         stateVersion: 2,
         view: { game: "view" },
+        availableCommands: ["take_three_distinct_gems"],
         events: [{ type: "event" }],
       },
     ]);
@@ -83,6 +87,7 @@ describe("createLiveNotifier", () => {
     expect(client.sent).toEqual([
       {
         type: "game_ended",
+        gameSessionId: "game-1",
         result: {
           reason: "completed",
           winnerPlayerIds: ["player-1"],

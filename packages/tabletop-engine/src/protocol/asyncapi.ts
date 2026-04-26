@@ -1,16 +1,13 @@
-import { Type, type TSchema } from "@sinclair/typebox";
+import type { TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
 import type { CommandDefinition } from "../types/command";
 import { describeGameProtocol } from "./describe";
+import {
+  describeEngineWebSocketProtocol,
+  type EngineWebSocketMessageNames,
+} from "./engine-websocket";
 
-export interface AsyncApiChannelNames {
-  submitCommand: string;
-  discoverCommand: string;
-  discoveryResult: string;
-  discoveryRejected: string;
-  matchView: string;
-  commandRejected: string;
-}
+export type AsyncApiChannelNames = EngineWebSocketMessageNames;
 
 export interface AsyncApiOptions {
   title?: string;
@@ -51,15 +48,6 @@ export interface AsyncApiDocument {
   };
 }
 
-const defaultChannels: AsyncApiChannelNames = {
-  submitCommand: "command.submit",
-  discoverCommand: "command.discover",
-  discoveryResult: "command.discovered",
-  discoveryRejected: "command.discovery_rejected",
-  matchView: "match.view",
-  commandRejected: "command.rejected",
-};
-
 export function generateAsyncApi<
   CanonicalGameState extends object,
   FacadeGameState extends object,
@@ -75,120 +63,10 @@ export function generateAsyncApi<
   options: AsyncApiOptions = {},
 ): AsyncApiDocument {
   const protocol = describeGameProtocol(game);
-  const channels = {
-    ...defaultChannels,
-    ...options.channels,
-  };
-  const commandSchemas = Object.fromEntries(
-    Object.entries(protocol.commands).map(([commandId, command]) => [
-      commandId,
-      createCommandSchema(commandId, command.commandSchema.schema!),
-    ]),
-  );
-  const discoveryCommandSchemas: TSchema[] = [];
-  const discoveryResultSchemas: TSchema[] = [];
-  const discoveryRejectedSchemas: TSchema[] = [];
-  const schemaComponents: Record<string, TSchema> = {};
-
-  for (const [commandId, command] of Object.entries(protocol.commands)) {
-    if (!command.discovery) {
-      continue;
-    }
-
-    const commandPascalCase = toPascalCase(commandId);
-    const commandInputSchema = command.commandSchema.schema!;
-    const stepRequestSchemas: TSchema[] = [];
-    const stepResultSchemas: TSchema[] = [];
-
-    for (const step of command.discovery.steps) {
-      const stepPascalCase = toPascalCase(step.stepId);
-      const inputSchema = step.inputSchema.schema!;
-      const outputSchema = step.outputSchema.schema!;
-
-      const discoveryInputSchema = createDiscoveryInputSchema(
-        commandId,
-        step.stepId,
-        inputSchema,
-      );
-      const discoveryResultSchema = createDiscoveryStepResultSchema(
-        step.stepId,
-        outputSchema,
-        command.discovery.steps.map((targetStep) => ({
-          stepId: targetStep.stepId,
-          inputSchema: targetStep.inputSchema.schema!,
-        })),
-      );
-
-      schemaComponents[`${commandPascalCase}${stepPascalCase}DiscoveryInput`] =
-        inputSchema;
-      schemaComponents[`${commandPascalCase}${stepPascalCase}DiscoveryOutput`] =
-        outputSchema;
-      schemaComponents[
-        `${commandPascalCase}${stepPascalCase}DiscoveryCommand`
-      ] = discoveryInputSchema;
-      schemaComponents[`${commandPascalCase}${stepPascalCase}DiscoveryResult`] =
-        discoveryResultSchema;
-
-      stepRequestSchemas.push(discoveryInputSchema);
-      stepResultSchemas.push(discoveryResultSchema);
-      discoveryCommandSchemas.push(discoveryInputSchema);
-    }
-
-    const commandDiscoveryResultSchema = createDiscoveryEnvelopeSchema(
-      commandId,
-      stepResultSchemas,
-      commandInputSchema,
-    );
-
-    schemaComponents[`${commandPascalCase}DiscoverCommand`] =
-      stepRequestSchemas.length === 1
-        ? stepRequestSchemas[0]!
-        : Type.Union(stepRequestSchemas);
-    schemaComponents[`${commandPascalCase}DiscoveryResult`] =
-      commandDiscoveryResultSchema;
-
-    discoveryResultSchemas.push(commandDiscoveryResultSchema);
-    discoveryRejectedSchemas.push(createDiscoveryRejectedSchema(commandId));
-    schemaComponents[`${commandPascalCase}DiscoveryRejected`] =
-      discoveryRejectedSchemas[discoveryRejectedSchemas.length - 1]!;
-  }
-  const commandSchemaList = Object.values(commandSchemas);
-  const commandSchema =
-    commandSchemaList.length === 0
-      ? Type.Never()
-      : commandSchemaList.length === 1
-        ? commandSchemaList[0]!
-        : Type.Union(commandSchemaList);
-  const discoverySchemaList = discoveryCommandSchemas;
-  const discoverySchema =
-    discoverySchemaList.length === 0
-      ? Type.Never()
-      : discoverySchemaList.length === 1
-        ? discoverySchemaList[0]!
-        : Type.Union(discoverySchemaList);
-  const discoveryResultSchemaList = discoveryResultSchemas;
-  const discoveryResultSchema =
-    discoveryResultSchemaList.length === 0
-      ? Type.Never()
-      : discoveryResultSchemaList.length === 1
-        ? discoveryResultSchemaList[0]!
-        : Type.Union(discoveryResultSchemaList);
-  const discoveryRejectedSchemaList = discoveryRejectedSchemas;
-  const discoveryRejectedSchema =
-    discoveryRejectedSchemaList.length === 0
-      ? Type.Never()
-      : discoveryRejectedSchemaList.length === 1
-        ? discoveryRejectedSchemaList[0]!
-        : Type.Union(discoveryRejectedSchemaList);
-  const visibleStateSchema = protocol.viewSchema;
-  const matchViewSchema = Type.Object({
-    type: Type.Literal("match.view"),
-    view: visibleStateSchema,
+  const websocket = describeEngineWebSocketProtocol(game, {
+    messages: options.channels,
   });
-  const commandRejectedSchema = Type.Object({
-    type: Type.Literal("command.rejected"),
-    reason: Type.String(),
-  });
+  const channels = websocket.messages;
 
   return {
     asyncapi: "2.6.0",
@@ -197,183 +75,126 @@ export function generateAsyncApi<
       version: options.version ?? "1.0.0",
     },
     channels: {
-      [channels.submitCommand]: {
+      [channels.listAvailableCommands]: {
         subscribe: {
           message: {
-            $ref: "#/components/messages/SubmitCommand",
+            $ref: "#/components/messages/GameListAvailableCommands",
           },
         },
       },
-      [channels.discoverCommand]: {
+      [channels.availableCommands]: {
+        publish: {
+          message: {
+            $ref: "#/components/messages/GameAvailableCommands",
+          },
+        },
+      },
+      [channels.discover]: {
         subscribe: {
           message: {
-            $ref: "#/components/messages/DiscoverCommand",
+            $ref: "#/components/messages/GameDiscover",
           },
         },
       },
       [channels.discoveryResult]: {
         publish: {
           message: {
-            $ref: "#/components/messages/DiscoveryResult",
+            $ref: "#/components/messages/GameDiscoveryResult",
           },
         },
       },
-      [channels.discoveryRejected]: {
-        publish: {
+      [channels.execute]: {
+        subscribe: {
           message: {
-            $ref: "#/components/messages/DiscoveryRejected",
+            $ref: "#/components/messages/GameExecute",
           },
         },
       },
-      [channels.matchView]: {
+      [channels.executionResult]: {
         publish: {
           message: {
-            $ref: "#/components/messages/MatchView",
+            $ref: "#/components/messages/GameExecutionResult",
           },
         },
       },
-      [channels.commandRejected]: {
+      [channels.gameSnapshot]: {
         publish: {
           message: {
-            $ref: "#/components/messages/CommandRejected",
+            $ref: "#/components/messages/GameSnapshot",
+          },
+        },
+      },
+      [channels.gameEnded]: {
+        publish: {
+          message: {
+            $ref: "#/components/messages/GameEnded",
+          },
+        },
+      },
+      [channels.error]: {
+        publish: {
+          message: {
+            $ref: "#/components/messages/GameError",
           },
         },
       },
     },
     components: {
       messages: {
-        SubmitCommand: {
-          name: "SubmitCommand",
-          payload: commandSchema,
+        GameListAvailableCommands: {
+          name: "GameListAvailableCommands",
+          payload: websocket.schemas.listAvailableCommandsRequest,
         },
-        DiscoverCommand: {
-          name: "DiscoverCommand",
-          payload: discoverySchema,
+        GameAvailableCommands: {
+          name: "GameAvailableCommands",
+          payload: websocket.schemas.availableCommandsResponse,
         },
-        DiscoveryResult: {
-          name: "DiscoveryResult",
-          payload: discoveryResultSchema,
+        GameDiscover: {
+          name: "GameDiscover",
+          payload: websocket.schemas.discoverRequest,
         },
-        DiscoveryRejected: {
-          name: "DiscoveryRejected",
-          payload: discoveryRejectedSchema,
+        GameDiscoveryResult: {
+          name: "GameDiscoveryResult",
+          payload: websocket.schemas.discoveryResultMessage,
         },
-        MatchView: {
-          name: "MatchView",
-          payload: matchViewSchema,
+        GameExecute: {
+          name: "GameExecute",
+          payload: websocket.schemas.executeRequest,
         },
-        CommandRejected: {
-          name: "CommandRejected",
-          payload: commandRejectedSchema,
+        GameExecutionResult: {
+          name: "GameExecutionResult",
+          payload: websocket.schemas.executionResultMessage,
+        },
+        GameSnapshot: {
+          name: "GameSnapshot",
+          payload: websocket.schemas.gameSnapshotMessage,
+        },
+        GameEnded: {
+          name: "GameEnded",
+          payload: websocket.schemas.gameEndedMessage,
+        },
+        GameError: {
+          name: "GameError",
+          payload: websocket.schemas.errorMessage,
         },
       },
       schemas: {
-        VisibleState: visibleStateSchema,
-        DiscoveryResult: discoveryResultSchema,
-        DiscoveryRejected: discoveryRejectedSchema,
-        MatchView: matchViewSchema,
-        CommandRejected: commandRejectedSchema,
-        ...Object.fromEntries(
-          Object.entries(commandSchemas).map(([commandId, schema]) => [
-            `${toPascalCase(commandId)}Command`,
-            schema,
-          ]),
-        ),
-        ...schemaComponents,
+        VisibleState: websocket.schemas.visibleState,
+        CommandPayload: websocket.schemas.commandPayload,
+        DiscoveryPayload: websocket.schemas.discoveryPayload,
+        DiscoveryResult: websocket.schemas.discoveryResult,
+        GameEndedResult: websocket.schemas.gameEndedResult,
+        GameListAvailableCommands:
+          websocket.schemas.listAvailableCommandsRequest,
+        GameAvailableCommands: websocket.schemas.availableCommandsResponse,
+        GameDiscover: websocket.schemas.discoverRequest,
+        GameDiscoveryResult: websocket.schemas.discoveryResultMessage,
+        GameExecute: websocket.schemas.executeRequest,
+        GameExecutionResult: websocket.schemas.executionResultMessage,
+        GameSnapshot: websocket.schemas.gameSnapshotMessage,
+        GameEnded: websocket.schemas.gameEndedMessage,
+        GameError: websocket.schemas.errorMessage,
       },
     },
   };
-}
-
-function createCommandSchema(commandId: string, commandSchema: TSchema) {
-  return Type.Object({
-    type: Type.Literal(commandId),
-    actorId: Type.String(),
-    input: commandSchema,
-  });
-}
-
-function createDiscoveryInputSchema(
-  commandId: string,
-  stepId: string,
-  discoverySchema: TSchema,
-) {
-  return Type.Object({
-    type: Type.Literal(commandId),
-    actorId: Type.String(),
-    requestId: Type.Optional(Type.String()),
-    step: Type.Literal(stepId),
-    input: discoverySchema,
-  });
-}
-
-function createDiscoveryStepResultSchema(
-  stepId: string,
-  discoveryOutputSchema: TSchema,
-  nextStepTargets: Array<{
-    stepId: string;
-    inputSchema: TSchema;
-  }>,
-) {
-  const nextStepOptions = nextStepTargets.map((targetStep) =>
-    Type.Object({
-      id: Type.String(),
-      output: discoveryOutputSchema,
-      nextStep: Type.Literal(targetStep.stepId),
-      nextInput: targetStep.inputSchema,
-    }),
-  );
-
-  return Type.Object({
-    complete: Type.Literal(false),
-    step: Type.Literal(stepId),
-    options: Type.Array(
-      nextStepOptions.length === 1
-        ? nextStepOptions[0]!
-        : Type.Union(nextStepOptions),
-    ),
-  });
-}
-
-function createCommandDiscoveryResultSchema(
-  resultSchemas: TSchema[],
-  commandSchema: TSchema,
-) {
-  return Type.Union([
-    ...resultSchemas,
-    Type.Object({
-      complete: Type.Literal(true),
-      input: commandSchema,
-    }),
-  ]);
-}
-
-function createDiscoveryEnvelopeSchema(
-  commandId: string,
-  resultSchemas: TSchema[],
-  commandSchema: TSchema,
-) {
-  return Type.Object({
-    type: Type.Literal(commandId),
-    actorId: Type.String(),
-    requestId: Type.Optional(Type.String()),
-    result: createCommandDiscoveryResultSchema(resultSchemas, commandSchema),
-  });
-}
-
-function createDiscoveryRejectedSchema(commandId: string) {
-  return Type.Object({
-    type: Type.Literal(commandId),
-    actorId: Type.String(),
-    requestId: Type.Optional(Type.String()),
-    reason: Type.String(),
-  });
-}
-
-function toPascalCase(value: string): string {
-  return value
-    .split(/[^a-zA-Z0-9]+/)
-    .filter(Boolean)
-    .map((segment) => `${segment.charAt(0).toUpperCase()}${segment.slice(1)}`)
-    .join("");
 }

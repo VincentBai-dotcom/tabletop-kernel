@@ -56,8 +56,10 @@ export interface LiveConnectionRegistry {
 }
 
 export interface GameUpdatePayload {
+  gameSessionId: string;
   stateVersion: number;
   view: unknown;
+  availableCommands: string[];
   events: unknown[];
 }
 
@@ -86,9 +88,40 @@ export type LiveServerMessage =
   | { type: "room_snapshot"; room: RoomSnapshot }
   | { type: "room_updated"; room: RoomSnapshot }
   | { type: "game_started"; gameSessionId: string }
-  | { type: "game_snapshot"; stateVersion: number; view: unknown; events: [] }
-  | ({ type: "game_updated" } & GameUpdatePayload)
-  | { type: "game_ended"; result: GameEndedPayload }
+  | ({ type: "game_snapshot" } & GameUpdatePayload)
+  | {
+      type: "game_available_commands";
+      requestId: string;
+      gameSessionId: string;
+      availableCommands: string[];
+    }
+  | {
+      type: "game_discovery_result";
+      requestId: string;
+      gameSessionId: string;
+      result: unknown;
+    }
+  | (
+      | {
+          type: "game_execution_result";
+          requestId: string;
+          gameSessionId: string;
+          accepted: true;
+          stateVersion: number;
+          events: unknown[];
+        }
+      | {
+          type: "game_execution_result";
+          requestId: string;
+          gameSessionId: string;
+          accepted: false;
+          stateVersion: number;
+          reason: string;
+          metadata?: unknown;
+          events: unknown[];
+        }
+    )
+  | { type: "game_ended"; gameSessionId: string; result: GameEndedPayload }
   | {
       type: "player_disconnected";
       playerSessionId: string;
@@ -96,7 +129,7 @@ export type LiveServerMessage =
     }
   | { type: "player_reconnected"; playerSessionId: string }
   | { type: "server_restarting"; reconnectAfterMs: number }
-  | { type: "error"; code: string; message?: string };
+  | { type: "error"; requestId?: string; code: string; message?: string };
 
 /** Messages sent from the client to the server over WebSocket. */
 export type LiveClientMessage =
@@ -105,4 +138,20 @@ export type LiveClientMessage =
   | { type: "room_leave"; roomId: string }
   | { type: "room_start_game"; roomId: string }
   | { type: "subscribe_game"; gameSessionId: string }
-  | { type: "game_command"; gameSessionId: string; command: unknown };
+  | {
+      type: "game_list_available_commands";
+      requestId: string;
+      gameSessionId: string;
+    }
+  | {
+      type: "game_discover";
+      requestId: string;
+      gameSessionId: string;
+      discovery: unknown;
+    }
+  | {
+      type: "game_execute";
+      requestId: string;
+      gameSessionId: string;
+      command: unknown;
+    };
