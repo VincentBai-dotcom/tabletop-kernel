@@ -747,6 +747,32 @@ test("endgame finishes after the final player in turn order and breaks ties by f
   );
 });
 
+test("taking two same gems with overflow lands the actor in returnExcessiveTokens", () => {
+  const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
+
+  state.game.players.p1!.tokens.white = 9;
+  state.game.bank.white = 4;
+
+  const result = gameExecutor.executeCommand(state, {
+    type: "take_two_same_gems",
+    actorId: "p1",
+    input: {
+      color: "white",
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  if (!result.ok) {
+    throw new Error("expected take_two to succeed");
+  }
+  expect(result.state.game.players.p1?.tokens.white).toBe(11);
+  expect(result.state.runtime.progression.currentStage).toEqual({
+    id: "returnExcessiveTokens",
+    kind: "activePlayer",
+    activePlayerId: "p1",
+  });
+});
+
 test("taking three distinct gems with overflow lands the actor in returnExcessiveTokens", () => {
   const { gameExecutor, state } = createTestInitialState(["p1", "p2"]);
 
