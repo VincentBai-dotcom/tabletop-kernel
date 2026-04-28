@@ -132,6 +132,24 @@ function updatePresenceTargetIfChanged(
   return next;
 }
 
+function subscribeToPresenceTarget(
+  connection: LiveConnectionHandle,
+  target: PresenceTarget,
+) {
+  if (target.kind === "room") {
+    connection.send({
+      type: "subscribe_room",
+      roomId: target.roomId,
+    });
+    return;
+  }
+
+  connection.send({
+    type: "subscribe_game",
+    gameSessionId: target.gameSessionId,
+  });
+}
+
 export function useSplendorApp() {
   const [screen, setScreen] = useState<Screen>("menu");
   const [playerSessionToken, setPlayerSessionToken] = useState<string | null>(
@@ -295,19 +313,6 @@ export function useSplendorApp() {
         startTransition(() => {
           setLiveStatus("connected");
         });
-
-        if (target.kind === "room") {
-          connection.send({
-            type: "subscribe_room",
-            roomId: target.roomId,
-          });
-          return;
-        }
-
-        connection.send({
-          type: "subscribe_game",
-          gameSessionId: target.gameSessionId,
-        });
       },
       onClose() {
         gameEngineClient?.dispose();
@@ -362,6 +367,7 @@ export function useSplendorApp() {
           case "session_resolved":
             savePlayerSessionToken(message.playerSessionToken);
             setPlayerSessionToken(message.playerSessionToken);
+            subscribeToPresenceTarget(connection, target);
             return;
           case "room_snapshot":
           case "room_updated":
