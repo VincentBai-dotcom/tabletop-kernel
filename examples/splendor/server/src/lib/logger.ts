@@ -1,4 +1,6 @@
+import { resolve } from "node:path";
 import pino, { type LoggerOptions } from "pino";
+import { configService } from "../modules/config";
 
 type LogPayload = Record<string, unknown> | Error | string;
 
@@ -34,7 +36,27 @@ function createLoggerOptions(overrides: LoggerOptions = {}): LoggerOptions {
 }
 
 export function createAppLogger(overrides: LoggerOptions = {}): AppLogger {
-  return pino(createLoggerOptions(overrides));
+  const streams: Parameters<typeof pino.multistream>[0] = [
+    { stream: process.stdout },
+  ];
+
+  if (configService.get().env === "development") {
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const logFilePath = resolve(
+      process.cwd(),
+      process.env.LOG_FILE ?? `logs/splendor-server-${dateStamp}.log`,
+    );
+
+    streams.push({
+      stream: pino.destination({
+        dest: logFilePath,
+        mkdir: true,
+        sync: false,
+      }),
+    });
+  }
+
+  return pino(createLoggerOptions(overrides), pino.multistream(streams));
 }
 
 export const rootLogger = createAppLogger();

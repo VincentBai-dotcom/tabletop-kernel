@@ -17,6 +17,7 @@ coverage
 
 # logs
 logs
+examples/splendor/server/logs/
 _.log
 *.log
 npm-debug.log*
