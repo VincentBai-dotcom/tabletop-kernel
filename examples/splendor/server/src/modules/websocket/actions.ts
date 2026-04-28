@@ -1,7 +1,8 @@
-import { AppError, toErrorResponse } from "../errors";
+import { toErrorResponse } from "../errors";
 import type { GameSessionService } from "../game-session";
 import type { LivePresenceService } from "../live-presence";
 import type { RoomService } from "../room";
+import { WebSocketError } from "./errors";
 import type {
   LiveClientMessage,
   LiveConnection,
@@ -48,11 +49,7 @@ export function createLiveMessageHandler({
       connection.id,
     );
     if (!playerSessionId) {
-      throw new AppError(
-        "live_connection_not_registered",
-        401,
-        "Live connection is not registered",
-      );
+      throw WebSocketError.liveConnectionNotRegistered();
     }
     return playerSessionId;
   }
@@ -111,11 +108,7 @@ export function createLiveMessageHandler({
 
           case "game_list_available_commands": {
             if (!gameSessionService) {
-              throw new AppError(
-                "game_commands_not_implemented",
-                501,
-                "Game commands are not implemented yet",
-              );
+              throw WebSocketError.gameCommandsNotImplemented();
             }
 
             const snapshot = await gameSessionService.getPlayerSnapshot({
@@ -134,11 +127,7 @@ export function createLiveMessageHandler({
 
           case "game_discover": {
             if (!gameSessionService) {
-              throw new AppError(
-                "game_commands_not_implemented",
-                501,
-                "Game commands are not implemented yet",
-              );
+              throw WebSocketError.gameCommandsNotImplemented();
             }
 
             const discoveryResult = await gameSessionService.discoverCommand({
@@ -170,11 +159,7 @@ export function createLiveMessageHandler({
 
           case "game_execute": {
             if (!gameSessionService) {
-              throw new AppError(
-                "game_commands_not_implemented",
-                501,
-                "Game commands are not implemented yet",
-              );
+              throw WebSocketError.gameCommandsNotImplemented();
             }
 
             const result = await gameSessionService.submitCommand({

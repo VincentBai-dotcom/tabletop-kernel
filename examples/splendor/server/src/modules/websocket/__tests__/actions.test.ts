@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { AppError } from "../../errors";
 import type { LivePresenceService } from "../../live-presence";
 import type { RoomService } from "../../room";
 import type { RoomSnapshot } from "../../room";
+import { RoomError } from "../../room";
 import { createLiveConnectionRegistry } from "../registry";
 import { createLiveMessageHandler } from "../actions";
 import type { LiveConnection } from "../model";
@@ -205,7 +205,7 @@ describe("createLiveMessageHandler", () => {
     const roomService = {
       ...createFakeRoomService().roomService,
       async setReady() {
-        throw new AppError("room_not_found", 404, "Room not found");
+        throw RoomError.roomNotFound();
       },
     } satisfies RoomService;
     registry.register("session-1", client.connection);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createApp, type AppDeps } from "../../../app";
-import { AppError } from "../../errors";
+import { RoomError } from "../errors";
 import { createLiveConnectionRegistry } from "../../websocket";
 import type {
   CreateRoomInput,
@@ -171,7 +171,7 @@ describe("room routes", () => {
   it("serializes route errors through the shared error handler", async () => {
     const { service } = createFakeRoomService({
       async joinRoom() {
-        throw new AppError("room_not_found", 404, "Room not found");
+        throw RoomError.roomNotFound();
       },
     });
     const app = createApp(createAppDeps(service));

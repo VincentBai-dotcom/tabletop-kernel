@@ -1,8 +1,8 @@
-import { AppError } from "../errors";
 import type {
   CreateLivePresenceServiceDeps,
   LivePresenceService,
 } from "./model";
+import { LivePresenceError } from "./errors";
 
 export function createLivePresenceService({
   clock,
@@ -11,11 +11,7 @@ export function createLivePresenceService({
 }: CreateLivePresenceServiceDeps): LivePresenceService {
   function requireGameSessionService() {
     if (!gameSessionService) {
-      throw new AppError(
-        "game_presence_not_implemented",
-        501,
-        "Game presence is not implemented yet",
-      );
+      throw LivePresenceError.gamePresenceNotImplemented();
     }
     return gameSessionService;
   }
@@ -47,7 +43,7 @@ export function createLivePresenceService({
         playerSessionId,
       });
       if (!result.room) {
-        throw new AppError("room_not_found", 404, "Room not found");
+        throw LivePresenceError.roomNotFound();
       }
 
       return {
@@ -62,7 +58,7 @@ export function createLivePresenceService({
         playerSessionId,
       });
       if (!snapshot) {
-        throw new AppError("game_not_found", 404, "Game session not found");
+        throw LivePresenceError.gameNotFound();
       }
 
       return {

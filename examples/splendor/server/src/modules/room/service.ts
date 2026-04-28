@@ -1,4 +1,4 @@
-import { AppError } from "../errors";
+import { RoomError } from "./errors";
 import { createRoomCode } from "../../lib/random";
 import { timestampBefore } from "../../lib/time";
 import type {
@@ -52,20 +52,16 @@ export function createRoomService({
       }
     }
 
-    throw new AppError(
-      "room_code_generation_failed",
-      500,
-      "Could not generate a unique room code",
-    );
+    throw RoomError.roomCodeGenerationFailed();
   }
 
   async function loadOpenRoom(roomId: string) {
     const room = await store.loadRoomSnapshot(roomId);
     if (!room) {
-      throw new AppError("room_not_found", 404, "Room not found");
+      throw RoomError.roomNotFound();
     }
     if (room.status !== "open") {
-      throw new AppError("room_not_open", 409, "Room is not open");
+      throw RoomError.roomNotOpen();
     }
     return room;
   }
@@ -78,11 +74,7 @@ export function createRoomService({
       (candidate) => candidate.playerSessionId === playerSessionId,
     );
     if (!player) {
-      throw new AppError(
-        "room_player_not_found",
-        403,
-        "Player is not seated in this room",
-      );
+      throw RoomError.roomPlayerNotFound();
     }
     return player;
   }
@@ -97,7 +89,7 @@ export function createRoomService({
       }
     }
 
-    throw new AppError("room_full", 409, "Room is full");
+    throw RoomError.roomFull();
   }
 
   function assertDisplayNameAvailable(
@@ -107,11 +99,7 @@ export function createRoomService({
     if (
       room.players.some((player) => player.displayNameKey === displayNameKey)
     ) {
-      throw new AppError(
-        "display_name_taken",
-        409,
-        "Display name is already taken in this room",
-      );
+      throw RoomError.displayNameTaken();
     }
   }
 
@@ -171,10 +159,10 @@ export function createRoomService({
     async joinRoom({ token, roomCode, displayName }) {
       const room = await store.loadOpenRoomByCode(normalizeRoomCode(roomCode));
       if (!room) {
-        throw new AppError("room_not_found", 404, "Room not found");
+        throw RoomError.roomNotFound();
       }
       if (room.players.length >= ROOM_CAPACITY) {
-        throw new AppError("room_full", 409, "Room is full");
+        throw RoomError.roomFull();
       }
 
       const normalizedDisplayName = normalizeDisplayName(displayName);
@@ -284,32 +272,16 @@ export function createRoomService({
       const room = await loadOpenRoom(roomId);
       const player = requireSeatedPlayer(room, playerSessionId);
       if (!player.isHost) {
-        throw new AppError(
-          "room_host_required",
-          403,
-          "Only the host can start the game",
-        );
+        throw RoomError.roomHostRequired();
       }
       if (room.players.length < MIN_PLAYERS_TO_START) {
-        throw new AppError(
-          "room_needs_more_players",
-          409,
-          "At least two players are required to start",
-        );
+        throw RoomError.roomNeedsMorePlayers();
       }
       if (room.players.some((candidate) => !candidate.isReady)) {
-        throw new AppError(
-          "room_players_not_ready",
-          409,
-          "Every seated player must be ready before start",
-        );
+        throw RoomError.roomPlayersNotReady();
       }
       if (room.players.some((candidate) => candidate.disconnectedAt !== null)) {
-        throw new AppError(
-          "room_players_disconnected",
-          409,
-          "Every seated player must be connected before start",
-        );
+        throw RoomError.roomPlayersDisconnected();
       }
 
       const startingRoom = await store.markRoomStarting(roomId);

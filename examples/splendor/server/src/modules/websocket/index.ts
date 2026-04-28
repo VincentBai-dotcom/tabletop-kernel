@@ -1,4 +1,5 @@
 export { createLiveMessageHandler } from "./actions";
+export { WebSocketError } from "./errors";
 export { createHeartbeatManager } from "./heartbeat";
 export { createLiveNotifier } from "./notifier";
 export { createLiveConnectionRegistry } from "./registry";

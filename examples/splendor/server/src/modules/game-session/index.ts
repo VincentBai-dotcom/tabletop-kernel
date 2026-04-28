@@ -1,4 +1,5 @@
 export { createGameSessionService } from "./service";
+export { GameSessionError } from "./errors";
 export { createGameSessionStore } from "./store";
 export type {
   CreateGameSessionFromRoomInput,

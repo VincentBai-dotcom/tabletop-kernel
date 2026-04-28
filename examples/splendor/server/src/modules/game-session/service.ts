@@ -1,6 +1,6 @@
 import type { CanonicalState, Command, Discovery } from "tabletop-engine";
-import { AppError } from "../errors";
 import { timestampBefore } from "../../lib/time";
+import { GameSessionError } from "./errors";
 import type {
   CreateGameSessionServiceDeps,
   GameCommandResult,
@@ -18,22 +18,16 @@ function createPlayerId(index: number) {
 
 function toEngineCommand(command: unknown, actorId: string): Command {
   if (typeof command !== "object" || command === null) {
-    throw new AppError(
-      "invalid_game_command",
-      400,
-      "Command must be an object",
-    );
+    throw GameSessionError.invalidGameCommand("Command must be an object");
   }
 
   const type = "type" in command ? command.type : undefined;
   const input = "input" in command ? command.input : {};
   if (typeof type !== "string" || type.length === 0) {
-    throw new AppError("invalid_game_command", 400, "Command type is required");
+    throw GameSessionError.invalidGameCommand("Command type is required");
   }
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    throw new AppError(
-      "invalid_game_command",
-      400,
+    throw GameSessionError.invalidGameCommand(
       "Command input must be an object",
     );
   }
@@ -47,11 +41,7 @@ function toEngineCommand(command: unknown, actorId: string): Command {
 
 function toEngineDiscovery(discovery: unknown, actorId: string): Discovery {
   if (typeof discovery !== "object" || discovery === null) {
-    throw new AppError(
-      "invalid_game_discovery",
-      400,
-      "Discovery must be an object",
-    );
+    throw GameSessionError.invalidGameDiscovery("Discovery must be an object");
   }
 
   const type = "type" in discovery ? discovery.type : undefined;
@@ -59,25 +49,15 @@ function toEngineDiscovery(discovery: unknown, actorId: string): Discovery {
   const input = "input" in discovery ? discovery.input : {};
 
   if (typeof type !== "string" || type.length === 0) {
-    throw new AppError(
-      "invalid_game_discovery",
-      400,
-      "Discovery type is required",
-    );
+    throw GameSessionError.invalidGameDiscovery("Discovery type is required");
   }
 
   if (typeof step !== "string" || step.length === 0) {
-    throw new AppError(
-      "invalid_game_discovery",
-      400,
-      "Discovery step is required",
-    );
+    throw GameSessionError.invalidGameDiscovery("Discovery step is required");
   }
 
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    throw new AppError(
-      "invalid_game_discovery",
-      400,
+    throw GameSessionError.invalidGameDiscovery(
       "Discovery input must be an object",
     );
   }
@@ -155,16 +135,12 @@ export function createGameSessionService<
   }): Promise<GamePlayerSnapshot> {
     const gameSession = await store.loadGameSession(gameSessionId);
     if (!gameSession) {
-      throw new AppError("game_not_found", 404, "Game session not found");
+      throw GameSessionError.gameNotFound();
     }
 
     const player = findPlayer(gameSession, playerSessionId);
     if (!player) {
-      throw new AppError(
-        "game_player_not_found",
-        403,
-        "Player is not seated in this game",
-      );
+      throw GameSessionError.gamePlayerNotFound();
     }
 
     return createPlayerSnapshot(gameSession, player);
@@ -177,14 +153,10 @@ export function createGameSessionService<
     }): Promise<GameStartedResult<TState>> {
       const room = await store.loadRoomForGameStart(roomId);
       if (!room) {
-        throw new AppError("room_not_found", 404, "Room not found");
+        throw GameSessionError.roomNotFound();
       }
       if (room.hostPlayerSessionId !== requestingPlayerSessionId) {
-        throw new AppError(
-          "room_host_required",
-          403,
-          "Only the host can start the game",
-        );
+        throw GameSessionError.roomHostRequired();
       }
 
       const players = [...room.players]
@@ -225,18 +197,14 @@ export function createGameSessionService<
     }): Promise<GameCommandResult> {
       const gameSession = await store.loadGameSession(gameSessionId);
       if (!gameSession) {
-        throw new AppError("game_not_found", 404, "Game session not found");
+        throw GameSessionError.gameNotFound();
       }
 
       const player = gameSession.players.find(
         (candidate) => candidate.playerSessionId === playerSessionId,
       );
       if (!player) {
-        throw new AppError(
-          "game_player_not_found",
-          403,
-          "Player is not seated in this game",
-        );
+        throw GameSessionError.gamePlayerNotFound();
       }
 
       const result = gameExecutor.executeCommand(
@@ -273,18 +241,14 @@ export function createGameSessionService<
     async discoverCommand({ gameSessionId, playerSessionId, discovery }) {
       const gameSession = await store.loadGameSession(gameSessionId);
       if (!gameSession) {
-        throw new AppError("game_not_found", 404, "Game session not found");
+        throw GameSessionError.gameNotFound();
       }
 
       const player = gameSession.players.find(
         (candidate) => candidate.playerSessionId === playerSessionId,
       );
       if (!player) {
-        throw new AppError(
-          "game_player_not_found",
-          403,
-          "Player is not seated in this game",
-        );
+        throw GameSessionError.gamePlayerNotFound();
       }
 
       return gameExecutor.discoverCommand(
