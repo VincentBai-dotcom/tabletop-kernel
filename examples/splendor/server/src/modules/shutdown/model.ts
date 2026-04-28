@@ -1,3 +1,4 @@
+import type { AppLogger } from "../../lib/logger";
 import type { LiveConnectionRegistry } from "../websocket";
 
 export interface Stoppable {
@@ -21,4 +22,5 @@ export interface CreateShutdownServiceDeps {
   exitProcess: ExitProcess;
   reconnectAfterMs: number;
   closeCode: number;
+  logger: AppLogger;
 }

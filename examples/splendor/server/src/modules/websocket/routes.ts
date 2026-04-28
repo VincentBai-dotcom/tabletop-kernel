@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import { createModuleLogger, type AppLogger } from "../../lib/logger";
 import type { GameSessionService } from "../game-session";
 import type { LivePresenceService } from "../live-presence";
 import type { RoomService } from "../room";
@@ -19,6 +20,7 @@ export interface WebSocketRoutesDeps {
   livePresenceService?: LivePresenceService;
   heartbeatManager?: HeartbeatManager;
   playerSessionService: PlayerSessionService;
+  logger?: AppLogger;
 }
 
 const liveMessageSchema = t.Union([
@@ -90,17 +92,55 @@ export async function handleLiveConnectionClosed({
   registry,
   livePresenceService,
   connectionId,
+  logger = createModuleLogger("websocket").child({ connectionId }),
 }: {
   registry: LiveConnectionRegistry;
   livePresenceService?: LivePresenceService;
   connectionId: string;
+  logger?: AppLogger;
 }) {
   const removed = registry.removeConnection(connectionId);
+  logger.debug({ hadRegistration: removed !== null }, "live connection closed");
   if (!removed || !livePresenceService) {
     return;
   }
 
   await livePresenceService.handleClosedSubscription(removed);
+}
+
+export async function handleLiveConnectionOpened({
+  registry,
+  playerSessionService,
+  connection,
+  playerSessionToken,
+  logger = createModuleLogger("websocket"),
+}: {
+  registry: LiveConnectionRegistry;
+  playerSessionService: PlayerSessionService;
+  connection: LiveConnection;
+  playerSessionToken: string;
+  logger?: AppLogger;
+}) {
+  const connectionLogger = logger.child({ connectionId: connection.id });
+  connectionLogger.debug(
+    { hasPlayerSessionToken: playerSessionToken.length > 0 },
+    "live connection opened",
+  );
+  const session = await playerSessionService.resolveOrCreatePlayerSession({
+    token: playerSessionToken,
+  });
+  registry.register(session.playerSessionId, connection);
+  connectionLogger.info(
+    {
+      playerSessionId: session.playerSessionId,
+      tokenWasCreated: session.tokenWasCreated,
+    },
+    "live connection registered",
+  );
+  connection.send({
+    type: "session_resolved",
+    playerSessionToken: session.token,
+  });
 }
 
 export function createWebSocketRoutes({
@@ -110,6 +150,7 @@ export function createWebSocketRoutes({
   livePresenceService,
   heartbeatManager,
   playerSessionService,
+  logger = createModuleLogger("websocket"),
 }: WebSocketRoutesDeps) {
   const handler = createLiveMessageHandler({
     registry,
@@ -124,17 +165,18 @@ export function createWebSocketRoutes({
     }),
     body: liveMessageSchema,
     async open(ws) {
-      const session = await playerSessionService.resolveOrCreatePlayerSession({
-        token: ws.data.query.playerSessionToken,
-      });
-      const connection = toLiveConnection(ws);
-      registry.register(session.playerSessionId, connection);
-      connection.send({
-        type: "session_resolved",
-        playerSessionToken: session.token,
+      await handleLiveConnectionOpened({
+        registry,
+        playerSessionService,
+        connection: toLiveConnection(ws),
+        playerSessionToken: ws.data.query.playerSessionToken,
+        logger: logger.child({ connectionId: ws.id }),
       });
     },
     async message(ws, message: LiveClientMessage) {
+      logger
+        .child({ connectionId: ws.id, messageType: message.type })
+        .debug({}, "live message received");
       await handler.handleMessage(toLiveConnection(ws), message);
     },
     pong(ws) {
@@ -145,8 +187,14 @@ export function createWebSocketRoutes({
         registry,
         livePresenceService,
         connectionId: ws.id,
+        logger: logger.child({ connectionId: ws.id }),
       }).catch((error: unknown) => {
-        console.error("live_connection_close_cleanup_failed", error);
+        logger
+          .child({ connectionId: ws.id })
+          .error(
+            error instanceof Error ? { err: error } : { error },
+            "live connection close cleanup failed",
+          );
       });
     },
   });

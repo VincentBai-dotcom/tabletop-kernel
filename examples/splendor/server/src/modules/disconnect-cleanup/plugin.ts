@@ -1,6 +1,9 @@
 import { cron } from "@elysiajs/cron";
 import { Elysia } from "elysia";
+import { createModuleLogger } from "../../lib/logger";
 import type { DisconnectCleanupService } from "./model";
+
+const logger = createModuleLogger("disconnect-cleanup");
 
 export function createDisconnectCleanupCron({
   cleanupService,
@@ -17,7 +20,10 @@ export function createDisconnectCleanupCron({
         try {
           await cleanupService.runOnce();
         } catch (error) {
-          console.error("disconnect_cleanup_failed", error);
+          logger.error(
+            error instanceof Error ? { err: error } : { error },
+            "disconnect cleanup failed",
+          );
         }
       },
     }),

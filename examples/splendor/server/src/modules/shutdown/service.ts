@@ -7,6 +7,7 @@ export function createShutdownService({
   exitProcess,
   reconnectAfterMs,
   closeCode,
+  logger,
 }: CreateShutdownServiceDeps): ShutdownService {
   let shutdownStarted = false;
 
@@ -18,10 +19,10 @@ export function createShutdownService({
       shutdownStarted = true;
 
       const connectionCount = registry.getConnections().length;
-      console.log("server_shutdown_started", { connectionCount });
+      logger.info({ connectionCount }, "server shutdown started");
 
       heartbeat.stop();
-      console.log("server_shutdown_heartbeat_stopped");
+      logger.info({}, "server shutdown heartbeat stopped");
 
       for (const connection of registry.getConnections()) {
         connection.send({
@@ -30,14 +31,17 @@ export function createShutdownService({
         });
         connection.close?.(closeCode, "server_restarting");
       }
-      console.log("server_shutdown_connections_closed", {
-        closeCode,
-        connectionCount,
-        reconnectAfterMs,
-      });
+      logger.info(
+        {
+          closeCode,
+          connectionCount,
+          reconnectAfterMs,
+        },
+        "server shutdown connections closed",
+      );
 
       await server.stop();
-      console.log("server_shutdown_listener_stopped");
+      logger.info({}, "server shutdown listener stopped");
 
       exitProcess(0);
     },

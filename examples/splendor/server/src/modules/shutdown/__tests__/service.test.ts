@@ -1,4 +1,5 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import type { AppLogger } from "../../../lib/logger";
 import { createLiveConnectionRegistry } from "../../websocket";
 import type { LiveConnection } from "../../websocket";
 import { createShutdownService } from "../service";
@@ -19,13 +20,37 @@ function createClosableConnection(id: string) {
   return { closes, connection, sent };
 }
 
+function createRecordingLogger() {
+  const entries: Array<{
+    level: "info" | "error";
+    payload: unknown;
+    message?: string;
+  }> = [];
+
+  const logger: AppLogger = {
+    child() {
+      return logger;
+    },
+    debug() {},
+    info(payload, message) {
+      entries.push({ level: "info", payload, message });
+    },
+    warn() {},
+    error(payload, message) {
+      entries.push({ level: "error", payload, message });
+    },
+  };
+
+  return { entries, logger };
+}
+
 describe("createShutdownService", () => {
   it("notifies connections, closes with restart code, stops loops, and stops the server", async () => {
-    const log = spyOn(console, "log").mockImplementation(() => {});
     const registry = createLiveConnectionRegistry();
     const first = createClosableConnection("conn-1");
     const second = createClosableConnection("conn-2");
     const calls: string[] = [];
+    const testLogger = createRecordingLogger();
     registry.register("session-1", first.connection);
     registry.register("session-2", second.connection);
 
@@ -46,18 +71,36 @@ describe("createShutdownService", () => {
       },
       reconnectAfterMs: 1_000,
       closeCode: 1012,
+      logger: testLogger.logger,
     });
 
     await service.handleSigterm();
 
-    expect(log.mock.calls).toEqual([
-      ["server_shutdown_started", { connectionCount: 2 }],
-      ["server_shutdown_heartbeat_stopped"],
-      [
-        "server_shutdown_connections_closed",
-        { closeCode: 1012, connectionCount: 2, reconnectAfterMs: 1_000 },
-      ],
-      ["server_shutdown_listener_stopped"],
+    expect(testLogger.entries).toEqual([
+      {
+        level: "info",
+        payload: { connectionCount: 2 },
+        message: "server shutdown started",
+      },
+      {
+        level: "info",
+        payload: {},
+        message: "server shutdown heartbeat stopped",
+      },
+      {
+        level: "info",
+        payload: {
+          closeCode: 1012,
+          connectionCount: 2,
+          reconnectAfterMs: 1_000,
+        },
+        message: "server shutdown connections closed",
+      },
+      {
+        level: "info",
+        payload: {},
+        message: "server shutdown listener stopped",
+      },
     ]);
     expect(calls).toEqual(["heartbeat.stop", "server.stop", "process.exit:0"]);
     expect(first.sent).toEqual([
@@ -70,14 +113,13 @@ describe("createShutdownService", () => {
     expect(second.closes).toEqual([
       { code: 1012, reason: "server_restarting" },
     ]);
-    log.mockRestore();
   });
 
   it("runs shutdown only once when called repeatedly", async () => {
-    const log = spyOn(console, "log").mockImplementation(() => {});
     const registry = createLiveConnectionRegistry();
     const client = createClosableConnection("conn-1");
     const calls: string[] = [];
+    const testLogger = createRecordingLogger();
     registry.register("session-1", client.connection);
 
     const service = createShutdownService({
@@ -97,6 +139,7 @@ describe("createShutdownService", () => {
       },
       reconnectAfterMs: 1_000,
       closeCode: 1012,
+      logger: testLogger.logger,
     });
 
     await service.handleSigterm();
@@ -107,10 +150,9 @@ describe("createShutdownService", () => {
       { code: 1012, reason: "server_restarting" },
     ]);
     expect(
-      log.mock.calls.filter(
-        ([message]) => message === "server_shutdown_started",
+      testLogger.entries.filter(
+        (entry) => entry.message === "server shutdown started",
       ),
     ).toHaveLength(1);
-    log.mockRestore();
   });
 });

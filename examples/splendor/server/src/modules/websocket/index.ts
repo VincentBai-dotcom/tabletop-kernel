@@ -2,7 +2,11 @@ export { createLiveMessageHandler } from "./actions";
 export { createHeartbeatManager } from "./heartbeat";
 export { createLiveNotifier } from "./notifier";
 export { createLiveConnectionRegistry } from "./registry";
-export { createWebSocketRoutes, handleLiveConnectionClosed } from "./routes";
+export {
+  createWebSocketRoutes,
+  handleLiveConnectionClosed,
+  handleLiveConnectionOpened,
+} from "./routes";
 export type {
   LiveClientMessage,
   GameEndedPayload,

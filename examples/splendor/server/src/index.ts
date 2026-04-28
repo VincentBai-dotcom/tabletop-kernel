@@ -1,5 +1,6 @@
 import { createSplendorExecutor, type SplendorState } from "splendor-example";
 import { systemClock } from "./lib/clock";
+import { createModuleLogger, rootLogger } from "./lib/logger";
 import { createRandomToken } from "./lib/random";
 import {
   DISCONNECT_CLEANUP_CRON_PATTERN,
@@ -30,6 +31,7 @@ import {
 import { createLivePresenceService } from "./modules/live-presence";
 import { createApp } from "./app";
 
+const logger = createModuleLogger("server");
 const config = configService.get();
 const { db } = createDbClient(config.database.url);
 const playerSessionService = createPlayerSessionService({
@@ -65,8 +67,14 @@ const heartbeatManager = createHeartbeatManager({
       registry: liveRegistry,
       livePresenceService,
       connectionId: connection.id,
+      logger: createModuleLogger("websocket").child({
+        connectionId: connection.id,
+      }),
     }).catch((error: unknown) => {
-      console.error("live_connection_heartbeat_cleanup_failed", error);
+      logger.error(
+        error instanceof Error ? { err: error } : { error },
+        "live connection heartbeat cleanup failed",
+      );
     });
   },
 });
@@ -87,6 +95,7 @@ const app = createApp({
     livePresenceService,
     heartbeatManager,
     playerSessionService,
+    logger: createModuleLogger("websocket"),
   },
   disconnectCleanup: {
     cleanupService: disconnectCleanupService,
@@ -101,11 +110,15 @@ const shutdownService = createShutdownService({
   exitProcess: (code) => process.exit(code),
   reconnectAfterMs: SERVER_RESTART_RECONNECT_AFTER_MS,
   closeCode: SERVER_RESTART_CLOSE_CODE,
+  logger: createModuleLogger("shutdown"),
 });
 
 function handleShutdownSignal() {
   void shutdownService.handleSigterm().catch((error: unknown) => {
-    console.error("server_shutdown_failed", error);
+    logger.error(
+      error instanceof Error ? { err: error } : { error },
+      "server shutdown failed",
+    );
     process.exit(1);
   });
 }
@@ -118,4 +131,10 @@ app.listen({
   port: config.server.port,
 });
 
-console.log(`Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
+rootLogger.info(
+  {
+    host: app.server?.hostname,
+    port: app.server?.port,
+  },
+  "server listening",
+);
