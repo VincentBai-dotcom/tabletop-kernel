@@ -9,6 +9,7 @@
   "scripts": {
     "test": "bun test --cwd packages/tabletop-engine",
     "typecheck": "bun run --cwd packages/tabletop-engine typecheck",
+    "dev:splendor": "bun run --cwd examples/splendor/server dev & bun run --cwd examples/splendor/web dev",
     "prepare": "husky",
     "format": "prettier --write .",
     "lint": "eslint ."
