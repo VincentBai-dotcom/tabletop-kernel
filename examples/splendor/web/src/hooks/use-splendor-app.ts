@@ -227,6 +227,28 @@ export function useSplendorApp() {
         gameEngineClientRef.current = gameEngineClient;
 
         gameEngineClient.onGameSnapshot((message) => {
+          const winnerIds = message.view.game.winnerIds;
+          if (winnerIds && winnerIds.length > 0) {
+            shouldReconnectRef.current = false;
+            clearPresenceTarget();
+            startTransition(() => {
+              setEnded({
+                result: {
+                  reason: "completed",
+                  winnerPlayerIds: winnerIds,
+                },
+                lastView: message.view,
+              });
+              setGame(null);
+              setRoom(null);
+              setScreen("ended");
+              setBusy(false);
+              setPresenceTarget(null);
+              resetTransientGameState();
+            });
+            return;
+          }
+
           startTransition(() => {
             setGame({
               gameSessionId: message.gameSessionId,
