@@ -365,8 +365,10 @@ function App() {
               <div>
                 <p className="game-section-label">Development cards</p>
                 <div className="levels">
-                  {Object.entries(app.game.view.game.board.faceUpByLevel).map(
-                    ([level, cardIds]) => (
+                  {Object.entries(app.game.view.game.board.faceUpByLevel)
+                    .slice()
+                    .reverse()
+                    .map(([level, cardIds]) => (
                       <div className="level-row" key={level}>
                         <span className="level-pill">L{level}</span>
                         <div className="cards">
@@ -406,8 +408,7 @@ function App() {
                           })}
                         </div>
                       </div>
-                    ),
-                  )}
+                    ))}
                 </div>
               </div>
             </section>
