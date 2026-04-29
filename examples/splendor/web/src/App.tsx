@@ -494,6 +494,14 @@ function App() {
                     ? 0
                     : (reservedField.value.count ?? 0);
                 const isSelf = reservedIds !== null;
+                const cardPoints =
+                  player?.purchasedCardIds.reduce(
+                    (sum, cardId) =>
+                      sum + (developmentCardsById[cardId]?.prestigePoints ?? 0),
+                    0,
+                  ) ?? 0;
+                const noblePoints = (player?.nobleIds.length ?? 0) * 3;
+                const totalPoints = cardPoints + noblePoints;
                 return (
                   <div
                     className={`player${isSelf ? " is-self" : ""}`}
@@ -506,10 +514,19 @@ function App() {
                           <span className="player-self-tag">you</span>
                         ) : null}
                       </span>
-                      <span className="player-stats">
-                        {totalTokens}/10 tokens
+                      <span
+                        className="player-score"
+                        title={`${cardPoints} from cards${noblePoints > 0 ? ` + ${noblePoints} from nobles` : ""}`}
+                      >
+                        <span className="player-score-star" aria-hidden="true">
+                          ★
+                        </span>
+                        <span className="player-score-value">
+                          {totalPoints}
+                        </span>
                       </span>
                     </div>
+                    <div className="player-stats">{totalTokens}/10 tokens</div>
                     <div className="player-tokens">
                       {TOKEN_ORDER.map((color) => {
                         const amount =

@@ -679,20 +679,55 @@
 
 .player-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .player-name {
   font-weight: 600;
   font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff7ed, #fed7aa);
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.player-score-star {
+  color: #f59e0b;
+  font-size: 14px;
+  line-height: 1;
+  text-shadow: 0 0 1px rgba(180, 83, 9, 0.4);
+}
+
+.player-score-value {
+  line-height: 1;
 }
 
 .player-stats {
   font-size: 12px;
   color: var(--fg-muted);
   font-variant-numeric: tabular-nums;
+  margin-bottom: 10px;
 }
 
 .player-tokens {
