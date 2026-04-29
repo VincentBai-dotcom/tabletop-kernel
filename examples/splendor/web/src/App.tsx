@@ -99,6 +99,46 @@ function DevelopmentCardView({
   );
 }
 
+function NobleTileView({
+  nobleId,
+  compact = false,
+}: {
+  nobleId: number;
+  compact?: boolean;
+}) {
+  const noble = nobleTilesById[nobleId];
+  if (!noble) return null;
+  const shortName = noble.name.split(",")[0] ?? noble.name;
+  return (
+    <article
+      className={`noble${compact ? " noble-compact" : ""}`}
+      title={noble.name}
+    >
+      <div className="noble-head">
+        <span className="noble-points">
+          <span className="noble-points-star" aria-hidden="true">
+            ★
+          </span>
+          3
+        </span>
+      </div>
+      {!compact ? <div className="noble-name">{shortName}</div> : null}
+      <div className="noble-requirements">
+        {BONUS_COLOR_ORDER.map((color) => {
+          const amount = noble.requirements[color] ?? 0;
+          if (amount <= 0) return null;
+          return (
+            <span key={color} className="noble-requirement">
+              <span className={`card-gem card-gem-${color} card-gem-sm`} />
+              <span className="noble-requirement-count">{amount}</span>
+            </span>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
 function PurchasedStacks({ cardIds }: { cardIds: number[] }) {
   const grouped: Record<BonusColor, number[]> = {
     White: [],
@@ -453,6 +493,17 @@ function App() {
                 </div>
               </div>
 
+              {app.game.view.game.board.nobleIds.length > 0 ? (
+                <div>
+                  <p className="game-section-label">Nobles</p>
+                  <div className="nobles">
+                    {app.game.view.game.board.nobleIds.map((nobleId) => (
+                      <NobleTileView key={nobleId} nobleId={nobleId} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div>
                 <p className="game-section-label">Development cards</p>
                 <div className="levels">
@@ -588,9 +639,7 @@ function App() {
                         </div>
                         <div className="player-nobles">
                           {player.nobleIds.map((id) => (
-                            <span key={id} className="noble-tag">
-                              {nobleTilesById[id]?.name ?? `#${id}`}
-                            </span>
+                            <NobleTileView key={id} nobleId={id} compact />
                           ))}
                         </div>
                       </div>
