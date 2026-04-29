@@ -287,6 +287,15 @@ function App() {
         </div>
         <div className="topbar-meta">
           <StatusPill status={app.liveStatus} busy={app.busy} />
+          {app.screen === "game" ? (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={app.backToMenu}
+              disabled={app.busy}
+            >
+              Leave game
+            </button>
+          ) : null}
           {app.screen !== "menu" ? (
             <button
               className="btn btn-ghost btn-sm"
