@@ -169,6 +169,12 @@ export function useSplendorApp() {
   const [activeCommandType, setActiveCommandType] =
     useState<CommandType | null>(null);
   const [discovery, setDiscovery] = useState<OpenDiscovery | null>(null);
+  const [selectionTrail, setSelectionTrail] = useState<
+    OpenDiscovery["options"][number][]
+  >([]);
+  const [pendingCommandInput, setPendingCommandInput] = useState<
+    CompleteDiscovery["input"] | null
+  >(null);
 
   const liveRef = useRef<LiveConnectionHandle | null>(null);
   const gameEngineClientRef = useRef<GameEngineClient | null>(null);
@@ -186,6 +192,8 @@ export function useSplendorApp() {
   function resetTransientGameState() {
     setDiscovery(null);
     setActiveCommandType(null);
+    setSelectionTrail([]);
+    setPendingCommandInput(null);
   }
 
   function clearReconnectTimer() {
@@ -275,29 +283,9 @@ export function useSplendorApp() {
             }
 
             if (result.complete) {
-              const latestActiveCommandType =
-                latestActiveCommandTypeRef.current;
-              if (!latestActiveCommandType || !gameEngineClient) {
-                setError("Discovery completed without an active command");
-                setBusy(false);
-                return;
-              }
-
-              void gameEngineClient
-                .execute({
-                  gameSessionId: message.gameSessionId,
-                  command: createCommandRequest(
-                    latestActiveCommandType,
-                    result.input,
-                  ),
-                })
-                .catch((error: unknown) => {
-                  startTransition(() => {
-                    setError(toErrorMessage(error));
-                    setBusy(false);
-                  });
-                });
               setDiscovery(null);
+              setPendingCommandInput(result.input);
+              setBusy(false);
               return;
             }
 
@@ -576,6 +564,8 @@ export function useSplendorApp() {
     setBusy(true);
     setError(null);
     setActiveCommandType(commandType);
+    setSelectionTrail([]);
+    setPendingCommandInput(null);
     void gameEngineClientRef.current
       .discover({
         gameSessionId: game.gameSessionId,
@@ -599,6 +589,7 @@ export function useSplendorApp() {
     }
 
     setBusy(true);
+    setSelectionTrail((current) => [...current, option]);
     void gameEngineClientRef.current
       .discover({
         gameSessionId: game.gameSessionId,
@@ -607,6 +598,30 @@ export function useSplendorApp() {
           option.nextStep,
           option.nextInput,
         ),
+      })
+      .catch((error: unknown) => {
+        startTransition(() => {
+          setError(toErrorMessage(error));
+          setBusy(false);
+        });
+      });
+  }
+
+  function confirmDiscovery() {
+    if (
+      !game ||
+      !activeCommandType ||
+      !gameEngineClientRef.current ||
+      pendingCommandInput === null
+    ) {
+      return;
+    }
+
+    setBusy(true);
+    void gameEngineClientRef.current
+      .execute({
+        gameSessionId: game.gameSessionId,
+        command: createCommandRequest(activeCommandType, pendingCommandInput),
       })
       .catch((error: unknown) => {
         startTransition(() => {
@@ -653,6 +668,8 @@ export function useSplendorApp() {
     liveStatus,
     activeCommandType,
     discovery,
+    selectionTrail,
+    pendingCommandInput,
     createRoomAndConnect,
     joinRoomAndConnect,
     setReady,
@@ -660,6 +677,7 @@ export function useSplendorApp() {
     startGame,
     beginDiscovery,
     chooseDiscoveryOption,
+    confirmDiscovery,
     cancelDiscovery,
     backToMenu,
     resetBrowserSession,

@@ -38,15 +38,6 @@ function initials(name: string): string {
     .padEnd(1, "·");
 }
 
-type DiscoveryOption =
-  ReturnType<typeof useSplendorApp> extends {
-    discovery: { options: infer Options } | null;
-  }
-    ? Options extends Array<infer Option>
-      ? Option
-      : never
-    : never;
-
 function GemDot({ color }: { color: string }) {
   return <span className={`gem-dot gem-dot-${color}`} />;
 }
@@ -64,20 +55,35 @@ function CardGemBadge({ color, size }: { color: string; size?: "sm" }) {
   );
 }
 
+type Selectability = "selectable" | "selected" | "none";
+
 function DevelopmentCardView({
   cardId,
   compact = false,
+  selectability = "none",
+  onSelect,
 }: {
   cardId: number;
   compact?: boolean;
+  selectability?: Selectability;
+  onSelect?: () => void;
 }) {
   const card = developmentCardsById[cardId];
   if (!card) return null;
   const points = card.prestigePoints ?? 0;
-  return (
-    <article
-      className={`card card-bg-${card.bonusColor}${compact ? " card-compact" : ""}`}
-    >
+  const interactive = selectability !== "none";
+  const className = [
+    "card",
+    `card-bg-${card.bonusColor}`,
+    compact ? "card-compact" : "",
+    interactive ? "is-interactive" : "",
+    selectability === "selectable" ? "is-selectable" : "",
+    selectability === "selected" ? "is-selected" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const body = (
+    <>
       <div className="card-head">
         <span
           className={`card-points ${points === 0 ? "card-points-zero" : ""}`}
@@ -95,25 +101,54 @@ function DevelopmentCardView({
           />
         ))}
       </div>
-    </article>
+      {selectability === "selected" ? (
+        <span className="select-check" aria-hidden="true">
+          ✓
+        </span>
+      ) : null}
+    </>
   );
+  if (interactive) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={onSelect}
+        disabled={selectability === "selected"}
+      >
+        {body}
+      </button>
+    );
+  }
+  return <article className={className}>{body}</article>;
 }
 
 function NobleTileView({
   nobleId,
   compact = false,
+  selectability = "none",
+  onSelect,
 }: {
   nobleId: number;
   compact?: boolean;
+  selectability?: Selectability;
+  onSelect?: () => void;
 }) {
   const noble = nobleTilesById[nobleId];
   if (!noble) return null;
   const shortName = noble.name.split(",")[0] ?? noble.name;
-  return (
-    <article
-      className={`noble${compact ? " noble-compact" : ""}`}
-      title={noble.name}
-    >
+  const interactive = selectability !== "none";
+  const className = [
+    "noble",
+    compact ? "noble-compact" : "",
+    interactive ? "is-interactive" : "",
+    selectability === "selectable" ? "is-selectable" : "",
+    selectability === "selected" ? "is-selected" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const body = (
+    <>
       <div className="noble-head">
         <span className="noble-points">
           <span className="noble-points-star" aria-hidden="true">
@@ -135,6 +170,29 @@ function NobleTileView({
           );
         })}
       </div>
+      {selectability === "selected" ? (
+        <span className="select-check" aria-hidden="true">
+          ✓
+        </span>
+      ) : null}
+    </>
+  );
+  if (interactive) {
+    return (
+      <button
+        type="button"
+        className={className}
+        title={noble.name}
+        onClick={onSelect}
+        disabled={selectability === "selected"}
+      >
+        {body}
+      </button>
+    );
+  }
+  return (
+    <article className={className} title={noble.name}>
+      {body}
     </article>
   );
 }
@@ -185,75 +243,6 @@ function PurchasedStacks({ cardIds }: { cardIds: number[] }) {
   );
 }
 
-function OptionSummary({ output }: { output: Record<string, unknown> }) {
-  if (typeof output.cardId === "number") {
-    const card = developmentCardsById[output.cardId];
-    return (
-      <>
-        <span className="option-primary">
-          {card?.bonusColor ? (
-            <GemDot color={card.bonusColor.toLowerCase()} />
-          ) : null}
-          {card?.prestigePoints ?? 0} pts
-        </span>
-        <span className="option-secondary">
-          Card #{output.cardId} · level {String(output.level ?? "?")}
-        </span>
-      </>
-    );
-  }
-
-  if (typeof output.color === "string") {
-    return (
-      <>
-        <span className="option-primary">
-          <GemDot color={output.color} />
-          {String(output.color).replace(/^./, (c) => c.toUpperCase())}
-        </span>
-        {typeof output.requiredCount === "number" ? (
-          <span className="option-secondary">
-            {String(output.selectedCount)} / {String(output.requiredCount)}{" "}
-            selected
-          </span>
-        ) : typeof output.requiredReturnCount === "number" ? (
-          <span className="option-secondary">
-            return {String(output.selectedCount)} of{" "}
-            {String(output.requiredReturnCount)}
-          </span>
-        ) : typeof output.amount === "number" ? (
-          <span className="option-secondary">+{String(output.amount)}</span>
-        ) : null}
-      </>
-    );
-  }
-
-  if (typeof output.nobleId === "number") {
-    return (
-      <>
-        <span className="option-primary">
-          {String(output.name ?? `Noble #${output.nobleId}`)}
-        </span>
-        <span className="option-secondary">3 prestige</span>
-      </>
-    );
-  }
-
-  if (typeof output.level === "number") {
-    return (
-      <>
-        <span className="option-primary">Level {String(output.level)}</span>
-        {typeof output.cardCount === "number" ? (
-          <span className="option-secondary">
-            {String(output.cardCount)} cards in deck
-          </span>
-        ) : null}
-      </>
-    );
-  }
-
-  return <span className="option-primary">Select</span>;
-}
-
 function StatusPill({ status, busy }: { status: string; busy: boolean }) {
   return (
     <span className={`status status-${status}`}>
@@ -277,6 +266,178 @@ function App() {
       player: app.game?.view.game.players[playerId],
     }));
   }, [app.game]);
+
+  const discovery = app.discovery;
+  const trail = app.selectionTrail;
+  const isPicking = discovery !== null;
+  const isPendingConfirm = app.pendingCommandInput !== null;
+  const isInDiscovery = isPicking || isPendingConfirm;
+  const trailOutputs = trail.map(
+    (entry) => entry.output as Record<string, unknown>,
+  );
+
+  function findOption(predicate: (output: Record<string, unknown>) => boolean) {
+    return (
+      discovery?.options.find((option) =>
+        predicate(option.output as Record<string, unknown>),
+      ) ?? null
+    );
+  }
+
+  function trailCountWhere(
+    predicate: (output: Record<string, unknown>) => boolean,
+  ) {
+    return trailOutputs.filter(predicate).length;
+  }
+
+  function gemSelectabilityForBank(color: string): {
+    state: Selectability;
+    onSelect: (() => void) | undefined;
+    selectedCount: number;
+  } {
+    if (!isInDiscovery || color === "gold") {
+      return { state: "none", onSelect: undefined, selectedCount: 0 };
+    }
+    const selectedCount = trailCountWhere((o) => o.color === color);
+    if (isPicking) {
+      const option = findOption(
+        (o) => o.color === color && typeof o.cardId !== "number",
+      );
+      if (option) {
+        return {
+          state: "selectable",
+          onSelect: () => app.chooseDiscoveryOption(option),
+          selectedCount,
+        };
+      }
+    }
+    if (selectedCount > 0) {
+      return { state: "selected", onSelect: undefined, selectedCount };
+    }
+    return { state: "none", onSelect: undefined, selectedCount: 0 };
+  }
+
+  function selectabilityForFaceUpCard(cardId: number): {
+    state: Selectability;
+    onSelect: (() => void) | undefined;
+  } {
+    if (!isInDiscovery) {
+      return { state: "none", onSelect: undefined };
+    }
+    const isSelected = trailOutputs.some((o) => o.cardId === cardId);
+    if (isSelected) {
+      return { state: "selected", onSelect: undefined };
+    }
+    if (isPicking) {
+      const option = findOption((o) => o.cardId === cardId);
+      if (option) {
+        return {
+          state: "selectable",
+          onSelect: () => app.chooseDiscoveryOption(option),
+        };
+      }
+    }
+    return { state: "none", onSelect: undefined };
+  }
+
+  function selectabilityForReservedCard(cardId: number): {
+    state: Selectability;
+    onSelect: (() => void) | undefined;
+  } {
+    if (!isInDiscovery || app.activeCommandType !== "buy_reserved_card") {
+      return { state: "none", onSelect: undefined };
+    }
+    return selectabilityForFaceUpCard(cardId);
+  }
+
+  function selectabilityForDeckLevel(level: number): {
+    state: Selectability;
+    onSelect: (() => void) | undefined;
+  } {
+    if (!isInDiscovery || app.activeCommandType !== "reserve_deck_card") {
+      return { state: "none", onSelect: undefined };
+    }
+    const isSelected = trailOutputs.some(
+      (o) => o.level === level && typeof o.cardId !== "number",
+    );
+    if (isSelected) {
+      return { state: "selected", onSelect: undefined };
+    }
+    if (isPicking) {
+      const option = findOption(
+        (o) => o.level === level && typeof o.cardId !== "number",
+      );
+      if (option) {
+        return {
+          state: "selectable",
+          onSelect: () => app.chooseDiscoveryOption(option),
+        };
+      }
+    }
+    return { state: "none", onSelect: undefined };
+  }
+
+  function selectabilityForNoble(nobleId: number): {
+    state: Selectability;
+    onSelect: (() => void) | undefined;
+  } {
+    if (!isInDiscovery) {
+      return { state: "none", onSelect: undefined };
+    }
+    const isSelected = trailOutputs.some((o) => o.nobleId === nobleId);
+    if (isSelected) {
+      return { state: "selected", onSelect: undefined };
+    }
+    if (isPicking) {
+      const option = findOption((o) => o.nobleId === nobleId);
+      if (option) {
+        return {
+          state: "selectable",
+          onSelect: () => app.chooseDiscoveryOption(option),
+        };
+      }
+    }
+    return { state: "none", onSelect: undefined };
+  }
+
+  function selectabilityForReturnToken(color: string): {
+    isSelectable: boolean;
+    onSelect: (() => void) | undefined;
+    selectedCount: number;
+  } {
+    if (!isInDiscovery || app.activeCommandType !== "return_tokens") {
+      return { isSelectable: false, onSelect: undefined, selectedCount: 0 };
+    }
+    const selectedCount = trailCountWhere((o) => o.color === color);
+    if (isPicking) {
+      const option = findOption((o) => o.color === color);
+      if (option) {
+        return {
+          isSelectable: true,
+          onSelect: () => app.chooseDiscoveryOption(option),
+          selectedCount,
+        };
+      }
+    }
+    return { isSelectable: false, onSelect: undefined, selectedCount };
+  }
+
+  function discoveryStatusText(): string {
+    if (!isInDiscovery) return "";
+    if (isPendingConfirm) {
+      return "Ready to confirm";
+    }
+    const sample = discovery?.options[0]?.output as
+      | Record<string, unknown>
+      | undefined;
+    if (sample && typeof sample.requiredCount === "number") {
+      return `${trail.length} of ${sample.requiredCount} selected`;
+    }
+    if (sample && typeof sample.requiredReturnCount === "number") {
+      return `Return ${trail.length} of ${sample.requiredReturnCount} tokens`;
+    }
+    return "Choose a target on the board";
+  }
 
   return (
     <div className="app">
@@ -467,13 +628,15 @@ function App() {
                 app.game.availableCommands.map((commandType) => (
                   <button
                     key={commandType}
-                    className="action-btn"
+                    className={`action-btn${
+                      app.activeCommandType === commandType ? " is-active" : ""
+                    }`}
                     onClick={() =>
                       app.beginDiscovery(
                         commandType as Parameters<typeof app.beginDiscovery>[0],
                       )
                     }
-                    disabled={app.busy}
+                    disabled={app.busy || isInDiscovery}
                   >
                     {commandLabel(commandType)}
                   </button>
@@ -492,10 +655,43 @@ function App() {
                       (app.game?.view.game.bank as Record<string, number>)[
                         color
                       ] ?? 0;
+                    const { state, onSelect, selectedCount } =
+                      gemSelectabilityForBank(color);
+                    const className = [
+                      "gem",
+                      state === "selectable" ? "is-selectable" : "",
+                      state === "selected" ? "is-selected" : "",
+                      state !== "none" ? "is-interactive" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+                    if (state === "selectable") {
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          className={className}
+                          onClick={onSelect}
+                        >
+                          <GemDot color={color} />
+                          <span className="gem-count">{amount}</span>
+                          {selectedCount > 0 ? (
+                            <span className="gem-selected-badge">
+                              ✓ {selectedCount}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    }
                     return (
-                      <span key={color} className="gem">
+                      <span key={color} className={className}>
                         <GemDot color={color} />
                         <span className="gem-count">{amount}</span>
+                        {selectedCount > 0 ? (
+                          <span className="gem-selected-badge">
+                            ✓ {selectedCount}
+                          </span>
+                        ) : null}
                       </span>
                     );
                   })}
@@ -506,9 +702,18 @@ function App() {
                 <div>
                   <p className="game-section-label">Nobles</p>
                   <div className="nobles">
-                    {app.game.view.game.board.nobleIds.map((nobleId) => (
-                      <NobleTileView key={nobleId} nobleId={nobleId} />
-                    ))}
+                    {app.game.view.game.board.nobleIds.map((nobleId) => {
+                      const { state, onSelect } =
+                        selectabilityForNoble(nobleId);
+                      return (
+                        <NobleTileView
+                          key={nobleId}
+                          nobleId={nobleId}
+                          selectability={state}
+                          onSelect={onSelect}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
@@ -519,16 +724,75 @@ function App() {
                   {Object.entries(app.game.view.game.board.faceUpByLevel)
                     .slice()
                     .reverse()
-                    .map(([level, cardIds]) => (
-                      <div className="level-row" key={level}>
-                        <span className="level-pill">L{level}</span>
-                        <div className="cards">
-                          {cardIds.map((cardId: number) => (
-                            <DevelopmentCardView key={cardId} cardId={cardId} />
-                          ))}
+                    .map(([level, cardIds]) => {
+                      const levelNumber = Number(level);
+                      const deckCount =
+                        (
+                          app.game?.view.game.board.deckByLevel.value as Record<
+                            string,
+                            number
+                          >
+                        )?.[level] ?? 0;
+                      const deckSel = selectabilityForDeckLevel(levelNumber);
+                      const deckClass = [
+                        "deck-pile",
+                        deckSel.state === "selectable" ? "is-selectable" : "",
+                        deckSel.state === "selected" ? "is-selected" : "",
+                        deckSel.state !== "none" ? "is-interactive" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+                      return (
+                        <div className="level-row" key={level}>
+                          <span className="level-pill">L{level}</span>
+                          {deckSel.state === "selectable" ? (
+                            <button
+                              type="button"
+                              className={deckClass}
+                              onClick={deckSel.onSelect}
+                              title={`Reserve from level ${level} deck`}
+                            >
+                              <span className="deck-pile-count">
+                                {deckCount}
+                              </span>
+                              <span className="deck-pile-sub">deck</span>
+                            </button>
+                          ) : (
+                            <div
+                              className={deckClass}
+                              title={`${deckCount} cards in deck`}
+                            >
+                              <span className="deck-pile-count">
+                                {deckCount}
+                              </span>
+                              <span className="deck-pile-sub">deck</span>
+                              {deckSel.state === "selected" ? (
+                                <span
+                                  className="select-check"
+                                  aria-hidden="true"
+                                >
+                                  ✓
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                          <div className="cards">
+                            {cardIds.map((cardId: number) => {
+                              const { state, onSelect } =
+                                selectabilityForFaceUpCard(cardId);
+                              return (
+                                <DevelopmentCardView
+                                  key={cardId}
+                                  cardId={cardId}
+                                  selectability={state}
+                                  onSelect={onSelect}
+                                />
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </div>
             </section>
@@ -593,10 +857,49 @@ function App() {
                           (player?.tokens as Record<string, number>)?.[color] ??
                           0;
                         if (amount === 0) return null;
+                        const returnSel = isSelf
+                          ? selectabilityForReturnToken(color)
+                          : {
+                              isSelectable: false,
+                              onSelect: undefined,
+                              selectedCount: 0,
+                            };
+                        const remaining = amount - returnSel.selectedCount;
+                        const className = [
+                          "gem",
+                          returnSel.isSelectable ? "is-selectable" : "",
+                          returnSel.selectedCount > 0 ? "is-selected" : "",
+                          returnSel.isSelectable ? "is-interactive" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ");
+                        if (returnSel.isSelectable) {
+                          return (
+                            <button
+                              key={color}
+                              type="button"
+                              className={className}
+                              onClick={returnSel.onSelect}
+                            >
+                              <GemDot color={color} />
+                              <span className="gem-count">{remaining}</span>
+                              {returnSel.selectedCount > 0 ? (
+                                <span className="gem-selected-badge">
+                                  ↩ {returnSel.selectedCount}
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        }
                         return (
-                          <span key={color} className="gem">
+                          <span key={color} className={className}>
                             <GemDot color={color} />
                             <span className="gem-count">{amount}</span>
+                            {returnSel.selectedCount > 0 ? (
+                              <span className="gem-selected-badge">
+                                ↩ {returnSel.selectedCount}
+                              </span>
+                            ) : null}
                           </span>
                         );
                       })}
@@ -623,13 +926,20 @@ function App() {
                       </div>
                       {reservedIds && reservedIds.length > 0 ? (
                         <div className="reserved-cards">
-                          {reservedIds.map((cardId) => (
-                            <DevelopmentCardView
-                              key={cardId}
-                              cardId={cardId}
-                              compact
-                            />
-                          ))}
+                          {reservedIds.map((cardId) => {
+                            const { state, onSelect } = isSelf
+                              ? selectabilityForReservedCard(cardId)
+                              : { state: "none" as const, onSelect: undefined };
+                            return (
+                              <DevelopmentCardView
+                                key={cardId}
+                                cardId={cardId}
+                                compact
+                                selectability={state}
+                                onSelect={onSelect}
+                              />
+                            );
+                          })}
                         </div>
                       ) : reservedIds ? (
                         <span className="reserved-empty">none</span>
@@ -659,43 +969,33 @@ function App() {
             </aside>
           </div>
 
-          {app.discovery ? (
-            <div className="discovery" onClick={app.cancelDiscovery}>
-              <div
-                className="discovery-panel"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="discovery-head">
-                  <div>
-                    <div className="discovery-title">
-                      {app.activeCommandType
-                        ? commandLabel(app.activeCommandType)
-                        : "Discovery"}
-                    </div>
-                    <div className="discovery-step">
-                      {app.discovery.step.replace(/_/g, " ")}
-                    </div>
-                  </div>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={app.cancelDiscovery}
-                  >
-                    Cancel
-                  </button>
+          {isInDiscovery ? (
+            <div className="command-bar">
+              <div className="command-bar-info">
+                <div className="command-bar-title">
+                  {app.activeCommandType
+                    ? commandLabel(app.activeCommandType)
+                    : "Action"}
                 </div>
-                <div className="discovery-options">
-                  {app.discovery.options.map((option: DiscoveryOption) => (
-                    <button
-                      key={option.id}
-                      className="option"
-                      onClick={() => app.chooseDiscoveryOption(option)}
-                    >
-                      <OptionSummary
-                        output={option.output as Record<string, unknown>}
-                      />
-                    </button>
-                  ))}
+                <div className="command-bar-status">
+                  {discoveryStatusText()}
                 </div>
+              </div>
+              <div className="command-bar-actions">
+                <button
+                  className="btn btn-ghost"
+                  onClick={app.cancelDiscovery}
+                  disabled={app.busy}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-accent"
+                  onClick={app.confirmDiscovery}
+                  disabled={app.busy || !isPendingConfirm}
+                >
+                  Confirm
+                </button>
               </div>
             </div>
           ) : null}
