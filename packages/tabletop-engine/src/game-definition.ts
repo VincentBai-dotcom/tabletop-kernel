@@ -14,12 +14,9 @@ import type { StateClass } from "./state-facade/metadata";
 import type { FieldType, ObjectFieldType, ObjectSchemaStatic } from "./schema";
 import type { TSchema } from "@sinclair/typebox";
 
-type AnyCommandDefinition<FacadeGameState extends object> =
-  CommandDefinition<FacadeGameState>;
-
 type CommandDefinitionMap<FacadeGameState extends object = object> = Record<
   string,
-  AnyCommandDefinition<FacadeGameState>
+  CommandDefinition<FacadeGameState>
 >;
 
 type AnyStageDefinition = StageDefinition<object>;
@@ -222,9 +219,7 @@ export class GameDefinitionBuilder<
         defaultCanonicalGameState as CanonicalGameState,
       initialStage: this.config.initialStage,
       stages,
-      setup: this.config.setup as unknown as
-        | ((context: GameSetupContext<FacadeGameState, SetupInput>) => void)
-        | undefined,
+      setup: this.config.setup,
     };
   }
 
