@@ -169,14 +169,14 @@ function createHostedCommandPayloadSchema(
   commands: Record<
     string,
     {
-      commandSchema: { schema?: TSchema };
+      commandSchema: TSchema;
     }
   >,
 ): TSchema {
   const variants = Object.entries(commands).map(([commandId, command]) =>
     Type.Object({
       type: Type.Literal(commandId),
-      input: command.commandSchema.schema!,
+      input: command.commandSchema,
     }),
   );
 
@@ -194,7 +194,7 @@ function createHostedDiscoveryPayloadSchema(
       discovery?: {
         steps: Array<{
           stepId: string;
-          inputSchema: { schema?: TSchema };
+          inputSchema: TSchema;
         }>;
       };
     }
@@ -206,7 +206,7 @@ function createHostedDiscoveryPayloadSchema(
           Type.Object({
             type: Type.Literal(commandId),
             step: Type.Literal(step.stepId),
-            input: step.inputSchema.schema!,
+            input: step.inputSchema,
           }),
         )
       : [],
@@ -223,12 +223,12 @@ function createHostedDiscoveryResultSchema(
   commands: Record<
     string,
     {
-      commandSchema: { schema?: TSchema };
+      commandSchema: TSchema;
       discovery?: {
         steps: Array<{
           stepId: string;
-          inputSchema: { schema?: TSchema };
-          outputSchema: { schema?: TSchema };
+          inputSchema: TSchema;
+          outputSchema: TSchema;
         }>;
       };
     }
@@ -243,7 +243,7 @@ function createHostedDiscoveryResultSchema(
       type: Type.Literal(commandId),
       result: Type.Object({
         complete: Type.Literal(true),
-        input: command.commandSchema.schema!,
+        input: command.commandSchema,
       }),
     });
 
@@ -255,10 +255,10 @@ function createHostedDiscoveryResultSchema(
           step: Type.Literal(step.stepId),
           options: Type.Array(
             createDiscoveryOptionSchema(
-              step.outputSchema.schema!,
+              step.outputSchema,
               command.discovery!.steps.map((targetStep) => ({
                 stepId: targetStep.stepId,
-                inputSchema: targetStep.inputSchema.schema!,
+                inputSchema: targetStep.inputSchema,
               })),
             ),
           ),

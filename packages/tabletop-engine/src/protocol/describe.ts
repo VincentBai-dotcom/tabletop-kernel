@@ -239,19 +239,19 @@ function inferVisibleFieldSchema(
 }
 
 function inferRecordKeySchema(fieldType: FieldType): TSchema {
-  if ("schema" in fieldType && fieldType.schema) {
-    return fieldType.schema;
+  if (fieldType.kind === "string") {
+    return fieldType;
   }
 
   return Type.String();
 }
 
 function toTypeBoxSchema(schema: SerializableSchema | FieldType): TSchema {
-  if ("schema" in schema && schema.schema) {
-    return schema.schema;
+  if (schema.kind === "state") {
+    return Type.Unknown();
   }
 
-  return Type.Unknown();
+  return schema;
 }
 
 function inferHiddenEnvelopeSchema(schema?: SerializableSchema): TSchema {

@@ -1,57 +1,45 @@
 import type {
   Static,
-  TArray,
   TBoolean,
   TNumber,
-  TObject,
-  TOptional,
-  TRecord,
   TSchema,
   TString,
 } from "@sinclair/typebox";
 import type { StateClass } from "../state-facade/metadata";
 
+export const fieldKind = Symbol("tabletop-engine.schema-field-kind");
+
 export type StateFieldTargetFactory = () => StateClass;
 
-type ExtractSchema<TField> = TField extends {
-  readonly schema?: infer TFieldSchema;
-}
-  ? Extract<TFieldSchema, TSchema> extends never
-    ? TSchema
-    : Extract<TFieldSchema, TSchema>
-  : TSchema;
-
-type ObjectSchemaProperties<TProperties> =
-  TProperties extends Record<string, unknown>
-    ? { [K in keyof TProperties]: ExtractSchema<TProperties[K]> }
-    : Record<string, TSchema>;
-
 export type NumberFieldType = TNumber & {
+  readonly [fieldKind]: "number";
   kind: "number";
-  readonly schema?: TNumber;
 };
 
 export type StringFieldType = TString & {
+  readonly [fieldKind]: "string";
   kind: "string";
-  readonly schema?: TString;
 };
 
 export type BooleanFieldType = TBoolean & {
+  readonly [fieldKind]: "boolean";
   kind: "boolean";
-  readonly schema?: TBoolean;
 };
 
 export interface NestedStateFieldType {
+  readonly [fieldKind]: "state";
   kind: "state";
   target: StateFieldTargetFactory;
 }
 
 // Recursive field composition still needs broad defaults internally.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ArrayFieldType<TItem = any> = TArray<ExtractSchema<TItem>> & {
+export type ArrayFieldType<TItem = any> = TSchema & {
+  readonly static: ArraySchemaStatic<TItem>;
+  readonly [fieldKind]: "array";
+  type: "array";
   kind: "array";
   item: TItem;
-  readonly schema?: TArray<ExtractSchema<TItem>>;
 };
 
 export type RecordFieldType<
@@ -59,28 +47,32 @@ export type RecordFieldType<
   TKey = any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TValue = any,
-> = TRecord<ExtractSchema<TKey>, ExtractSchema<TValue>> & {
+> = TSchema & {
+  readonly static: RecordSchemaStatic<TKey, TValue>;
+  readonly [fieldKind]: "record";
   kind: "record";
   key: TKey;
   value: TValue;
-  readonly schema?: TRecord<ExtractSchema<TKey>, ExtractSchema<TValue>>;
 };
 
 export type ObjectFieldType<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProperties extends Record<string, any> = Record<string, any>,
-> = TObject<ObjectSchemaProperties<TProperties>> & {
+> = TSchema & {
+  readonly static: ObjectSchemaStatic<TProperties>;
+  readonly [fieldKind]: "object";
+  type: "object";
   kind: "object";
   properties: TProperties;
-  readonly schema?: TObject<ObjectSchemaProperties<TProperties>>;
 };
 
 // Recursive field composition still needs broad defaults internally.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type OptionalFieldType<TItem = any> = TOptional<ExtractSchema<TItem>> & {
+export type OptionalFieldType<TItem = any> = TSchema & {
+  readonly static: OptionalSchemaStatic<TItem>;
+  readonly [fieldKind]: "optional";
   kind: "optional";
   item: TItem;
-  readonly schema?: TOptional<ExtractSchema<TItem>>;
 };
 
 export type PrimitiveFieldType =
@@ -113,19 +105,68 @@ export type SerializableSchema =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | OptionalFieldType<any>;
 
-export type ArraySchemaStatic<TItem> = Static<TArray<ExtractSchema<TItem>>>;
+type FieldStatic<TField> = TField extends { readonly [fieldKind]: "number" }
+  ? number
+  : TField extends { readonly [fieldKind]: "string" }
+    ? string
+    : TField extends { readonly [fieldKind]: "boolean" }
+      ? boolean
+      : TField extends { readonly [fieldKind]: "array"; item: infer TItem }
+        ? ArraySchemaStatic<TItem>
+        : TField extends {
+              readonly [fieldKind]: "record";
+              key: infer TKey;
+              value: infer TValue;
+            }
+          ? RecordSchemaStatic<TKey, TValue>
+          : TField extends {
+                readonly [fieldKind]: "object";
+                properties: infer TProperties extends Record<string, unknown>;
+              }
+            ? ObjectSchemaStatic<TProperties>
+            : TField extends {
+                  readonly [fieldKind]: "optional";
+                  item: infer TItem;
+                }
+              ? OptionalSchemaStatic<TItem>
+              : TField extends TSchema
+                ? Static<TField>
+                : never;
 
-export type RecordSchemaStatic<TKey, TValue> = Static<
-  TRecord<ExtractSchema<TKey>, ExtractSchema<TValue>>
+type OptionalObjectPropertyKeys<TProperties> = {
+  [K in keyof TProperties]-?: TProperties[K] extends {
+    readonly [fieldKind]: "optional";
+  }
+    ? K
+    : never;
+}[keyof TProperties];
+
+type RequiredObjectPropertyKeys<TProperties> = Exclude<
+  keyof TProperties,
+  OptionalObjectPropertyKeys<TProperties>
 >;
 
-export type ObjectSchemaStatic<TProperties> = Static<
-  TObject<ObjectSchemaProperties<TProperties>>
+export type ArraySchemaStatic<TItem> = FieldStatic<TItem>[];
+
+export type RecordSchemaStatic<TKey, TValue> = Record<
+  FieldStatic<TKey> extends string | number | symbol
+    ? FieldStatic<TKey>
+    : string,
+  FieldStatic<TValue>
 >;
 
-export type OptionalSchemaStatic<TItem> = Static<
-  TOptional<ExtractSchema<TItem>>
->;
+export type ObjectSchemaStatic<TProperties> = {
+  [K in RequiredObjectPropertyKeys<TProperties>]: FieldStatic<TProperties[K]>;
+} & {
+  [K in OptionalObjectPropertyKeys<TProperties>]?: TProperties[K] extends {
+    readonly [fieldKind]: "optional";
+    item: infer TItem;
+  }
+    ? FieldStatic<TItem>
+    : never;
+};
+
+export type OptionalSchemaStatic<TItem> = FieldStatic<TItem> | undefined;
 
 export type SerializableSchemaStatic<TSchema extends SerializableSchema> =
   TSchema extends NumberFieldType
