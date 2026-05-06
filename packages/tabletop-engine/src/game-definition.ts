@@ -76,25 +76,6 @@ export interface GameDefinition<
   setup?: (context: GameSetupContext<FacadeGameState, SetupInput>) => void;
 }
 
-export interface GameDefinitionInput<
-  CanonicalGameState extends object = object,
-  FacadeGameState extends object = CanonicalGameState,
-  Commands extends CommandDefinitionMap<FacadeGameState> =
-    CommandDefinitionMap<FacadeGameState>,
-  SetupInput extends object | undefined = NoSetupInput,
-> extends Omit<
-  GameDefinition<CanonicalGameState, FacadeGameState, Commands, SetupInput>,
-  | "name"
-  | "commands"
-  | "stateFacade"
-  | "canonicalGameStateSchema"
-  | "runtimeStateSchema"
-  | "defaultCanonicalGameState"
-  | "stages"
-> {
-  name: string;
-}
-
 interface GameDefinitionBuilderState<
   FacadeGameState extends object = object,
   CanonicalGameState extends object = CanonicalGameStateShape<FacadeGameState>,

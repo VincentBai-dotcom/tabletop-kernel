@@ -21,11 +21,7 @@ export {
 export { createSnapshot, restoreSnapshot } from "./snapshot/snapshot";
 export { runScenario } from "./testing/harness";
 
-export type {
-  GameDefinition,
-  GameDefinitionInput,
-  GameSetupContext,
-} from "./game-definition";
+export type { GameDefinition, GameSetupContext } from "./game-definition";
 export type { GameExecutor } from "./runtime/game-executor";
 export type {
   AsyncApiChannelNames,
