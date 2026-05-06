@@ -58,6 +58,29 @@ test("schema static types can be derived directly from the schema object", () =>
   expect(withoutAmount.amount).toBeUndefined();
 });
 
+test("serializable fields are TypeBox schemas with engine metadata", () => {
+  const numberField = t.number();
+  const objectField = t.object({
+    count: numberField,
+  });
+
+  expect(numberField).toMatchObject({
+    type: "number",
+    kind: "number",
+  });
+  expect("schema" in numberField).toBe(false);
+
+  expect(objectField).toMatchObject({
+    type: "object",
+    kind: "object",
+    properties: {
+      count: numberField,
+    },
+  });
+  expect(objectField.properties.count).toBe(numberField);
+  expect("schema" in objectField).toBe(false);
+});
+
 test("state metadata can consume object schemas through field decorators", () => {
   const metadata = getStateMetadata(ObjectFieldState);
 
