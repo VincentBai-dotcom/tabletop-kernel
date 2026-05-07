@@ -73,8 +73,7 @@ function compileFieldSchema(field: FieldType): FieldType {
   }
 
   if (field.kind === "optional") {
-    const item = compileFieldSchema(field.item);
-    return t.optional(item) as FieldType;
+    return t.optional(compileFieldSchema(field.item));
   }
 
   return field;
