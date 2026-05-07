@@ -199,7 +199,7 @@ test("describeGameProtocol returns step-authored discovery metadata", () => {
         const: true,
         type: "boolean",
       },
-      value: hiddenViewSchema.schema,
+      value: hiddenViewSchema,
     },
     required: ["__hidden", "value"],
   });
@@ -213,7 +213,7 @@ test("describeGameProtocol returns step-authored discovery metadata", () => {
             const: true,
             type: "boolean",
           },
-          value: hiddenViewSchema.schema,
+          value: hiddenViewSchema,
         },
         required: ["__hidden", "value"],
       },

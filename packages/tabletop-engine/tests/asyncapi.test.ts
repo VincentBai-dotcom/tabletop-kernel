@@ -166,9 +166,7 @@ test("generateAsyncApi emits hosted engine websocket channels and schemas", () =
       : [executePayload.properties.command];
   expect(commandVariants).toHaveLength(1);
   expect(commandVariants[0]!.properties.type.const).toBe("gain_score");
-  expect(commandVariants[0]!.properties.input).toEqual(
-    gainScoreCommandSchema.schema,
-  );
+  expect(commandVariants[0]!.properties.input).toEqual(gainScoreCommandSchema);
 
   const discoverPayload = document.components.messages.GameDiscover!.payload;
   expect(discoverPayload.properties.type.const).toBe("game_discover");
@@ -187,11 +185,11 @@ test("generateAsyncApi emits hosted engine websocket channels and schemas", () =
   expect(discoveryVariants[0]!.properties.type.const).toBe("gain_score");
   expect(discoveryVariants[0]!.properties.step.const).toBe("select_amount");
   expect(discoveryVariants[0]!.properties.input).toEqual(
-    selectAmountInputSchema.schema,
+    selectAmountInputSchema,
   );
   expect(discoveryVariants[1]!.properties.step.const).toBe("confirm_selection");
   expect(discoveryVariants[1]!.properties.input).toEqual(
-    confirmSelectionInputSchema.schema,
+    confirmSelectionInputSchema,
   );
 
   const discoveryResultPayload =
@@ -220,30 +218,30 @@ test("generateAsyncApi emits hosted engine websocket channels and schemas", () =
     {
       properties: {
         id: { type: "string" },
-        output: selectAmountOutputSchema.schema,
+        output: selectAmountOutputSchema,
         nextStep: {
           const: "select_amount",
           type: "string",
         },
-        nextInput: selectAmountInputSchema.schema,
+        nextInput: selectAmountInputSchema,
       },
     },
     {
       properties: {
         id: { type: "string" },
-        output: selectAmountOutputSchema.schema,
+        output: selectAmountOutputSchema,
         nextStep: {
           const: "confirm_selection",
           type: "string",
         },
-        nextInput: confirmSelectionInputSchema.schema,
+        nextInput: confirmSelectionInputSchema,
       },
     },
   ]);
   expect(
     discoveryResultPayload.properties.result.anyOf[0]!.anyOf[2]!.properties
       .result.properties.input,
-  ).toEqual(gainScoreCommandSchema.schema);
+  ).toEqual(gainScoreCommandSchema);
 
   const gameSnapshotPayload =
     document.components.messages.GameSnapshot!.payload;
