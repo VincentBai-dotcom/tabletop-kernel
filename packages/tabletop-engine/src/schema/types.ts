@@ -37,7 +37,6 @@ export interface NestedStateFieldType {
 export type ArrayFieldType<TItem = any> = TSchema & {
   readonly static: ArraySchemaStatic<TItem>;
   readonly [fieldKind]: "array";
-  type: "array";
   kind: "array";
   item: TItem;
 };
@@ -61,7 +60,6 @@ export type ObjectFieldType<
 > = TSchema & {
   readonly static: ObjectSchemaStatic<TProperties>;
   readonly [fieldKind]: "object";
-  type: "object";
   kind: "object";
   properties: TProperties;
 };
