@@ -40,6 +40,8 @@ function toTypeBoxSchema(field: FieldType): TSchema {
     return Type.Unknown();
   }
 
+  // Serializable fields are constructed by `t` as TypeBox schemas with engine
+  // metadata attached, so they can be passed directly to TypeBox consumers.
   return field as TSchema;
 }
 
@@ -117,6 +119,8 @@ export const t = {
         kind: "object" as const,
         properties,
       },
+      // The runtime object is a TypeBox schema plus engine metadata. The cast
+      // supplies TypeBox-style phantom `static` metadata for compile-time use.
     ) as unknown as ObjectFieldType<TProperties>;
   },
 

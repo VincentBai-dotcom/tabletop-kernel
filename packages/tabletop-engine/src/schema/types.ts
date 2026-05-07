@@ -58,6 +58,8 @@ export type ObjectFieldType<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TProperties extends Record<string, any> = Record<string, any>,
 > = TSchema & {
+  // TypeBox's `static` field is phantom compile-time metadata. It is used for
+  // type extraction only and is not expected to exist on schema objects at runtime.
   readonly static: ObjectSchemaStatic<TProperties>;
   readonly [fieldKind]: "object";
   kind: "object";
