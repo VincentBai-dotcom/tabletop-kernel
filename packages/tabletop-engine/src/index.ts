@@ -44,7 +44,7 @@ export type {
   ObjectFieldType,
   OptionalFieldType,
   RecordFieldType,
-  SerializableSchema,
+  SerializableFieldType,
   StringFieldType,
 } from "./schema";
 export type {

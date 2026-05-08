@@ -80,7 +80,7 @@ export type NumberFieldType = TNumber & {
 };
 ```
 
-Update `ExtractSchema<TField>` so serializable fields are treated as schemas directly. Keep `NestedStateFieldType` excluded from `SerializableSchema`.
+Update `ExtractSchema<TField>` so serializable fields are treated as schemas directly. Keep `NestedStateFieldType` excluded from `SerializableFieldType`.
 
 **Step 2: Run typecheck**
 

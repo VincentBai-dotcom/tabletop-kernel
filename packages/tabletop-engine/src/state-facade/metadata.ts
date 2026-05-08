@@ -5,8 +5,8 @@ export type StateClass<TState extends object = object> = new (
 import { assertSerializableSchema, t } from "../schema";
 import type {
   FieldType,
-  SerializableSchema,
-  SerializableSchemaStatic,
+  SerializableFieldStatic,
+  SerializableFieldType,
 } from "../schema";
 
 export { t };
@@ -37,13 +37,13 @@ export type VisibilityDeriveOptions = {
 export type VisibilitySchemaOptions<
   TValue = unknown,
   TState extends object = object,
-  TSchema extends SerializableSchema = SerializableSchema,
+  TSchema extends SerializableFieldType = SerializableFieldType,
 > = {
   schema: TSchema;
   derive?: (
     value: TValue,
     state: Readonly<TState>,
-  ) => SerializableSchemaStatic<TSchema>;
+  ) => SerializableFieldStatic<TSchema>;
 };
 
 export interface HiddenFieldConfig<
@@ -51,7 +51,7 @@ export interface HiddenFieldConfig<
   TState extends object = object,
 > {
   mode: "hidden";
-  schema?: SerializableSchema;
+  schema?: SerializableFieldType;
   derive?: (value: TValue, state: Readonly<TState>) => unknown;
 }
 
@@ -60,7 +60,7 @@ export interface VisibleToSelfFieldConfig<
   TState extends object = object,
 > {
   mode: "visible_to_self";
-  schema?: SerializableSchema;
+  schema?: SerializableFieldType;
   derive?: (value: TValue, state: Readonly<TState>) => unknown;
 }
 
@@ -101,7 +101,7 @@ interface VisibilityFieldToken<
 > {
   fieldName: TFieldName;
   hidden(): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
-  hidden<TSchema extends SerializableSchema>(
+  hidden<TSchema extends SerializableFieldType>(
     options: VisibilitySchemaOptions<TState[TFieldName], TState, TSchema>,
   ): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
   visibleToSelf(): VisibilityFieldConfigEntry<
@@ -109,7 +109,7 @@ interface VisibilityFieldToken<
     TState[TFieldName],
     TState
   >;
-  visibleToSelf<TSchema extends SerializableSchema>(
+  visibleToSelf<TSchema extends SerializableFieldType>(
     options: VisibilitySchemaOptions<TState[TFieldName], TState, TSchema>,
   ): VisibilityFieldConfigEntry<TFieldName, TState[TFieldName], TState>;
 }

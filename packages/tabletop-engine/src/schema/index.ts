@@ -27,9 +27,9 @@ export type {
   OptionalFieldType,
   PrimitiveFieldType,
   RecordSchemaStatic,
-  SerializableSchemaStatic,
+  SerializableFieldStatic,
   RecordFieldType,
-  SerializableSchema,
+  SerializableFieldType,
   StateFieldTargetFactory,
   StringFieldType,
 } from "./types";

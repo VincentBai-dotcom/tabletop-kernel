@@ -119,7 +119,7 @@ type HiddenSummaryProjector = (value: unknown) => unknown;
 
 type FieldVisibilityMetadata = {
   mode: "hidden" | "visible_to_self";
-  hiddenSummarySchema?: SerializableSchema;
+  hiddenSummarySchema?: SerializableFieldType;
   projectHiddenSummary?: HiddenSummaryProjector;
 };
 ```
@@ -185,7 +185,7 @@ serializable schemas only.
 
 This should be enforced at the type level, not only by convention.
 
-The current `SerializableSchema` type excludes `t.state(...)` only at the
+The current `SerializableFieldType` type excludes `t.state(...)` only at the
 top-level union, but nested composition still leaks through because `t.object`,
 `t.array`, `t.record`, and `t.optional` currently accept broad `FieldType`
 inputs.

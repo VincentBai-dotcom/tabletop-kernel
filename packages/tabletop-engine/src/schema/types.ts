@@ -80,9 +80,8 @@ export type PrimitiveFieldType =
   | StringFieldType
   | BooleanFieldType;
 
-export type FieldType =
+export type SerializableFieldType =
   | PrimitiveFieldType
-  | NestedStateFieldType
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | ArrayFieldType<any>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,16 +91,7 @@ export type FieldType =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | OptionalFieldType<any>;
 
-export type SerializableSchema =
-  | PrimitiveFieldType
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | ArrayFieldType<any>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | RecordFieldType<any, any>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | ObjectFieldType<Record<string, any>>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | OptionalFieldType<any>;
+export type FieldType = SerializableFieldType | NestedStateFieldType;
 
 type FieldStatic<TField> = TField extends { readonly [fieldKind]: "number" }
   ? number
@@ -166,19 +156,19 @@ export type ObjectSchemaStatic<TProperties> = {
 
 export type OptionalSchemaStatic<TItem> = FieldStatic<TItem> | undefined;
 
-export type SerializableSchemaStatic<TSchema extends SerializableSchema> =
-  TSchema extends NumberFieldType
+export type SerializableFieldStatic<TField extends SerializableFieldType> =
+  TField extends NumberFieldType
     ? number
-    : TSchema extends StringFieldType
+    : TField extends StringFieldType
       ? string
-      : TSchema extends BooleanFieldType
+      : TField extends BooleanFieldType
         ? boolean
-        : TSchema extends ArrayFieldType<infer TItem>
+        : TField extends ArrayFieldType<infer TItem>
           ? ArraySchemaStatic<TItem>
-          : TSchema extends RecordFieldType<infer TKey, infer TValue>
+          : TField extends RecordFieldType<infer TKey, infer TValue>
             ? RecordSchemaStatic<TKey, TValue>
-            : TSchema extends ObjectFieldType<infer TProperties>
+            : TField extends ObjectFieldType<infer TProperties>
               ? ObjectSchemaStatic<TProperties>
-              : TSchema extends OptionalFieldType<infer TItem>
+              : TField extends OptionalFieldType<infer TItem>
                 ? OptionalSchemaStatic<TItem>
                 : never;

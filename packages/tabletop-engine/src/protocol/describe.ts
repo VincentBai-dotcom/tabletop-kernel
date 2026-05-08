@@ -1,6 +1,6 @@
 import { Type, type TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
-import type { FieldType, SerializableSchema } from "../schema";
+import type { FieldType, SerializableFieldType } from "../schema";
 import type { CommandDefinition, CommandSchema } from "../types/command";
 import type {
   FieldVisibilityConfig,
@@ -246,7 +246,7 @@ function inferRecordKeySchema(fieldType: FieldType): TSchema {
   return Type.String();
 }
 
-function toTypeBoxSchema(schema: SerializableSchema | FieldType): TSchema {
+function toTypeBoxSchema(schema: SerializableFieldType | FieldType): TSchema {
   if (schema.kind === "state") {
     return Type.Unknown();
   }
@@ -254,7 +254,7 @@ function toTypeBoxSchema(schema: SerializableSchema | FieldType): TSchema {
   return schema;
 }
 
-function inferHiddenEnvelopeSchema(schema?: SerializableSchema): TSchema {
+function inferHiddenEnvelopeSchema(schema?: SerializableFieldType): TSchema {
   if (!schema) {
     return hiddenEnvelopeSchema;
   }
