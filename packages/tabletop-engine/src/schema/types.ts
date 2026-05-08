@@ -92,8 +92,6 @@ export type FieldType =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | OptionalFieldType<any>;
 
-export type StateFieldMetadata = FieldType;
-
 export type SerializableSchema =
   | PrimitiveFieldType
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

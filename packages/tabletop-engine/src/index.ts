@@ -45,7 +45,6 @@ export type {
   OptionalFieldType,
   RecordFieldType,
   SerializableSchema,
-  StateFieldMetadata,
   StringFieldType,
 } from "./schema";
 export type {

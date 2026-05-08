@@ -7,7 +7,6 @@ import type {
   FieldType,
   SerializableSchema,
   SerializableSchemaStatic,
-  StateFieldMetadata,
 } from "../schema";
 
 export { t };
@@ -91,7 +90,7 @@ type AnyVisibilityFieldConfigEntry<TState extends object> = {
 
 export interface StateMetadata {
   type: "state";
-  fields: Record<string, StateFieldMetadata>;
+  fields: Record<string, FieldType>;
   fieldVisibility: Record<string, FieldVisibilityConfig>;
   ownedByField?: string;
 }

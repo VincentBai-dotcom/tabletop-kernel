@@ -2,7 +2,7 @@ import type {
   CompiledStateDefinition,
   CompiledStateFacadeDefinition,
 } from "./compile";
-import type { FieldType, StateFieldMetadata } from "../schema";
+import type { FieldType } from "../schema";
 import type { StateClass } from "./metadata";
 
 export function hydrateStateFacade<TState extends object>(
@@ -336,7 +336,7 @@ interface MutationContext {
   mutationDepth: number;
 }
 
-function isPrimitiveDataField(field: StateFieldMetadata): boolean {
+function isPrimitiveDataField(field: FieldType): boolean {
   return (
     field.kind === "number" ||
     field.kind === "string" ||

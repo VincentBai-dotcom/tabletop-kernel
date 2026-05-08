@@ -30,7 +30,6 @@ export type {
   SerializableSchemaStatic,
   RecordFieldType,
   SerializableSchema,
-  StateFieldMetadata,
   StateFieldTargetFactory,
   StringFieldType,
 } from "./types";

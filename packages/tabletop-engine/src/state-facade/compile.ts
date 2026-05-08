@@ -3,11 +3,11 @@ import {
   getStateMetadata,
   type StateClass,
 } from "./metadata";
-import type { FieldType, StateFieldMetadata } from "../schema";
+import type { FieldType } from "../schema";
 
 export interface CompiledStateDefinition {
   type: StateClass;
-  fields: Record<string, StateFieldMetadata>;
+  fields: Record<string, FieldType>;
   fieldVisibility: Record<string, FieldVisibilityConfig>;
   ownedByField?: string;
 }
@@ -71,7 +71,7 @@ function visitState(
 }
 
 function visitNestedStateTargets(
-  field: StateFieldMetadata,
+  field: FieldType,
   states: Record<string, CompiledStateDefinition>,
   visited: Set<StateClass>,
   hasOwningPlayerAncestor: boolean,
@@ -205,7 +205,7 @@ function visitNestedStateTarget(
 
 function validateOwnedByField(
   target: StateClass,
-  fields: Record<string, StateFieldMetadata>,
+  fields: Record<string, FieldType>,
   ownedByField: string | undefined,
 ) {
   if (!ownedByField) {
@@ -227,7 +227,7 @@ function validateOwnedByField(
 
 function validateVisibilityFields(
   target: StateClass,
-  fields: Record<string, StateFieldMetadata>,
+  fields: Record<string, FieldType>,
   fieldVisibility: Record<string, FieldVisibilityConfig>,
 ) {
   for (const fieldName of Object.keys(fieldVisibility)) {

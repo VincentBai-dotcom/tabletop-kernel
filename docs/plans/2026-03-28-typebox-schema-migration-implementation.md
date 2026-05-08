@@ -72,7 +72,6 @@ Create a dedicated schema area under `src/schema` and move the existing:
 
 - field-type interfaces
 - `FieldType`
-- `StateFieldMetadata` alias if still appropriate
 - `t` builder object
 
 Leave `state-facade/metadata.ts` responsible only for:
