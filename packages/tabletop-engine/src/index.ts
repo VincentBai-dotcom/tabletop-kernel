@@ -23,11 +23,7 @@ export { runScenario } from "./testing/harness";
 
 export type { GameDefinition, GameSetupContext } from "./game-definition";
 export type { GameExecutor } from "./runtime/game-executor";
-export type {
-  AsyncApiChannelNames,
-  AsyncApiDocument,
-  AsyncApiOptions,
-} from "./protocol/asyncapi";
+export type { AsyncApiDocument, AsyncApiOptions } from "./protocol/asyncapi";
 export type {
   EngineWebSocketMessageNames,
   EngineWebSocketProtocolDescriptor,

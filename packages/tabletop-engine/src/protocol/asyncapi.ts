@@ -7,12 +7,10 @@ import {
   type EngineWebSocketMessageNames,
 } from "./engine-websocket";
 
-export type AsyncApiChannelNames = EngineWebSocketMessageNames;
-
 export interface AsyncApiOptions {
   title?: string;
   version?: string;
-  channels?: Partial<AsyncApiChannelNames>;
+  channels?: Partial<EngineWebSocketMessageNames>;
 }
 
 export interface AsyncApiDocument {
