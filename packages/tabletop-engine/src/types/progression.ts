@@ -6,9 +6,9 @@ import type { RuntimeState } from "./state";
 
 export const stageDefinitionBrand = Symbol("tabletop-engine.stage-definition");
 
-type StageDefinitionBrand = {
+interface StageDefinitionBrand {
   readonly [stageDefinitionBrand]: true;
-};
+}
 
 export interface SingleActivePlayerStageState {
   id: string;
