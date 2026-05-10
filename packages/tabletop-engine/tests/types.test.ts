@@ -32,7 +32,10 @@ import type {
   MultiActivePlayerStageDefinition,
   SingleActivePlayerStageDefinition,
 } from "../src/types/progression";
-import { GameDefinitionBuilder } from "../src/game-definition";
+import {
+  GameDefinitionBuilder,
+  type GameDefinition,
+} from "../src/game-definition";
 void (0 as unknown as RemovedCanonicalGameStateOf<never>);
 void (0 as unknown as RemovedCanonicalStateOf<never>);
 
@@ -608,6 +611,22 @@ test("game definition builder preserves facade generic before rootState", () => 
     .build();
 
   expect(typedRootGame.initialStage.id).toBe("gameEnd");
+});
+
+test("game definition defaults canonical state from the facade shape", () => {
+  function assertGameDefinitionDefaults() {
+    const definition =
+      undefined as unknown as GameDefinition<TypedCounterRootState>;
+    const counterValue: number =
+      definition.defaultCanonicalGameState.counter.value;
+
+    // @ts-expect-error canonical state should be plain data, not the facade class
+    definition.defaultCanonicalGameState.increment();
+
+    expect(counterValue).toBeNumber();
+  }
+
+  expect(assertGameDefinitionDefaults).toBeFunction();
 });
 
 test("game definition builder only exposes stage-based progression authoring", () => {

@@ -54,8 +54,8 @@ export interface GameSetupContext<
 }
 
 export interface GameDefinition<
-  CanonicalGameState extends object = object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object = object,
+  CanonicalGameState extends object = CanonicalGameStateShape<FacadeGameState>,
   Commands extends CommandDefinitionMap<FacadeGameState> =
     CommandDefinitionMap<FacadeGameState>,
   SetupInput extends object | undefined = undefined,
@@ -80,7 +80,7 @@ interface GameDefinitionBuilderState<
   SetupInput extends object | undefined = undefined,
 > extends Partial<
   Omit<
-    GameDefinition<CanonicalGameState, FacadeGameState, Commands, SetupInput>,
+    GameDefinition<FacadeGameState, CanonicalGameState, Commands, SetupInput>,
     | "commands"
     | "stateFacade"
     | "canonicalGameStateSchema"
@@ -160,8 +160,8 @@ export class GameDefinitionBuilder<
   }
 
   build(): GameDefinition<
-    CanonicalGameState,
     FacadeGameState,
+    CanonicalGameState,
     Commands,
     SetupInput
   > {

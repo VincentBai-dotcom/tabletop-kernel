@@ -24,8 +24,8 @@ export function validateCanonicalGameState<
   SetupInput extends object | undefined = undefined,
 >(
   game: GameDefinition<
-    CanonicalGameState,
     FacadeGameState,
+    CanonicalGameState,
     Commands,
     SetupInput
   >,
@@ -44,8 +44,8 @@ export function validateRuntimeState<
   SetupInput extends object | undefined = undefined,
 >(
   game: GameDefinition<
-    CanonicalGameState,
     FacadeGameState,
+    CanonicalGameState,
     Commands,
     SetupInput
   >,
@@ -64,8 +64,8 @@ export function validateCanonicalState<
   SetupInput extends object | undefined = undefined,
 >(
   game: GameDefinition<
-    CanonicalGameState,
     FacadeGameState,
+    CanonicalGameState,
     Commands,
     SetupInput
   >,

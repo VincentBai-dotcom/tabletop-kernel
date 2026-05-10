@@ -53,8 +53,8 @@ export function generateAsyncApi<
   SetupInput extends object | undefined = undefined,
 >(
   game: GameDefinition<
-    CanonicalGameState,
     FacadeGameState,
+    CanonicalGameState,
     Commands,
     SetupInput
   >,

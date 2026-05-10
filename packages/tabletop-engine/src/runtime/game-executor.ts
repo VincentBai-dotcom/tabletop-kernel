@@ -54,8 +54,8 @@ type GameExecutorDefinition<
   FacadeGameState extends object,
   SetupInput extends object | undefined,
 > = GameDefinition<
-  CanonicalGameState,
   FacadeGameState,
+  CanonicalGameState,
   CommandDefinitions<CanonicalGameState, FacadeGameState>,
   SetupInput
 >;
