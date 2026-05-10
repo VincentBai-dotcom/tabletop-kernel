@@ -66,79 +66,69 @@ export type CommandsFromDefinitions<Definitions extends readonly unknown[]> =
 
 export interface SingleActivePlayerSelectionContext<
   GameState extends object = object,
-  Runtime = RuntimeState,
 > {
   game: Readonly<GameState>;
-  runtime: Readonly<Runtime>;
+  runtime: Readonly<RuntimeState>;
 }
 
 export interface SingleActivePlayerTransitionContext<
   GameState extends object = object,
-  Runtime = RuntimeState,
   TCommand extends Command = Command,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
 > {
   game: Readonly<GameState>;
-  runtime: Readonly<Runtime>;
+  runtime: Readonly<RuntimeState>;
   command: TCommand;
   nextStages: Readonly<NextStages>;
 }
 
-export interface AutomaticStageRunContext<
-  GameState extends object = object,
-  Runtime = RuntimeState,
-> {
+export interface AutomaticStageRunContext<GameState extends object = object> {
   game: GameState;
-  runtime: Readonly<Runtime>;
+  runtime: Readonly<RuntimeState>;
   rng: RNGApi;
   emitEvent(event: GameEvent): void;
 }
 
 export interface AutomaticStageTransitionContext<
   GameState extends object = object,
-  Runtime = RuntimeState,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
 > {
   game: Readonly<GameState>;
-  runtime: Readonly<Runtime>;
+  runtime: Readonly<RuntimeState>;
   nextStages: Readonly<NextStages>;
 }
 
 export interface MultiActivePlayerMemoryContext<
   GameState extends object = object,
-  Runtime = RuntimeState,
   Memory extends object = object,
 > {
   game: Readonly<GameState>;
-  runtime: Readonly<Runtime>;
+  runtime: Readonly<RuntimeState>;
   memory: Memory;
 }
 
 export interface MultiActivePlayerSubmitContext<
   GameState extends object = object,
-  Runtime = RuntimeState,
   Memory extends object = object,
   TCommand extends Command = Command,
-> extends MultiActivePlayerMemoryContext<GameState, Runtime, Memory> {
+> extends MultiActivePlayerMemoryContext<GameState, Memory> {
   command: TCommand;
   execute(command: TCommand): void;
 }
 
 export interface MultiActivePlayerTransitionContext<
   GameState extends object = object,
-  Runtime = RuntimeState,
   Memory extends object = object,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
-> extends MultiActivePlayerMemoryContext<GameState, Runtime, Memory> {
+> extends MultiActivePlayerMemoryContext<GameState, Memory> {
   nextStages: Readonly<NextStages>;
 }
 
 export interface SingleActivePlayerStageDefinition<
   GameState extends object = object,
-  Runtime = RuntimeState,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState> =
@@ -146,15 +136,12 @@ export interface SingleActivePlayerStageDefinition<
 > extends StageDefinitionBrand {
   id: string;
   kind: "activePlayer";
-  activePlayer(
-    context: SingleActivePlayerSelectionContext<GameState, Runtime>,
-  ): string;
+  activePlayer(context: SingleActivePlayerSelectionContext<GameState>): string;
   commands: Commands;
   nextStages?: StageDefinitionResolver<GameState, NextStages>;
   transition(
     context: SingleActivePlayerTransitionContext<
       GameState,
-      Runtime,
       CommandsFromDefinitions<Commands>,
       NextStages
     >,
@@ -165,22 +152,20 @@ export interface SingleActivePlayerStageDefinition<
 
 export interface AutomaticStageDefinition<
   GameState extends object = object,
-  Runtime = RuntimeState,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
 > extends StageDefinitionBrand {
   id: string;
   kind: "automatic";
-  run?(context: AutomaticStageRunContext<GameState, Runtime>): void;
+  run?(context: AutomaticStageRunContext<GameState>): void;
   nextStages?: StageDefinitionResolver<GameState, NextStages>;
   transition?(
-    context: AutomaticStageTransitionContext<GameState, Runtime, NextStages>,
+    context: AutomaticStageTransitionContext<GameState, NextStages>,
   ): AutomaticStageDefinition<GameState> | NextStages[keyof NextStages];
 }
 
 export interface MultiActivePlayerStageDefinition<
   GameState extends object = object,
-  Runtime = RuntimeState,
   Memory extends object = object,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
@@ -192,28 +177,22 @@ export interface MultiActivePlayerStageDefinition<
   memorySchema: ObjectFieldType<Record<string, FieldType>>;
   memory(): Memory;
   activePlayers(
-    context: MultiActivePlayerMemoryContext<GameState, Runtime, Memory>,
+    context: MultiActivePlayerMemoryContext<GameState, Memory>,
   ): string[];
   commands: Commands;
   onSubmit(
     context: MultiActivePlayerSubmitContext<
       GameState,
-      Runtime,
       Memory,
       CommandsFromDefinitions<Commands>
     >,
   ): void;
   isComplete(
-    context: MultiActivePlayerMemoryContext<GameState, Runtime, Memory>,
+    context: MultiActivePlayerMemoryContext<GameState, Memory>,
   ): boolean;
   nextStages?: StageDefinitionResolver<GameState, NextStages>;
   transition(
-    context: MultiActivePlayerTransitionContext<
-      GameState,
-      Runtime,
-      Memory,
-      NextStages
-    >,
+    context: MultiActivePlayerTransitionContext<GameState, Memory, NextStages>,
   ): MultiActivePlayerStageDefinition<GameState> | NextStages[keyof NextStages];
 }
 

@@ -7,22 +7,20 @@ import type {
   InternalValidationContext,
 } from "../types/command";
 import type { GameEvent } from "../types/event";
-import type { CanonicalState, RuntimeState } from "../types/state";
+import type { CanonicalState } from "../types/state";
 import type { RNGApi } from "../types/rng";
 
 export function createValidationContext<
   CanonicalGameState extends object,
   FacadeGameState extends object,
-  Runtime extends RuntimeState,
   TCommandInput extends Command,
 >(
-  state: CanonicalState<CanonicalGameState, Runtime>,
+  state: CanonicalState<CanonicalGameState>,
   game: Readonly<FacadeGameState>,
   command: TCommandInput,
 ): InternalValidationContext<
   CanonicalGameState,
   FacadeGameState,
-  Runtime,
   TCommandInput
 > {
   return {
@@ -36,17 +34,12 @@ export function createValidationContext<
 export function createCommandAvailabilityContext<
   CanonicalGameState extends object,
   FacadeGameState extends object,
-  Runtime extends RuntimeState,
 >(
-  state: CanonicalState<CanonicalGameState, Runtime>,
+  state: CanonicalState<CanonicalGameState>,
   game: Readonly<FacadeGameState>,
   commandType: string,
   actorId: string,
-): InternalCommandAvailabilityContext<
-  CanonicalGameState,
-  FacadeGameState,
-  Runtime
-> {
+): InternalCommandAvailabilityContext<CanonicalGameState, FacadeGameState> {
   return {
     state,
     game,
@@ -59,16 +52,14 @@ export function createCommandAvailabilityContext<
 export function createDiscoveryContext<
   CanonicalGameState extends object,
   FacadeGameState extends object,
-  Runtime extends RuntimeState,
   TDiscoveryInput extends Record<string, unknown>,
 >(
-  state: CanonicalState<CanonicalGameState, Runtime>,
+  state: CanonicalState<CanonicalGameState>,
   game: Readonly<FacadeGameState>,
   discovery: Discovery<TDiscoveryInput>,
 ): InternalDiscoveryContext<
   CanonicalGameState,
   FacadeGameState,
-  Runtime,
   TDiscoveryInput
 > {
   return {
@@ -86,20 +77,14 @@ export function createDiscoveryContext<
 export function createExecuteContext<
   CanonicalGameState extends object,
   FacadeGameState extends object,
-  Runtime extends RuntimeState,
   TCommandInput extends Command,
 >(
-  state: CanonicalState<CanonicalGameState, Runtime>,
+  state: CanonicalState<CanonicalGameState>,
   game: FacadeGameState,
   command: TCommandInput,
   rng: RNGApi,
   emitEvent: (event: GameEvent) => void,
-): InternalExecuteContext<
-  CanonicalGameState,
-  FacadeGameState,
-  Runtime,
-  TCommandInput
-> {
+): InternalExecuteContext<CanonicalGameState, FacadeGameState, TCommandInput> {
   return {
     state,
     command,

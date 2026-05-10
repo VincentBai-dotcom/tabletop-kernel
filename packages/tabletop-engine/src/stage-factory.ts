@@ -17,7 +17,6 @@ import {
 } from "./types/progression";
 import { assertSerializableSchema } from "./schema";
 import type { FieldType, ObjectFieldType } from "./schema";
-import type { RuntimeState } from "./types/state";
 
 type NoBuilderMethod = Record<never, never>;
 type NoNextStages = Record<string, never>;
@@ -38,7 +37,6 @@ type SingleActivePlayerBuildMethod<
       ? {
           build(): SingleActivePlayerStageDefinition<
             GameState,
-            RuntimeState,
             Commands,
             NextStages
           >;
@@ -51,7 +49,7 @@ type AutomaticBuildMethod<
   GameState extends object,
   NextStages extends StageDefinitionMap<GameState>,
 > = {
-  build(): AutomaticStageDefinition<GameState, RuntimeState, NextStages>;
+  build(): AutomaticStageDefinition<GameState, NextStages>;
 };
 
 type MultiActivePlayerBuildMethod<
@@ -76,7 +74,6 @@ type MultiActivePlayerBuildMethod<
               ? {
                   build(): MultiActivePlayerStageDefinition<
                     GameState,
-                    RuntimeState,
                     Memory,
                     Commands,
                     NextStages
@@ -101,7 +98,7 @@ export type SingleActivePlayerStageBuilder<
 > = {
   activePlayer(
     activePlayer: (
-      context: SingleActivePlayerSelectionContext<GameState, RuntimeState>,
+      context: SingleActivePlayerSelectionContext<GameState>,
     ) => string,
   ): SingleActivePlayerStageBuilder<
     GameState,
@@ -135,7 +132,6 @@ export type SingleActivePlayerStageBuilder<
     transition: (
       context: SingleActivePlayerTransitionContext<
         GameState,
-        RuntimeState,
         CommandsFromDefinitions<Commands>,
         NextStages
       >,
@@ -164,18 +160,14 @@ export type AutomaticStageBuilder<
   NextStages extends StageDefinitionMap<GameState> = NoNextStages,
 > = {
   run(
-    run: (context: AutomaticStageRunContext<GameState, RuntimeState>) => void,
+    run: (context: AutomaticStageRunContext<GameState>) => void,
   ): AutomaticStageBuilder<GameState, NextStages>;
   nextStages<TNextStages extends StageDefinitionMap<GameState>>(
     nextStages: StageDefinitionResolver<GameState, TNextStages>,
   ): AutomaticStageBuilder<GameState, TNextStages>;
   transition(
     transition: (
-      context: AutomaticStageTransitionContext<
-        GameState,
-        RuntimeState,
-        NextStages
-      >,
+      context: AutomaticStageTransitionContext<GameState, NextStages>,
     ) => AutomaticStageDefinition<GameState> | NextStages[keyof NextStages],
   ): AutomaticStageBuilder<GameState, NextStages>;
 } & AutomaticBuildMethod<GameState, NextStages>;
@@ -212,7 +204,7 @@ export type MultiActivePlayerStageBuilder<
   >;
   activePlayers(
     activePlayers: (
-      context: MultiActivePlayerMemoryContext<GameState, RuntimeState, Memory>,
+      context: MultiActivePlayerMemoryContext<GameState, Memory>,
     ) => string[],
   ): MultiActivePlayerStageBuilder<
     GameState,
@@ -246,7 +238,6 @@ export type MultiActivePlayerStageBuilder<
     onSubmit: (
       context: MultiActivePlayerSubmitContext<
         GameState,
-        RuntimeState,
         Memory,
         CommandsFromDefinitions<Commands>
       >,
@@ -266,7 +257,7 @@ export type MultiActivePlayerStageBuilder<
   >;
   isComplete(
     isComplete: (
-      context: MultiActivePlayerMemoryContext<GameState, RuntimeState, Memory>,
+      context: MultiActivePlayerMemoryContext<GameState, Memory>,
     ) => boolean,
   ): MultiActivePlayerStageBuilder<
     GameState,
@@ -300,7 +291,6 @@ export type MultiActivePlayerStageBuilder<
     transition: (
       context: MultiActivePlayerTransitionContext<
         GameState,
-        RuntimeState,
         Memory,
         NextStages
       >,
@@ -350,14 +340,13 @@ type SingleActivePlayerAccumulator<
   id: string;
   kind: "activePlayer";
   activePlayer?: (
-    context: SingleActivePlayerSelectionContext<GameState, RuntimeState>,
+    context: SingleActivePlayerSelectionContext<GameState>,
   ) => string;
   commands?: Commands;
   nextStages?: StageDefinitionResolver<GameState, NextStages>;
   transition?: (
     context: SingleActivePlayerTransitionContext<
       GameState,
-      RuntimeState,
       CommandsFromDefinitions<Commands>,
       NextStages
     >,
@@ -372,14 +361,10 @@ type AutomaticAccumulator<
 > = {
   id: string;
   kind: "automatic";
-  run?: (context: AutomaticStageRunContext<GameState, RuntimeState>) => void;
+  run?: (context: AutomaticStageRunContext<GameState>) => void;
   nextStages?: StageDefinitionResolver<GameState, NextStages>;
   transition?: (
-    context: AutomaticStageTransitionContext<
-      GameState,
-      RuntimeState,
-      NextStages
-    >,
+    context: AutomaticStageTransitionContext<GameState, NextStages>,
   ) => AutomaticStageDefinition<GameState> | NextStages[keyof NextStages];
 };
 
@@ -394,28 +379,22 @@ type MultiActivePlayerAccumulator<
   memorySchema?: ObjectFieldType<Record<string, FieldType>>;
   memory?: () => Memory;
   activePlayers?: (
-    context: MultiActivePlayerMemoryContext<GameState, RuntimeState, Memory>,
+    context: MultiActivePlayerMemoryContext<GameState, Memory>,
   ) => string[];
   commands?: Commands;
   onSubmit?: (
     context: MultiActivePlayerSubmitContext<
       GameState,
-      RuntimeState,
       Memory,
       CommandsFromDefinitions<Commands>
     >,
   ) => void;
   isComplete?: (
-    context: MultiActivePlayerMemoryContext<GameState, RuntimeState, Memory>,
+    context: MultiActivePlayerMemoryContext<GameState, Memory>,
   ) => boolean;
   nextStages?: StageDefinitionResolver<GameState, NextStages>;
   transition?: (
-    context: MultiActivePlayerTransitionContext<
-      GameState,
-      RuntimeState,
-      Memory,
-      NextStages
-    >,
+    context: MultiActivePlayerTransitionContext<GameState, Memory, NextStages>,
   ) =>
     | MultiActivePlayerStageDefinition<GameState>
     | NextStages[keyof NextStages];
@@ -556,12 +535,7 @@ function createSingleActivePlayerBuilder<
         nextStages: accumulator.nextStages,
         transition: accumulator.transition,
         [stageDefinitionBrand]: true,
-      } as SingleActivePlayerStageDefinition<
-        GameState,
-        RuntimeState,
-        Commands,
-        NextStages
-      >;
+      } as SingleActivePlayerStageDefinition<GameState, Commands, NextStages>;
     },
   } as SingleActivePlayerStageBuilder<
     GameState,
@@ -612,7 +586,7 @@ function createAutomaticBuilder<
         nextStages: accumulator.nextStages,
         transition: accumulator.transition,
         [stageDefinitionBrand]: true,
-      } as AutomaticStageDefinition<GameState, RuntimeState, NextStages>;
+      } as AutomaticStageDefinition<GameState, NextStages>;
     },
   };
 }
@@ -681,11 +655,7 @@ function createMultiActivePlayerBuilder<
     },
     activePlayers(
       activePlayers: (
-        context: MultiActivePlayerMemoryContext<
-          GameState,
-          RuntimeState,
-          Memory
-        >,
+        context: MultiActivePlayerMemoryContext<GameState, Memory>,
       ) => string[],
     ) {
       return createMultiActivePlayerBuilder<
@@ -734,7 +704,6 @@ function createMultiActivePlayerBuilder<
       onSubmit: (
         context: MultiActivePlayerSubmitContext<
           GameState,
-          RuntimeState,
           Memory,
           CommandsFromDefinitions<Commands>
         >,
@@ -759,11 +728,7 @@ function createMultiActivePlayerBuilder<
     },
     isComplete(
       isComplete: (
-        context: MultiActivePlayerMemoryContext<
-          GameState,
-          RuntimeState,
-          Memory
-        >,
+        context: MultiActivePlayerMemoryContext<GameState, Memory>,
       ) => boolean,
     ) {
       return createMultiActivePlayerBuilder<
@@ -812,7 +777,6 @@ function createMultiActivePlayerBuilder<
       transition: (
         context: MultiActivePlayerTransitionContext<
           GameState,
-          RuntimeState,
           Memory,
           NextStages
         >,
@@ -884,7 +848,6 @@ function createMultiActivePlayerBuilder<
         [stageDefinitionBrand]: true,
       } as unknown as MultiActivePlayerStageDefinition<
         GameState,
-        RuntimeState,
         Memory,
         Commands,
         NextStages

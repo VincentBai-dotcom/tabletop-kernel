@@ -46,7 +46,7 @@ type CommandDefinitions<
   FacadeGameState extends object = CanonicalGameState,
 > = Record<
   string,
-  InternalCommandDefinition<CanonicalGameState, FacadeGameState, RuntimeState>
+  InternalCommandDefinition<CanonicalGameState, FacadeGameState>
 >;
 
 type GameExecutorDefinition<
@@ -575,7 +575,6 @@ export function createGameExecutor<
       const discoveryContext = createDiscoveryContext<
         CanonicalGameState,
         FacadeGameState,
-        RuntimeState,
         typeof discovery.input
       >(
         state,
@@ -1039,11 +1038,7 @@ function executeCommandAgainstState<
 >(
   state: CanonicalState<CanonicalGameState>,
   game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
-  definition: InternalCommandDefinition<
-    CanonicalGameState,
-    FacadeGameState,
-    RuntimeState
-  >,
+  definition: InternalCommandDefinition<CanonicalGameState, FacadeGameState>,
   command: Command,
   rng: ReturnType<typeof createRNGService>,
   emitEvent: (event: GameEvent) => void,
