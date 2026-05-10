@@ -32,7 +32,6 @@ import type {
   MultiActivePlayerStageDefinition,
   SingleActivePlayerStageDefinition,
 } from "../src/types/progression";
-import type { RuntimeState } from "../src/types/state";
 import { GameDefinitionBuilder } from "../src/game-definition";
 void (0 as unknown as RemovedCanonicalGameStateOf<never>);
 void (0 as unknown as RemovedCanonicalStateOf<never>);
@@ -264,7 +263,6 @@ test("stage machine types support multi-active stage authoring", () => {
 
   function createMultiActiveStage(): MultiActivePlayerStageDefinition<
     { actions: string[] },
-    RuntimeState,
     {
       submittedByPlayerId: Record<string, string>;
     }
@@ -1053,7 +1051,6 @@ test("internal command definitions still expose canonical state separately from 
   const definition: InternalCommandDefinition<
     { score: number },
     { increment(): void },
-    RuntimeState,
     GainScoreInput
   > = {
     commandId: "gain_score",
@@ -1078,7 +1075,6 @@ test("internal command definitions still expose canonical state separately from 
   const context: InternalExecuteContext<
     { score: number },
     { increment(): void },
-    RuntimeState,
     CommandFromSchema<GainScoreInput>
   > = {
     state: {
