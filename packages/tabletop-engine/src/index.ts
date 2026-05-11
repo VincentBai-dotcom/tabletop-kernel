@@ -34,12 +34,17 @@ export type {
   ProtocolCommandDescriptor,
 } from "./protocol/describe";
 export type {
+  ArraySchemaStatic,
   ArrayFieldType,
   FieldType,
   NumberFieldType,
+  ObjectSchemaStatic,
   ObjectFieldType,
+  OptionalSchemaStatic,
   OptionalFieldType,
+  RecordSchemaStatic,
   RecordFieldType,
+  SerializableFieldStatic,
   SerializableFieldType,
   StringFieldType,
 } from "./schema";
