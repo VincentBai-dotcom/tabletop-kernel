@@ -67,8 +67,8 @@ export interface GameDefinition<
   runtimeStateSchema: TSchema;
   setupInputSchema?: ObjectFieldType<Record<string, FieldType>>;
   defaultCanonicalGameState: CanonicalGameState;
-  initialStage: StageDefinition;
-  stages: Record<string, StageDefinition>;
+  initialStage: StageDefinition<FacadeGameState>;
+  stages: Record<string, StageDefinition<FacadeGameState>>;
   setup?: (context: GameSetupContext<FacadeGameState, SetupInput>) => void;
 }
 
@@ -92,7 +92,7 @@ interface GameDefinitionBuilderState<
 > {
   name: string;
   rootState?: StateClass;
-  initialStage?: StageDefinition;
+  initialStage?: StageDefinition<FacadeGameState>;
   setup?: (context: GameSetupContext<FacadeGameState, SetupInput>) => void;
 }
 
@@ -154,7 +154,7 @@ export class GameDefinitionBuilder<
     >;
   }
 
-  initialStage(initialStage: StageDefinition): this {
+  initialStage(initialStage: StageDefinition<FacadeGameState>): this {
     this.config.initialStage = initialStage;
     return this;
   }

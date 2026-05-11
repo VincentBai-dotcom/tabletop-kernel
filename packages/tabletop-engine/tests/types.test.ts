@@ -529,7 +529,11 @@ test("strict command and discovery requests require actorId and input", () => {
 test("rootState infers plain canonical data directly through executor state", () => {
   const typedRootGame = new GameDefinitionBuilder("typed-root-game")
     .rootState(TypedCounterRootState)
-    .initialStage(createStageFactory<object>()("gameEnd").automatic().build())
+    .initialStage(
+      createStageFactory<TypedCounterRootState>()("gameEnd")
+        .automatic()
+        .build(),
+    )
     .build();
   const executor = createGameExecutor(typedRootGame);
   const initialState = executor.createInitialState("seed-123");
@@ -559,7 +563,11 @@ test("game definition builder infers setup input through executor initialization
 
       expect(typedPlayerIds).toBeArray();
     })
-    .initialStage(createStageFactory<object>()("gameEnd").automatic().build())
+    .initialStage(
+      createStageFactory<TypedCounterRootState>()("gameEnd")
+        .automatic()
+        .build(),
+    )
     .build();
   const executor = createGameExecutor(typedRootGame);
   const initialState = executor.createInitialState(
@@ -607,7 +615,11 @@ test("game definition builder preserves facade generic before rootState", () => 
 
   const typedRootGame = builder
     .rootState(TypedCounterRootState)
-    .initialStage(createStageFactory<object>()("gameEnd").automatic().build())
+    .initialStage(
+      createStageFactory<TypedCounterRootState>()("gameEnd")
+        .automatic()
+        .build(),
+    )
     .build();
 
   expect(typedRootGame.initialStage.id).toBe("gameEnd");

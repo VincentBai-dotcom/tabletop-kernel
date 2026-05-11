@@ -13,7 +13,10 @@ import {
 } from "../src/state-facade/metadata";
 
 const emptyCommandSchema = t.object({});
-const defineTestStage = createStageFactory<object>();
+
+function createTestStage<GameState extends object>(id: string) {
+  return createStageFactory<GameState>()(id);
+}
 
 @State()
 class TestHandState {
@@ -106,7 +109,9 @@ class UndeclaredDefaultRootState {
 }
 
 test("GameDefinitionBuilder preserves the supplied configuration", () => {
-  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+  const gameEndStage = createTestStage<ScoreRootState>("gameEnd")
+    .automatic()
+    .build();
 
   const game = new GameDefinitionBuilder("test-game")
     .rootState(ScoreRootState)
@@ -128,7 +133,9 @@ test("GameDefinitionBuilder preserves setup input schema in the built game", () 
         playerIds: t.array(t.string()),
       }),
     )
-    .initialStage(defineTestStage("gameEnd").automatic().build())
+    .initialStage(
+      createTestStage<ScoreRootState>("gameEnd").automatic().build(),
+    )
     .build();
 
   expect(game.setupInputSchema?.kind).toBe("object");
@@ -142,7 +149,9 @@ test("GameDefinitionBuilder rejects non-object setup input schemas at runtime", 
     new GameDefinitionBuilder("invalid-runtime-setup-input-game")
       .rootState(ScoreRootState)
       .setupInput(t.string() as never)
-      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .initialStage(
+        createTestStage<ScoreRootState>("gameEnd").automatic().build(),
+      )
       .build(),
   ).toThrow("setup_input_schema_must_be_object");
 });
@@ -151,7 +160,11 @@ test("GameDefinitionBuilder rejects field defaults that do not match their schem
   expect(() =>
     new GameDefinitionBuilder("mismatched-default-game")
       .rootState(MismatchedDefaultRootState)
-      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .initialStage(
+        createTestStage<MismatchedDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
       .build(),
   ).toThrow("invalid_schema_value");
 });
@@ -160,7 +173,11 @@ test("GameDefinitionBuilder rejects initialized public state properties without 
   expect(() =>
     new GameDefinitionBuilder("undeclared-default-game")
       .rootState(UndeclaredDefaultRootState)
-      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .initialStage(
+        createTestStage<UndeclaredDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
       .build(),
   ).toThrow("undeclared_state_field_value:UndeclaredDefaultRootState.cache");
 });
@@ -191,8 +208,8 @@ test("GameDefinitionBuilder compiles stage command references into the command m
     .build();
   const scoreTurnStage = createScoreTurnStage();
 
-  function createScoreTurnStage(): SingleActivePlayerStageDefinition<object> {
-    return defineTestStage("scoreTurn")
+  function createScoreTurnStage(): SingleActivePlayerStageDefinition<ScoreRootState> {
+    return createTestStage<ScoreRootState>("scoreTurn")
       .singleActivePlayer()
       .activePlayer(() => "player-1")
       .commands([incrementScoreCommand, decrementScoreCommand])
@@ -227,8 +244,10 @@ test("GameDefinitionBuilder compiles multi-active stage command references into 
       game.score += 1;
     })
     .build();
-  const gameEndStage = defineTestStage("gameEnd").automatic().build();
-  const voteStage = defineTestStage("voteStage")
+  const gameEndStage = createTestStage<ScoreRootState>("gameEnd")
+    .automatic()
+    .build();
+  const voteStage = createTestStage<ScoreRootState>("voteStage")
     .multiActivePlayer()
     .memory(
       t.object({
@@ -383,11 +402,13 @@ test("GameDefinitionBuilder accepts factory-defined commands through stages only
       game.score -= 1;
     })
     .build();
-  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+  const gameEndStage = createTestStage<ScoreRootState>("gameEnd")
+    .automatic()
+    .build();
   const scoreTurnStage = createScoreTurnStage();
 
-  function createScoreTurnStage(): SingleActivePlayerStageDefinition<object> {
-    return defineTestStage("scoreTurn")
+  function createScoreTurnStage(): SingleActivePlayerStageDefinition<ScoreRootState> {
+    return createTestStage<ScoreRootState>("scoreTurn")
       .singleActivePlayer()
       .activePlayer(() => "player-1")
       .commands([incrementScoreCommand, decrementScoreCommand])
@@ -437,8 +458,10 @@ test("GameDefinitionBuilder rejects duplicate command ids across reachable stage
       game.score += 2;
     })
     .build();
-  const gameEndStage = defineTestStage("gameEnd").automatic().build();
-  const scoreTurnStage = defineTestStage("scoreTurn")
+  const gameEndStage = createTestStage<ScoreRootState>("gameEnd")
+    .automatic()
+    .build();
+  const scoreTurnStage = createTestStage<ScoreRootState>("scoreTurn")
     .singleActivePlayer()
     .activePlayer(() => "player-1")
     .commands([incrementScoreCommand])
@@ -449,8 +472,8 @@ test("GameDefinitionBuilder rejects duplicate command ids across reachable stage
     .build();
   const bonusTurnStage = createBonusTurnStage();
 
-  function createBonusTurnStage(): SingleActivePlayerStageDefinition<object> {
-    return defineTestStage("bonusTurn")
+  function createBonusTurnStage(): SingleActivePlayerStageDefinition<ScoreRootState> {
+    return createTestStage<ScoreRootState>("bonusTurn")
       .singleActivePlayer()
       .activePlayer(() => "player-2")
       .commands([duplicateIncrementScoreCommand])
@@ -458,7 +481,7 @@ test("GameDefinitionBuilder rejects duplicate command ids across reachable stage
       .transition(({ nextStages }) => nextStages.bonusTurnStage)
       .build();
   }
-  const rootStage = defineTestStage("root")
+  const rootStage = createTestStage<ScoreRootState>("root")
     .automatic()
     .nextStages(() => ({
       scoreTurnStage,
@@ -492,8 +515,8 @@ test("GameDefinitionBuilder only accepts commands created by the command factory
 
   const turnStage = createTurnStage();
 
-  function createTurnStage(): SingleActivePlayerStageDefinition<object> {
-    return defineTestStage("turn")
+  function createTurnStage(): SingleActivePlayerStageDefinition<ScoreRootState> {
+    return createTestStage<ScoreRootState>("turn")
       .singleActivePlayer()
       .activePlayer(() => "player-1")
       .commands([
@@ -509,11 +532,13 @@ test("GameDefinitionBuilder only accepts commands created by the command factory
 });
 
 test("createGameExecutor creates initial stage-machine runtime state", () => {
-  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+  const gameEndStage = createTestStage<ScoreRootState>("gameEnd")
+    .automatic()
+    .build();
   const playerTurnStage = createPlayerTurnStage();
 
-  function createPlayerTurnStage(): SingleActivePlayerStageDefinition<object> {
-    return defineTestStage("playerTurn")
+  function createPlayerTurnStage(): SingleActivePlayerStageDefinition<ScoreRootState> {
+    return createTestStage<ScoreRootState>("playerTurn")
       .singleActivePlayer()
       .activePlayer(() => "player-1")
       .nextStages(() => ({
@@ -542,7 +567,9 @@ test("createGameExecutor creates initial stage-machine runtime state", () => {
 });
 
 test("GameDefinitionBuilder builds the same game definition shape", () => {
-  const gameEndStage = defineTestStage("gameEnd").automatic().build();
+  const gameEndStage = createTestStage<ScoreRootState>("gameEnd")
+    .automatic()
+    .build();
   const game = new GameDefinitionBuilder("builder-game")
     .rootState(ScoreRootState)
     .initialStage(gameEndStage)
@@ -558,7 +585,7 @@ test("GameDefinitionBuilder builds the same game definition shape", () => {
 test("GameDefinitionBuilder compiles reachable root state metadata", () => {
   const game = new GameDefinitionBuilder("root-state-game")
     .rootState(TestRootState)
-    .initialStage(defineTestStage("gameEnd").automatic().build())
+    .initialStage(createTestStage<TestRootState>("gameEnd").automatic().build())
     .build();
 
   expect(game.stateFacade?.root).toBe(TestRootState);
@@ -577,7 +604,9 @@ test("GameDefinitionBuilder rejects undecorated nested state targets", () => {
   expect(() =>
     new GameDefinitionBuilder("broken-root-state-game")
       .rootState(BrokenRootState)
-      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .initialStage(
+        createTestStage<BrokenRootState>("gameEnd").automatic().build(),
+      )
       .build(),
   ).toThrow("state_field_target_must_be_decorated:UndecoratedChildState");
 });
@@ -585,7 +614,9 @@ test("GameDefinitionBuilder rejects undecorated nested state targets", () => {
 test("GameDefinitionBuilder compiles nested state references inside array field types", () => {
   const game = new GameDefinitionBuilder("collection-root-state-game")
     .rootState(TestCollectionRootState)
-    .initialStage(defineTestStage("gameEnd").automatic().build())
+    .initialStage(
+      createTestStage<TestCollectionRootState>("gameEnd").automatic().build(),
+    )
     .build();
 
   expect(game.stateFacade?.root).toBe(TestCollectionRootState);
@@ -609,7 +640,11 @@ test("GameDefinitionBuilder rejects visibleToSelf fields without a player-owned 
   expect(() =>
     new GameDefinitionBuilder("visible-to-self-without-owner-game")
       .rootState(VisibleToSelfWithoutOwnerRootState)
-      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .initialStage(
+        createTestStage<VisibleToSelfWithoutOwnerRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
       .build(),
   ).toThrow("visible_to_self_requires_owned_player_ancestor:hiddenCards");
 });
@@ -618,7 +653,11 @@ test("GameDefinitionBuilder rejects owned player states without a string id fiel
   expect(() =>
     new GameDefinitionBuilder("owned-player-without-id-game")
       .rootState(OwnedPlayerStateWithoutId)
-      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .initialStage(
+        createTestStage<OwnedPlayerStateWithoutId>("gameEnd")
+          .automatic()
+          .build(),
+      )
       .build(),
   ).toThrow(
     "owned_by_field_requires_string_field:OwnedPlayerStateWithoutId:score",
@@ -629,7 +668,11 @@ test("GameDefinitionBuilder rejects unknown configured visibility fields", () =>
   expect(() =>
     new GameDefinitionBuilder("visibility-field-typo-game")
       .rootState(VisibilityFieldTypoRootState)
-      .initialStage(defineTestStage("gameEnd").automatic().build())
+      .initialStage(
+        createTestStage<VisibilityFieldTypoRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
       .build(),
   ).toThrow("visibility_field_not_found:VisibilityFieldTypoRootState:cardz");
 });
