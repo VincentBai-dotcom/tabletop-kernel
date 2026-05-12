@@ -10,7 +10,6 @@ import {
   createStageEnteredEvent,
   createStageExitedEvent,
 } from "./events";
-import { cloneCanonicalState } from "./transaction";
 import type {
   Command,
   Discovery,
@@ -803,7 +802,7 @@ export function createGameExecutor<
         return failure;
       }
 
-      const workingState = cloneCanonicalState(state);
+      const workingState = structuredClone(state);
       const collector = createEventCollector();
       const rng = createRNGService(workingState.runtime.rng);
 
