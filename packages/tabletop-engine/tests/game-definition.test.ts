@@ -101,6 +101,54 @@ class MismatchedDefaultRootState {
 }
 
 @State()
+class MismatchedStringDefaultRootState {
+  @field(t.string())
+  name = 123 as never;
+}
+
+@State()
+class MismatchedBooleanDefaultRootState {
+  @field(t.boolean())
+  enabled = "yes" as never;
+}
+
+@State()
+class MismatchedArrayDefaultRootState {
+  @field(t.array(t.number()))
+  values = "not-an-array" as never;
+}
+
+@State()
+class MismatchedRecordDefaultRootState {
+  @field(t.record(t.string(), t.number()))
+  scores = 123 as never;
+}
+
+@State()
+class MismatchedRecordKeyDefaultRootState {
+  @field(t.record(t.number(), t.string()))
+  scores = {
+    abc: "not-a-number-key",
+  } as never;
+}
+
+@State()
+class MismatchedObjectDefaultRootState {
+  @field(
+    t.object({
+      label: t.string(),
+    }),
+  )
+  config = 123 as never;
+}
+
+@State()
+class MismatchedStateDefaultRootState {
+  @field(t.state(() => TestHandState))
+  hand = 123 as never;
+}
+
+@State()
 class UndeclaredDefaultRootState {
   @field(t.number())
   score = 0;
@@ -166,7 +214,112 @@ test("GameDefinitionBuilder rejects field defaults that do not match their schem
           .build(),
       )
       .build(),
-  ).toThrow("invalid_schema_value");
+  ).toThrow("invalid_default_field_value:MismatchedDefaultRootState.name:/");
+});
+
+test("GameDefinitionBuilder rejects string defaults with non-string values", () => {
+  expect(() =>
+    new GameDefinitionBuilder("mismatched-string-default-game")
+      .rootState(MismatchedStringDefaultRootState)
+      .initialStage(
+        createTestStage<MismatchedStringDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
+      .build(),
+  ).toThrow(
+    "invalid_default_field_value:MismatchedStringDefaultRootState.name:/",
+  );
+});
+
+test("GameDefinitionBuilder rejects boolean defaults with non-boolean values", () => {
+  expect(() =>
+    new GameDefinitionBuilder("mismatched-boolean-default-game")
+      .rootState(MismatchedBooleanDefaultRootState)
+      .initialStage(
+        createTestStage<MismatchedBooleanDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
+      .build(),
+  ).toThrow(
+    "invalid_default_field_value:MismatchedBooleanDefaultRootState.enabled:/",
+  );
+});
+
+test("GameDefinitionBuilder rejects array defaults with non-array values", () => {
+  expect(() =>
+    new GameDefinitionBuilder("mismatched-array-default-game")
+      .rootState(MismatchedArrayDefaultRootState)
+      .initialStage(
+        createTestStage<MismatchedArrayDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
+      .build(),
+  ).toThrow(
+    "invalid_default_field_shape:MismatchedArrayDefaultRootState.values:array",
+  );
+});
+
+test("GameDefinitionBuilder rejects record defaults with non-object values", () => {
+  expect(() =>
+    new GameDefinitionBuilder("mismatched-record-default-game")
+      .rootState(MismatchedRecordDefaultRootState)
+      .initialStage(
+        createTestStage<MismatchedRecordDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
+      .build(),
+  ).toThrow(
+    "invalid_default_field_shape:MismatchedRecordDefaultRootState.scores:object",
+  );
+});
+
+test("GameDefinitionBuilder rejects record defaults with invalid keys", () => {
+  expect(() =>
+    new GameDefinitionBuilder("mismatched-record-key-default-game")
+      .rootState(MismatchedRecordKeyDefaultRootState)
+      .initialStage(
+        createTestStage<MismatchedRecordKeyDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
+      .build(),
+  ).toThrow(
+    "invalid_default_record_key:MismatchedRecordKeyDefaultRootState.scores:abc:number",
+  );
+});
+
+test("GameDefinitionBuilder rejects object defaults with non-object values", () => {
+  expect(() =>
+    new GameDefinitionBuilder("mismatched-object-default-game")
+      .rootState(MismatchedObjectDefaultRootState)
+      .initialStage(
+        createTestStage<MismatchedObjectDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
+      .build(),
+  ).toThrow(
+    "invalid_default_field_shape:MismatchedObjectDefaultRootState.config:object",
+  );
+});
+
+test("GameDefinitionBuilder rejects nested state defaults with non-object values", () => {
+  expect(() =>
+    new GameDefinitionBuilder("mismatched-state-default-game")
+      .rootState(MismatchedStateDefaultRootState)
+      .initialStage(
+        createTestStage<MismatchedStateDefaultRootState>("gameEnd")
+          .automatic()
+          .build(),
+      )
+      .build(),
+  ).toThrow(
+    "invalid_default_field_shape:MismatchedStateDefaultRootState.hand:object",
+  );
 });
 
 test("GameDefinitionBuilder rejects initialized public state properties without field metadata", () => {
