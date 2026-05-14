@@ -1,7 +1,7 @@
 import { Value } from "@sinclair/typebox/value";
 import type { TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
-import type { CanonicalGameStateShape } from "../state-facade/canonical";
+import type { CanonicalGameState } from "../state-facade/canonical";
 import type { CommandDefinition } from "../types/command";
 import type { CanonicalState, RuntimeState } from "../types/state";
 
@@ -24,7 +24,7 @@ export function validateCanonicalGameState<
   SetupInput extends object | undefined = undefined,
 >(
   game: GameDefinition<FacadeGameState, Commands, SetupInput>,
-  gameState: CanonicalGameStateShape<FacadeGameState>,
+  gameState: CanonicalGameState<FacadeGameState>,
 ): void {
   assertSchemaValue(game.canonicalGameStateSchema, gameState);
 }
@@ -52,7 +52,7 @@ export function validateCanonicalState<
   SetupInput extends object | undefined = undefined,
 >(
   game: GameDefinition<FacadeGameState, Commands, SetupInput>,
-  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  state: CanonicalState<CanonicalGameState<FacadeGameState>>,
 ): void {
   validateCanonicalGameState(game, state.game);
   validateRuntimeState(game, state.runtime);

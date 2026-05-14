@@ -10,16 +10,13 @@ type NonFunctionPropertyKeys<TObject> = {
 }[keyof TObject];
 
 // Compile-time view of a facade state as canonical plain data, omitting methods.
-export type CanonicalGameStateShape<TState> =
-  TState extends readonly (infer TItem)[]
-    ? CanonicalGameStateShape<TItem>[]
-    : TState extends object
-      ? {
-          [K in NonFunctionPropertyKeys<TState>]: CanonicalGameStateShape<
-            TState[K]
-          >;
-        }
-      : TState;
+export type CanonicalGameState<TState> = TState extends readonly (infer TItem)[]
+  ? CanonicalGameState<TItem>[]
+  : TState extends object
+    ? {
+        [K in NonFunctionPropertyKeys<TState>]: CanonicalGameState<TState[K]>;
+      }
+    : TState;
 
 export function compileCanonicalGameStateSchema(
   root: StateClass,
@@ -38,11 +35,11 @@ export function compileCanonicalGameStateSchema(
 
 export function createDefaultCanonicalGameState<TState extends object>(
   root: StateClass<TState>,
-): CanonicalGameStateShape<TState> {
+): CanonicalGameState<TState> {
   return createCanonicalStateObject(
     root,
     new root(),
-  ) as CanonicalGameStateShape<TState>;
+  ) as CanonicalGameState<TState>;
 }
 
 function createCanonicalStateObject(

@@ -1,5 +1,5 @@
 import type { FieldType, ObjectFieldType } from "../schema";
-import type { CanonicalGameStateShape } from "../state-facade/canonical";
+import type { CanonicalGameState } from "../state-facade/canonical";
 import type { GameEvent } from "./event";
 import type { RNGApi } from "./rng";
 import type { ValidationOutcome } from "./result";
@@ -555,7 +555,7 @@ export interface InternalValidationContext<
   FacadeGameState extends object = object,
   TCommand extends Command = Command,
 > {
-  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>;
+  state: CanonicalState<CanonicalGameState<FacadeGameState>>;
   game: Readonly<FacadeGameState>;
   runtime: Readonly<RuntimeState>;
   command: TCommand;
@@ -573,7 +573,7 @@ export type ValidationContext<
 export interface InternalCommandAvailabilityContext<
   FacadeGameState extends object = object,
 > {
-  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>;
+  state: CanonicalState<CanonicalGameState<FacadeGameState>>;
   game: Readonly<FacadeGameState>;
   runtime: Readonly<RuntimeState>;
   commandType: string;

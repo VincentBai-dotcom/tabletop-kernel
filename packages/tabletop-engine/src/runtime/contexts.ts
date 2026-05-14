@@ -9,13 +9,13 @@ import type {
 import type { GameEvent } from "../types/event";
 import type { CanonicalState } from "../types/state";
 import type { RNGApi } from "../types/rng";
-import type { CanonicalGameStateShape } from "../state-facade/canonical";
+import type { CanonicalGameState } from "../state-facade/canonical";
 
 export function createValidationContext<
   FacadeGameState extends object,
   TCommandInput extends Command,
 >(
-  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  state: CanonicalState<CanonicalGameState<FacadeGameState>>,
   game: Readonly<FacadeGameState>,
   command: TCommandInput,
 ): InternalValidationContext<FacadeGameState, TCommandInput> {
@@ -30,7 +30,7 @@ export function createValidationContext<
 export function createCommandAvailabilityContext<
   FacadeGameState extends object,
 >(
-  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  state: CanonicalState<CanonicalGameState<FacadeGameState>>,
   game: Readonly<FacadeGameState>,
   commandType: string,
   actorId: string,
@@ -48,7 +48,7 @@ export function createDiscoveryContext<
   FacadeGameState extends object,
   TDiscoveryInput extends Record<string, unknown>,
 >(
-  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  state: CanonicalState<CanonicalGameState<FacadeGameState>>,
   game: Readonly<FacadeGameState>,
   discovery: Discovery<TDiscoveryInput>,
 ): InternalDiscoveryContext<FacadeGameState, TDiscoveryInput> {
@@ -68,7 +68,7 @@ export function createExecuteContext<
   FacadeGameState extends object,
   TCommandInput extends Command,
 >(
-  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  state: CanonicalState<CanonicalGameState<FacadeGameState>>,
   game: FacadeGameState,
   command: TCommandInput,
   rng: RNGApi,

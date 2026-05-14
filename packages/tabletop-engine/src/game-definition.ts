@@ -9,7 +9,7 @@ import {
 import {
   compileCanonicalGameStateSchema,
   createDefaultCanonicalGameState,
-  type CanonicalGameStateShape,
+  type CanonicalGameState,
 } from "./state-facade/canonical";
 import { compileRuntimeStateSchema } from "./runtime/runtime-schema";
 import { assertSchemaValue } from "./runtime/validation";
@@ -51,7 +51,7 @@ export interface GameDefinition<
   canonicalGameStateSchema: ObjectFieldType<Record<string, FieldType>>;
   runtimeStateSchema: TSchema;
   setupInputSchema?: ObjectFieldType<Record<string, FieldType>>;
-  defaultCanonicalGameState: CanonicalGameStateShape<FacadeGameState>;
+  defaultCanonicalGameState: CanonicalGameState<FacadeGameState>;
   initialStage: StageDefinition<FacadeGameState>;
   stages: Record<string, StageDefinition<FacadeGameState>>;
   setup?: (context: GameSetupContext<FacadeGameState, SetupInput>) => void;
