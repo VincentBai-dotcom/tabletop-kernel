@@ -31,9 +31,7 @@ implements:
 - [`examples/splendor/terminal`](./examples/splendor/terminal)
   terminal client for exercising gameplay and discovery loops
 - [`docs/design`](./docs/design)
-  architectural decisions
-- [`docs/plans`](./docs/plans)
-  implementation plans and execution notes
+  current architectural decisions
 
 ## Current Deferrals
 

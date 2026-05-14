@@ -39,8 +39,6 @@ Important workspace areas:
   terminal client for exercising the hosted-style interaction loop locally
 - `docs/design`
   current design decisions
-- `docs/plans`
-  implementation plans and historical execution notes
 
 Inside the engine package:
 
