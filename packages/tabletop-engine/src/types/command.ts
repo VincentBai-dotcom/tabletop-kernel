@@ -1,4 +1,5 @@
 import type { FieldType, ObjectFieldType } from "../schema";
+import type { CanonicalGameStateShape } from "../state-facade/canonical";
 import type { GameEvent } from "./event";
 import type { RNGApi } from "./rng";
 import type { ValidationOutcome } from "./result";
@@ -551,11 +552,10 @@ export type CommandBuilder<
   >;
 
 export interface InternalValidationContext<
-  CanonicalGameState extends object = object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object = object,
   TCommand extends Command = Command,
 > {
-  state: CanonicalState<CanonicalGameState>;
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>;
   game: Readonly<FacadeGameState>;
   runtime: Readonly<RuntimeState>;
   command: TCommand;
@@ -571,10 +571,9 @@ export type ValidationContext<
 };
 
 export interface InternalCommandAvailabilityContext<
-  CanonicalGameState extends object = object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object = object,
 > {
-  state: CanonicalState<CanonicalGameState>;
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>;
   game: Readonly<FacadeGameState>;
   runtime: Readonly<RuntimeState>;
   commandType: string;
@@ -591,13 +590,9 @@ export type CommandAvailabilityContext<
 };
 
 export interface InternalDiscoveryContext<
-  CanonicalGameState extends object = object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object = object,
   TDiscovery extends DiscoveryData = DiscoveryData,
-> extends InternalCommandAvailabilityContext<
-  CanonicalGameState,
-  FacadeGameState
-> {
+> extends InternalCommandAvailabilityContext<FacadeGameState> {
   discovery: Discovery<TDiscovery>;
   input: TDiscovery;
 }
@@ -629,14 +624,9 @@ export type CommandDiscoveryResult<
     };
 
 export interface InternalExecuteContext<
-  CanonicalGameState extends object = object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object = object,
   TCommand extends Command = Command,
-> extends InternalValidationContext<
-  CanonicalGameState,
-  FacadeGameState,
-  TCommand
-> {
+> extends InternalValidationContext<FacadeGameState, TCommand> {
   game: FacadeGameState;
   runtime: Readonly<RuntimeState>;
   rng: RNGApi;
@@ -655,29 +645,23 @@ export type ExecuteContext<
 };
 
 export interface InternalCommandDefinition<
-  CanonicalGameState extends object = object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object = object,
   TCommandInput extends CommandData = CommandData,
 > {
   commandId: string;
   commandSchema: CommandSchema<TCommandInput>;
   discovery?: DiscoveryDefinition;
   isAvailable?(
-    context: InternalCommandAvailabilityContext<
-      CanonicalGameState,
-      FacadeGameState
-    >,
+    context: InternalCommandAvailabilityContext<FacadeGameState>,
   ): boolean;
   validate(
     context: InternalValidationContext<
-      CanonicalGameState,
       FacadeGameState,
       CommandFromSchema<TCommandInput>
     >,
   ): ValidationOutcome;
   execute(
     context: InternalExecuteContext<
-      CanonicalGameState,
       FacadeGameState,
       CommandFromSchema<TCommandInput>
     >,

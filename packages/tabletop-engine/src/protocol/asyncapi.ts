@@ -47,17 +47,11 @@ export interface AsyncApiDocument {
 }
 
 export function generateAsyncApi<
-  CanonicalGameState extends object,
   FacadeGameState extends object,
   Commands extends Record<string, CommandDefinition<FacadeGameState>>,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameDefinition<
-    FacadeGameState,
-    CanonicalGameState,
-    Commands,
-    SetupInput
-  >,
+  game: GameDefinition<FacadeGameState, Commands, SetupInput>,
   options: AsyncApiOptions = {},
 ): AsyncApiDocument {
   const protocol = describeGameProtocol(game);

@@ -32,6 +32,7 @@ import type {
 import type { CanonicalState, RuntimeState } from "../types/state";
 import type { Viewer, VisibleState } from "../types/visibility";
 import { createRNGService } from "../rng/service";
+import type { CanonicalGameStateShape } from "../state-facade/canonical";
 import { hydrateStateFacade } from "../state-facade/hydrate";
 import { getView as getVisibleStateView } from "../state-facade/project";
 import {
@@ -40,22 +41,17 @@ import {
   validateCanonicalState,
 } from "./validation";
 
-type CommandDefinitions<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
-> = Record<
+type CommandDefinitions<FacadeGameState extends object> = Record<
   string,
-  InternalCommandDefinition<CanonicalGameState, FacadeGameState>
+  InternalCommandDefinition<FacadeGameState>
 >;
 
 type GameExecutorDefinition<
-  CanonicalGameState extends object,
   FacadeGameState extends object,
   SetupInput extends object | undefined,
 > = GameDefinition<
   FacadeGameState,
-  CanonicalGameState,
-  CommandDefinitions<CanonicalGameState, FacadeGameState>,
+  CommandDefinitions<FacadeGameState>,
   SetupInput
 >;
 
@@ -85,12 +81,11 @@ export interface GameExecutor<
 }
 
 function createCommandGameView<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
-  state: CanonicalState<CanonicalGameState>,
+  game: GameExecutorDefinition<FacadeGameState, SetupInput>,
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
   options?: {
     readonly?: boolean;
   },
@@ -108,11 +103,10 @@ type CreateInitialStateFn<
   : (input: SetupInput, rngSeed: string | number) => CanonicalState<GameState>;
 
 function createInitialRuntimeState<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
+  game: GameExecutorDefinition<FacadeGameState, SetupInput>,
   rngSeed: string | number,
 ): RuntimeState {
   const runtime: RuntimeState = {
@@ -136,12 +130,11 @@ function createInitialRuntimeState<
 }
 
 function getCurrentStageDefinition<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
-  state: CanonicalState<CanonicalGameState>,
+  game: GameExecutorDefinition<FacadeGameState, SetupInput>,
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
 ): StageDefinition<FacadeGameState> | undefined {
   return game.stages[state.runtime.progression.currentStage.id] as
     | StageDefinition<FacadeGameState>
@@ -155,12 +148,11 @@ function resolveStageNextStages<GameState extends object>(
 }
 
 function initializeStageMachine<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 >(
-  state: CanonicalState<CanonicalGameState>,
-  game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  game: GameExecutorDefinition<FacadeGameState, SetupInput>,
   rng: ReturnType<typeof createRNGService>,
 ): void {
   let currentStage = game.initialStage as
@@ -220,12 +212,11 @@ function initializeStageMachine<
 }
 
 function advanceStageMachine<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 >(
-  state: CanonicalState<CanonicalGameState>,
-  game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  game: GameExecutorDefinition<FacadeGameState, SetupInput>,
   nextStage: StageDefinition<FacadeGameState>,
   rng: ReturnType<typeof createRNGService>,
   emitEvent: (event: GameEvent) => void,
@@ -292,12 +283,13 @@ function advanceStageMachine<
 }
 
 export function createGameExecutor<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
-): GameExecutor<CanonicalGameState, SetupInput> {
+  game: GameExecutorDefinition<FacadeGameState, SetupInput>,
+): GameExecutor<CanonicalGameStateShape<FacadeGameState>, SetupInput> {
+  type CanonicalGameState = CanonicalGameStateShape<FacadeGameState>;
+
   const createInitialState = (
     firstArg: string | number | SetupInput,
     secondArg?: string | number,
@@ -327,66 +319,33 @@ export function createGameExecutor<
     }
 
     const gameState = structuredClone(game.defaultCanonicalGameState);
-    const runtime = createInitialRuntimeState(
-      game as GameExecutorDefinition<
-        CanonicalGameState,
-        FacadeGameState,
-        SetupInput
-      >,
-      rngSeed,
-    );
+    const runtime = createInitialRuntimeState(game, rngSeed);
     const rng = createRNGService(runtime.rng);
 
-    validateCanonicalGameState<
-      CanonicalGameState,
-      FacadeGameState,
-      CommandDefinitions<CanonicalGameState, FacadeGameState>,
-      SetupInput
-    >(game, gameState);
+    validateCanonicalGameState(game, gameState);
 
     game.setup?.({
-      game: createCommandGameView(
-        game as GameExecutorDefinition<
-          CanonicalGameState,
-          FacadeGameState,
-          SetupInput
-        >,
-        {
-          game: gameState,
-          runtime,
-        },
-      ),
+      game: createCommandGameView(game, {
+        game: gameState,
+        runtime,
+      }),
       runtime,
       rng,
       input: input as SetupInput,
     });
 
-    validateCanonicalGameState<
-      CanonicalGameState,
-      FacadeGameState,
-      CommandDefinitions<CanonicalGameState, FacadeGameState>,
-      SetupInput
-    >(game, gameState);
+    validateCanonicalGameState(game, gameState);
 
     initializeStageMachine(
       {
         game: gameState,
         runtime,
       },
-      game as GameExecutorDefinition<
-        CanonicalGameState,
-        FacadeGameState,
-        SetupInput
-      >,
+      game,
       rng,
     );
 
-    validateCanonicalState<
-      CanonicalGameState,
-      FacadeGameState,
-      CommandDefinitions<CanonicalGameState, FacadeGameState>,
-      SetupInput
-    >(game, {
+    validateCanonicalState(game, {
       game: gameState,
       runtime,
     });
@@ -404,31 +363,14 @@ export function createGameExecutor<
     >,
 
     getView(state, viewer) {
-      validateCanonicalState<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitions<CanonicalGameState, FacadeGameState>,
-        SetupInput
-      >(game, state);
+      validateCanonicalState(game, state);
       return getVisibleStateView(state, viewer, game.stateFacade);
     },
 
     listAvailableCommands(state, options) {
-      validateCanonicalState<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitions<CanonicalGameState, FacadeGameState>,
-        SetupInput
-      >(game, state);
+      validateCanonicalState(game, state);
       const currentStageState = state.runtime.progression.currentStage;
-      const currentStage = getCurrentStageDefinition(
-        game as GameExecutorDefinition<
-          CanonicalGameState,
-          FacadeGameState,
-          SetupInput
-        >,
-        state,
-      );
+      const currentStage = getCurrentStageDefinition(game, state);
 
       if (!currentStage) {
         return [];
@@ -461,15 +403,7 @@ export function createGameExecutor<
           return definition.isAvailable(
             createCommandAvailabilityContext(
               state,
-              createCommandGameView(
-                game as GameExecutorDefinition<
-                  CanonicalGameState,
-                  FacadeGameState,
-                  SetupInput
-                >,
-                state,
-                { readonly: true },
-              ),
+              createCommandGameView(game, state, { readonly: true }),
               definition.commandId,
               options.actorId,
             ),
@@ -479,20 +413,8 @@ export function createGameExecutor<
     },
 
     discoverCommand(state, discovery) {
-      validateCanonicalState<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitions<CanonicalGameState, FacadeGameState>,
-        SetupInput
-      >(game, state);
-      const currentStage = getCurrentStageDefinition(
-        game as GameExecutorDefinition<
-          CanonicalGameState,
-          FacadeGameState,
-          SetupInput
-        >,
-        state,
-      );
+      validateCanonicalState(game, state);
+      const currentStage = getCurrentStageDefinition(game, state);
 
       if (
         !currentStage ||
@@ -536,15 +458,7 @@ export function createGameExecutor<
         !definition.isAvailable(
           createCommandAvailabilityContext(
             state,
-            createCommandGameView(
-              game as GameExecutorDefinition<
-                CanonicalGameState,
-                FacadeGameState,
-                SetupInput
-              >,
-              state,
-              { readonly: true },
-            ),
+            createCommandGameView(game, state, { readonly: true }),
             discovery.type,
             discovery.actorId,
           ),
@@ -571,21 +485,9 @@ export function createGameExecutor<
         return null;
       }
 
-      const discoveryContext = createDiscoveryContext<
-        CanonicalGameState,
-        FacadeGameState,
-        typeof discovery.input
-      >(
+      const discoveryContext = createDiscoveryContext(
         state,
-        createCommandGameView(
-          game as GameExecutorDefinition<
-            CanonicalGameState,
-            FacadeGameState,
-            SetupInput
-          >,
-          state,
-          { readonly: true },
-        ),
+        createCommandGameView(game, state, { readonly: true }),
         discovery,
       );
 
@@ -665,12 +567,7 @@ export function createGameExecutor<
     },
 
     executeCommand(state, command) {
-      validateCanonicalState<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitions<CanonicalGameState, FacadeGameState>,
-        SetupInput
-      >(game, state);
+      validateCanonicalState(game, state);
       const definition = game.commands[command.type];
 
       if (!definition) {
@@ -714,14 +611,7 @@ export function createGameExecutor<
       }
 
       const currentStageState = state.runtime.progression.currentStage;
-      const currentStage = getCurrentStageDefinition(
-        game as GameExecutorDefinition<
-          CanonicalGameState,
-          FacadeGameState,
-          SetupInput
-        >,
-        state,
-      );
+      const currentStage = getCurrentStageDefinition(game, state);
 
       if (
         !currentStage ||
@@ -777,15 +667,7 @@ export function createGameExecutor<
       const validation = definition.validate(
         createValidationContext(
           state,
-          createCommandGameView(
-            game as GameExecutorDefinition<
-              CanonicalGameState,
-              FacadeGameState,
-              SetupInput
-            >,
-            state,
-            { readonly: true },
-          ),
+          createCommandGameView(game, state, { readonly: true }),
           command,
         ),
       );
@@ -812,11 +694,7 @@ export function createGameExecutor<
       ) {
         executeCommandAgainstState(
           workingState,
-          game as GameExecutorDefinition<
-            CanonicalGameState,
-            FacadeGameState,
-            SetupInput
-          >,
+          game,
           definition,
           command,
           rng,
@@ -828,14 +706,7 @@ export function createGameExecutor<
           activePlayerId: currentStageState.activePlayerId,
         } satisfies SingleActivePlayerStageState;
 
-        const nextCurrentStage = getCurrentStageDefinition(
-          game as GameExecutorDefinition<
-            CanonicalGameState,
-            FacadeGameState,
-            SetupInput
-          >,
-          workingState,
-        );
+        const nextCurrentStage = getCurrentStageDefinition(game, workingState);
 
         if (!nextCurrentStage || nextCurrentStage.kind !== "activePlayer") {
           throw new Error(
@@ -849,21 +720,9 @@ export function createGameExecutor<
 
         advanceStageMachine(
           workingState,
-          game as GameExecutorDefinition<
-            CanonicalGameState,
-            FacadeGameState,
-            SetupInput
-          >,
+          game,
           nextCurrentStage.transition({
-            game: createCommandGameView(
-              game as GameExecutorDefinition<
-                CanonicalGameState,
-                FacadeGameState,
-                SetupInput
-              >,
-              workingState,
-              { readonly: true },
-            ),
+            game: createCommandGameView(game, workingState, { readonly: true }),
             runtime: workingState.runtime,
             command: command as Parameters<
               typeof nextCurrentStage.transition
@@ -883,15 +742,7 @@ export function createGameExecutor<
         ).memory;
 
         currentStage.onSubmit({
-          game: createCommandGameView(
-            game as GameExecutorDefinition<
-              CanonicalGameState,
-              FacadeGameState,
-              SetupInput
-            >,
-            workingState,
-            { readonly: true },
-          ),
+          game: createCommandGameView(game, workingState, { readonly: true }),
           runtime: workingState.runtime,
           memory,
           command: command as Parameters<
@@ -908,11 +759,7 @@ export function createGameExecutor<
 
             executeCommandAgainstState(
               workingState,
-              game as GameExecutorDefinition<
-                CanonicalGameState,
-                FacadeGameState,
-                SetupInput
-              >,
+              game,
               submittedDefinition,
               submittedCommand,
               rng,
@@ -922,15 +769,7 @@ export function createGameExecutor<
         });
 
         const nextActivePlayerIds = currentStage.activePlayers({
-          game: createCommandGameView(
-            game as GameExecutorDefinition<
-              CanonicalGameState,
-              FacadeGameState,
-              SetupInput
-            >,
-            workingState,
-            { readonly: true },
-          ),
+          game: createCommandGameView(game, workingState, { readonly: true }),
           runtime: workingState.runtime,
           memory,
         });
@@ -944,15 +783,7 @@ export function createGameExecutor<
 
         if (
           currentStage.isComplete({
-            game: createCommandGameView(
-              game as GameExecutorDefinition<
-                CanonicalGameState,
-                FacadeGameState,
-                SetupInput
-              >,
-              workingState,
-              { readonly: true },
-            ),
+            game: createCommandGameView(game, workingState, { readonly: true }),
             runtime: workingState.runtime,
             memory,
           })
@@ -972,21 +803,11 @@ export function createGameExecutor<
 
           advanceStageMachine(
             workingState,
-            game as GameExecutorDefinition<
-              CanonicalGameState,
-              FacadeGameState,
-              SetupInput
-            >,
+            game,
             currentStage.transition({
-              game: createCommandGameView(
-                game as GameExecutorDefinition<
-                  CanonicalGameState,
-                  FacadeGameState,
-                  SetupInput
-                >,
-                workingState,
-                { readonly: true },
-              ),
+              game: createCommandGameView(game, workingState, {
+                readonly: true,
+              }),
               runtime: workingState.runtime,
               memory,
               nextStages: resolveStageNextStages(currentStage),
@@ -997,12 +818,7 @@ export function createGameExecutor<
         }
       }
 
-      validateCanonicalState<
-        CanonicalGameState,
-        FacadeGameState,
-        CommandDefinitions<CanonicalGameState, FacadeGameState>,
-        SetupInput
-      >(game, workingState);
+      validateCanonicalState(game, workingState);
 
       const success: ExecutionSuccess<CanonicalState<CanonicalGameState>> = {
         ok: true,
@@ -1031,13 +847,12 @@ function isActorAllowedInCurrentStage(
 }
 
 function executeCommandAgainstState<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 >(
-  state: CanonicalState<CanonicalGameState>,
-  game: GameExecutorDefinition<CanonicalGameState, FacadeGameState, SetupInput>,
-  definition: InternalCommandDefinition<CanonicalGameState, FacadeGameState>,
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
+  game: GameExecutorDefinition<FacadeGameState, SetupInput>,
+  definition: InternalCommandDefinition<FacadeGameState>,
   command: Command,
   rng: ReturnType<typeof createRNGService>,
   emitEvent: (event: GameEvent) => void,

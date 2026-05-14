@@ -1,6 +1,7 @@
 import { Value } from "@sinclair/typebox/value";
 import type { TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
+import type { CanonicalGameStateShape } from "../state-facade/canonical";
 import type { CommandDefinition } from "../types/command";
 import type { CanonicalState, RuntimeState } from "../types/state";
 
@@ -15,61 +16,43 @@ export function assertSchemaValue(schema: TSchema, value: unknown): void {
 }
 
 export function validateCanonicalGameState<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   Commands extends Record<string, CommandDefinition<FacadeGameState>> = Record<
     string,
     CommandDefinition<FacadeGameState>
   >,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameDefinition<
-    FacadeGameState,
-    CanonicalGameState,
-    Commands,
-    SetupInput
-  >,
-  gameState: CanonicalGameState,
+  game: GameDefinition<FacadeGameState, Commands, SetupInput>,
+  gameState: CanonicalGameStateShape<FacadeGameState>,
 ): void {
   assertSchemaValue(game.canonicalGameStateSchema, gameState);
 }
 
 export function validateRuntimeState<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   Commands extends Record<string, CommandDefinition<FacadeGameState>> = Record<
     string,
     CommandDefinition<FacadeGameState>
   >,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameDefinition<
-    FacadeGameState,
-    CanonicalGameState,
-    Commands,
-    SetupInput
-  >,
+  game: GameDefinition<FacadeGameState, Commands, SetupInput>,
   runtimeState: RuntimeState,
 ): void {
   assertSchemaValue(game.runtimeStateSchema, runtimeState);
 }
 
 export function validateCanonicalState<
-  CanonicalGameState extends object,
-  FacadeGameState extends object = CanonicalGameState,
+  FacadeGameState extends object,
   Commands extends Record<string, CommandDefinition<FacadeGameState>> = Record<
     string,
     CommandDefinition<FacadeGameState>
   >,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameDefinition<
-    FacadeGameState,
-    CanonicalGameState,
-    Commands,
-    SetupInput
-  >,
-  state: CanonicalState<CanonicalGameState>,
+  game: GameDefinition<FacadeGameState, Commands, SetupInput>,
+  state: CanonicalState<CanonicalGameStateShape<FacadeGameState>>,
 ): void {
   validateCanonicalGameState(game, state.game);
   validateRuntimeState(game, state.runtime);

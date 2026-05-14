@@ -32,17 +32,11 @@ export interface GameProtocolDescriptor {
 }
 
 export function describeGameProtocol<
-  CanonicalGameState extends object,
   FacadeGameState extends object,
   Commands extends Record<string, CommandDefinition<FacadeGameState>>,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameDefinition<
-    FacadeGameState,
-    CanonicalGameState,
-    Commands,
-    SetupInput
-  >,
+  game: GameDefinition<FacadeGameState, Commands, SetupInput>,
 ): GameProtocolDescriptor {
   const commands: Record<string, ProtocolCommandDescriptor> = {};
 

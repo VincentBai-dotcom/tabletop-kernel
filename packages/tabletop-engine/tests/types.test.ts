@@ -1078,12 +1078,12 @@ test("internal command definitions still expose canonical state separately from 
     amount: t.number(),
   });
   type GainScoreInput = typeof gainScoreCommandSchema.static;
+  type ScoreFacade = {
+    score: number;
+    increment(): void;
+  };
 
-  const definition: InternalCommandDefinition<
-    { score: number },
-    { increment(): void },
-    GainScoreInput
-  > = {
+  const definition: InternalCommandDefinition<ScoreFacade, GainScoreInput> = {
     commandId: "gain_score",
     commandSchema: gainScoreCommandSchema,
     validate: ({ game, state, command }) => {
@@ -1104,8 +1104,7 @@ test("internal command definitions still expose canonical state separately from 
   };
 
   const context: InternalExecuteContext<
-    { score: number },
-    { increment(): void },
+    ScoreFacade,
     CommandFromSchema<GainScoreInput>
   > = {
     state: {
@@ -1130,6 +1129,7 @@ test("internal command definitions still expose canonical state separately from 
       },
     },
     game: {
+      score: 1,
       increment() {},
     },
     runtime: {

@@ -3,6 +3,24 @@ import type { TSchema } from "@sinclair/typebox";
 import { t, type FieldType, type ObjectFieldType } from "../schema";
 import { getStateMetadata, type StateClass } from "./metadata";
 
+type NonFunctionPropertyKeys<TObject> = {
+  [K in keyof TObject]: TObject[K] extends (...args: never[]) => unknown
+    ? never
+    : K;
+}[keyof TObject];
+
+// Compile-time view of a facade state as canonical plain data, omitting methods.
+export type CanonicalGameStateShape<TState> =
+  TState extends readonly (infer TItem)[]
+    ? CanonicalGameStateShape<TItem>[]
+    : TState extends object
+      ? {
+          [K in NonFunctionPropertyKeys<TState>]: CanonicalGameStateShape<
+            TState[K]
+          >;
+        }
+      : TState;
+
 export function compileCanonicalGameStateSchema(
   root: StateClass,
 ): ObjectFieldType<Record<string, FieldType>> {
@@ -18,8 +36,13 @@ export function compileCanonicalGameStateSchema(
   );
 }
 
-export function createDefaultCanonicalGameState(root: StateClass): object {
-  return createCanonicalStateObject(root, new root());
+export function createDefaultCanonicalGameState<TState extends object>(
+  root: StateClass<TState>,
+): CanonicalGameStateShape<TState> {
+  return createCanonicalStateObject(
+    root,
+    new root(),
+  ) as CanonicalGameStateShape<TState>;
 }
 
 function createCanonicalStateObject(
