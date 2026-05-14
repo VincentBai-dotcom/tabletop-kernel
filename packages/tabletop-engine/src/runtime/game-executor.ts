@@ -12,8 +12,8 @@ import {
 } from "./events";
 import type {
   Command,
+  CommandDefinition,
   Discovery,
-  InternalCommandDefinition,
   DiscoveryStepResolvedOption,
 } from "../types/command";
 import type { CommandDiscoveryResult } from "../types/command";
@@ -41,19 +41,10 @@ import {
   validateCanonicalState,
 } from "./validation";
 
-type CommandDefinitions<FacadeGameState extends object> = Record<
-  string,
-  InternalCommandDefinition<FacadeGameState>
->;
-
 type GameExecutorDefinition<
   FacadeGameState extends object,
   SetupInput extends object | undefined,
-> = GameDefinition<
-  FacadeGameState,
-  CommandDefinitions<FacadeGameState>,
-  SetupInput
->;
+> = GameDefinition<FacadeGameState, SetupInput>;
 
 export interface GameExecutor<
   GameState extends object,
@@ -866,7 +857,7 @@ function executeCommandAgainstState<
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,
   game: GameExecutorDefinition<FacadeGameState, SetupInput>,
-  definition: InternalCommandDefinition<FacadeGameState>,
+  definition: CommandDefinition<FacadeGameState>,
   command: Command,
   rng: ReturnType<typeof createRNGService>,
   emitEvent: (event: GameEvent) => void,

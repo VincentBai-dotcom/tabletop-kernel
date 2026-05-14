@@ -1,6 +1,5 @@
 import type { TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
-import type { CommandDefinition } from "../types/command";
 import { describeGameProtocol } from "./describe";
 import {
   describeEngineWebSocketProtocol,
@@ -48,10 +47,9 @@ export interface AsyncApiDocument {
 
 export function generateAsyncApi<
   FacadeGameState extends object,
-  Commands extends Record<string, CommandDefinition<FacadeGameState>>,
   SetupInput extends object | undefined = undefined,
 >(
-  game: GameDefinition<FacadeGameState, Commands, SetupInput>,
+  game: GameDefinition<FacadeGameState, SetupInput>,
   options: AsyncApiOptions = {},
 ): AsyncApiDocument {
   const protocol = describeGameProtocol(game);

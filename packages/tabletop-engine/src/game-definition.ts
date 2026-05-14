@@ -41,12 +41,10 @@ export interface GameSetupContext<
 
 export interface GameDefinition<
   FacadeGameState extends object = object,
-  Commands extends CommandDefinitionMap<FacadeGameState> =
-    CommandDefinitionMap<FacadeGameState>,
   SetupInput extends object | undefined = undefined,
 > {
   name: string;
-  commands: Commands;
+  commands: CommandDefinitionMap<FacadeGameState>;
   stateFacade: CompiledStateFacadeDefinition;
   canonicalGameStateSchema: ObjectFieldType<Record<string, FieldType>>;
   runtimeStateSchema: TSchema;
@@ -59,12 +57,10 @@ export interface GameDefinition<
 
 interface GameDefinitionBuilderState<
   FacadeGameState extends object = object,
-  Commands extends CommandDefinitionMap<FacadeGameState> =
-    CommandDefinitionMap<FacadeGameState>,
   SetupInput extends object | undefined = undefined,
 > extends Partial<
   Omit<
-    GameDefinition<FacadeGameState, Commands, SetupInput>,
+    GameDefinition<FacadeGameState, SetupInput>,
     | "commands"
     | "stateFacade"
     | "canonicalGameStateSchema"
@@ -82,13 +78,10 @@ interface GameDefinitionBuilderState<
 
 export class GameDefinitionBuilder<
   FacadeGameState extends object = object,
-  Commands extends CommandDefinitionMap<FacadeGameState> =
-    CommandDefinitionMap<FacadeGameState>,
   SetupInput extends object | undefined = undefined,
 > {
   private readonly config: GameDefinitionBuilderState<
     FacadeGameState,
-    Commands,
     SetupInput
   >;
 
@@ -100,26 +93,17 @@ export class GameDefinitionBuilder<
 
   rootState<NextFacadeGameState extends object>(
     rootState: StateClass<NextFacadeGameState>,
-  ): GameDefinitionBuilder<
-    NextFacadeGameState,
-    CommandDefinitionMap<NextFacadeGameState>,
-    SetupInput
-  > {
+  ): GameDefinitionBuilder<NextFacadeGameState, SetupInput> {
     this.config.rootState = rootState as unknown as StateClass<FacadeGameState>;
     return this as unknown as GameDefinitionBuilder<
       NextFacadeGameState,
-      CommandDefinitionMap<NextFacadeGameState>,
       SetupInput
     >;
   }
 
   setupInput<TSchema extends ObjectFieldType<Record<string, FieldType>>>(
     schema: TSchema,
-  ): GameDefinitionBuilder<
-    FacadeGameState,
-    Commands,
-    SetupInputFromSchema<TSchema>
-  > {
+  ): GameDefinitionBuilder<FacadeGameState, SetupInputFromSchema<TSchema>> {
     if (schema.kind !== "object") {
       throw new Error("setup_input_schema_must_be_object");
     }
@@ -127,7 +111,6 @@ export class GameDefinitionBuilder<
     this.config.setupInputSchema = schema;
     return this as unknown as GameDefinitionBuilder<
       FacadeGameState,
-      Commands,
       SetupInputFromSchema<TSchema>
     >;
   }
@@ -137,7 +120,7 @@ export class GameDefinitionBuilder<
     return this;
   }
 
-  build(): GameDefinition<FacadeGameState, Commands, SetupInput> {
+  build(): GameDefinition<FacadeGameState, SetupInput> {
     if (!this.config.rootState) {
       throw new Error("root_state_required");
     }
@@ -160,7 +143,7 @@ export class GameDefinitionBuilder<
 
     return {
       name: this.config.name,
-      commands: commands as Commands,
+      commands,
       stateFacade,
       canonicalGameStateSchema,
       runtimeStateSchema,

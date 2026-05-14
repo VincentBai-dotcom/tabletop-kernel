@@ -1,7 +1,7 @@
 import { Type, type TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
 import type { FieldType, SerializableFieldType } from "../schema";
-import type { CommandDefinition, CommandSchema } from "../types/command";
+import type { CommandSchema } from "../types/command";
 import type {
   FieldVisibilityConfig,
   VisibilityMode,
@@ -33,11 +33,8 @@ export interface GameProtocolDescriptor {
 
 export function describeGameProtocol<
   FacadeGameState extends object,
-  Commands extends Record<string, CommandDefinition<FacadeGameState>>,
   SetupInput extends object | undefined = undefined,
->(
-  game: GameDefinition<FacadeGameState, Commands, SetupInput>,
-): GameProtocolDescriptor {
+>(game: GameDefinition<FacadeGameState, SetupInput>): GameProtocolDescriptor {
   const commands: Record<string, ProtocolCommandDescriptor> = {};
 
   for (const [commandId, command] of Object.entries(game.commands)) {
