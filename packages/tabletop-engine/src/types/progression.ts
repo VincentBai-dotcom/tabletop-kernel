@@ -41,11 +41,13 @@ export interface ProgressionState {
     | null;
 }
 
-export type StageDefinitionMap<FacadeGameState extends object = object> =
-  Record<string, StageDefinition<FacadeGameState>>;
+export type StageDefinitionMap<FacadeGameState extends object> = Record<
+  string,
+  StageDefinition<FacadeGameState>
+>;
 
 export type StageDefinitionResolver<
-  FacadeGameState extends object = object,
+  FacadeGameState extends object,
   NextStages extends StageDefinitionMap<FacadeGameState> =
     StageDefinitionMap<FacadeGameState>,
 > = () => NextStages;
@@ -64,15 +66,13 @@ type CommandFromDefinition<Definition> =
 export type CommandsFromDefinitions<Definitions extends readonly unknown[]> =
   CommandFromDefinition<Definitions[number]>;
 
-export interface SingleActivePlayerSelectionContext<
-  GameState extends object = object,
-> {
+export interface SingleActivePlayerSelectionContext<GameState extends object> {
   game: Readonly<GameState>;
   runtime: Readonly<RuntimeState>;
 }
 
 export interface SingleActivePlayerTransitionContext<
-  GameState extends object = object,
+  GameState extends object,
   TCommand extends Command = Command,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
@@ -83,7 +83,7 @@ export interface SingleActivePlayerTransitionContext<
   nextStages: Readonly<NextStages>;
 }
 
-export interface AutomaticStageRunContext<GameState extends object = object> {
+export interface AutomaticStageRunContext<GameState extends object> {
   game: GameState;
   runtime: Readonly<RuntimeState>;
   rng: RNGApi;
@@ -91,7 +91,7 @@ export interface AutomaticStageRunContext<GameState extends object = object> {
 }
 
 export interface AutomaticStageTransitionContext<
-  GameState extends object = object,
+  GameState extends object,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
 > {
@@ -101,7 +101,7 @@ export interface AutomaticStageTransitionContext<
 }
 
 export interface MultiActivePlayerMemoryContext<
-  GameState extends object = object,
+  GameState extends object,
   Memory extends object = object,
 > {
   game: Readonly<GameState>;
@@ -110,7 +110,7 @@ export interface MultiActivePlayerMemoryContext<
 }
 
 export interface MultiActivePlayerSubmitContext<
-  GameState extends object = object,
+  GameState extends object,
   Memory extends object = object,
   TCommand extends Command = Command,
 > extends MultiActivePlayerMemoryContext<GameState, Memory> {
@@ -119,7 +119,7 @@ export interface MultiActivePlayerSubmitContext<
 }
 
 export interface MultiActivePlayerTransitionContext<
-  GameState extends object = object,
+  GameState extends object,
   Memory extends object = object,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
@@ -128,7 +128,7 @@ export interface MultiActivePlayerTransitionContext<
 }
 
 export interface SingleActivePlayerStageDefinition<
-  GameState extends object = object,
+  GameState extends object,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState> =
@@ -151,7 +151,7 @@ export interface SingleActivePlayerStageDefinition<
 }
 
 export interface AutomaticStageDefinition<
-  GameState extends object = object,
+  GameState extends object,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
 > extends StageDefinitionBrand {
@@ -165,7 +165,7 @@ export interface AutomaticStageDefinition<
 }
 
 export interface MultiActivePlayerStageDefinition<
-  GameState extends object = object,
+  GameState extends object,
   Memory extends object = object,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
@@ -196,7 +196,7 @@ export interface MultiActivePlayerStageDefinition<
   ): MultiActivePlayerStageDefinition<GameState> | NextStages[keyof NextStages];
 }
 
-export type StageDefinition<GameState extends object = object> =
+export type StageDefinition<GameState extends object> =
   | SingleActivePlayerStageDefinition<GameState>
   | AutomaticStageDefinition<GameState>
   | MultiActivePlayerStageDefinition<GameState>;
