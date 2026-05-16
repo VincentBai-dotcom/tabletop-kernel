@@ -17,7 +17,7 @@ import type { StateClass } from "./state-facade/metadata";
 import type { FieldType, ObjectFieldType, ObjectSchemaStatic } from "./schema";
 import type { TSchema } from "@sinclair/typebox";
 
-type CommandDefinitionMap<FacadeGameState extends object = object> = Record<
+type CommandDefinitionMap<FacadeGameState extends object> = Record<
   string,
   CommandDefinition<FacadeGameState>
 >;
@@ -30,7 +30,7 @@ type SetupInputFromSchema<
     : undefined;
 
 export interface GameSetupContext<
-  GameState extends object = object,
+  GameState extends object,
   SetupInput extends object | undefined = undefined,
 > {
   game: GameState;
@@ -40,7 +40,7 @@ export interface GameSetupContext<
 }
 
 export interface GameDefinition<
-  FacadeGameState extends object = object,
+  FacadeGameState extends object,
   SetupInput extends object | undefined = undefined,
 > {
   name: string;

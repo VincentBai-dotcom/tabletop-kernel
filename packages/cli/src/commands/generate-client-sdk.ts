@@ -1,6 +1,7 @@
 import {
   describeEngineWebSocketProtocol,
   describeGameProtocol,
+  type ProtocolCommandDescriptor,
 } from "tabletop-engine";
 import { success, type RunResult } from "../lib/command-result.ts";
 import { createGenerationContext } from "../lib/generation-context.ts";
@@ -17,8 +18,8 @@ interface GenerateClientSdkOptions {
 
 interface DiscoveryStepDescriptor {
   stepId: string;
-  inputSchema: { schema?: Record<string, unknown> };
-  outputSchema: { schema?: Record<string, unknown> };
+  inputSchema: Record<string, unknown>;
+  outputSchema: Record<string, unknown>;
 }
 
 interface DiscoveryDescriptor {
@@ -55,13 +56,7 @@ export async function runGenerateClientSdkCommand(
 }
 
 function renderCommandTypeAliases(
-  commands: Record<
-    string,
-    {
-      commandSchema: { schema?: Record<string, unknown> };
-      discovery?: DiscoveryDescriptor;
-    }
-  >,
+  commands: Record<string, ProtocolCommandDescriptor>,
 ): string {
   const aliases = Object.entries(commands).flatMap(([commandId, command]) => {
     const typeName = toPascalCase(commandId);
@@ -105,13 +100,7 @@ function renderCommandTypeAliases(
 }
 
 function renderCommandPayloadAliases(
-  commands: Record<
-    string,
-    {
-      commandSchema: { schema?: Record<string, unknown> };
-      discovery?: DiscoveryDescriptor;
-    }
-  >,
+  commands: Record<string, ProtocolCommandDescriptor>,
 ): string {
   const aliases = [
     'export type WithoutActorId<T> = T extends unknown ? Omit<T, "actorId"> : never;\n',
@@ -149,13 +138,7 @@ function renderCommandPayloadAliases(
 }
 
 function renderHostedMessageTypes(
-  commands: Record<
-    string,
-    {
-      commandSchema: { schema?: Record<string, unknown> };
-      discovery?: DiscoveryDescriptor;
-    }
-  >,
+  commands: Record<string, ProtocolCommandDescriptor>,
   messageNames: ReturnType<typeof describeEngineWebSocketProtocol>["messages"],
 ): string {
   const discoveryMessageUnion = renderUnion(
@@ -268,13 +251,7 @@ function renderHostedMessageTypes(
 }
 
 function renderDiscoveryStartHelpers(
-  commands: Record<
-    string,
-    {
-      commandSchema: { schema?: Record<string, unknown> };
-      discovery?: DiscoveryDescriptor;
-    }
-  >,
+  commands: Record<string, ProtocolCommandDescriptor>,
 ): string {
   return Object.entries(commands)
     .flatMap(([commandId, command]) => {
@@ -296,11 +273,11 @@ function renderDiscoveryStartHelpers(
         `export type ${pascalName}DiscoveryStart = {
   step: ${JSON.stringify(startStep.stepId)};
   input: ${renderSchemaTypeString(
-    startStep.inputSchema.schema as Record<string, unknown>,
+    startStep.inputSchema as Record<string, unknown>,
   )};
 };\n`,
         ...(hasRequiredProperties(
-          startStep.inputSchema.schema as Record<string, unknown>,
+          startStep.inputSchema as Record<string, unknown>,
         )
           ? []
           : [
@@ -315,13 +292,7 @@ function renderDiscoveryStartHelpers(
 }
 
 function renderRuntimeClient(
-  commands: Record<
-    string,
-    {
-      commandSchema: { schema?: Record<string, unknown> };
-      discovery?: DiscoveryDescriptor;
-    }
-  >,
+  commands: Record<string, ProtocolCommandDescriptor>,
   messageNames: ReturnType<typeof describeEngineWebSocketProtocol>["messages"],
 ): string {
   const discoverMethodSignatures = Object.entries(commands)
@@ -713,9 +684,9 @@ export function createGameEngineClient(
 
 function renderCommandRequestType(
   commandId: string,
-  command: { commandSchema: { schema?: Record<string, unknown> } },
+  command: ProtocolCommandDescriptor,
 ): string {
-  const commandSchema = command.commandSchema.schema as Record<string, unknown>;
+  const commandSchema = command.commandSchema as Record<string, unknown>;
 
   return `{
   type: ${JSON.stringify(commandId)};
@@ -743,7 +714,7 @@ function renderDiscoveryRequestType(
 }
 
 function renderDiscoveryResultType(command: {
-  commandSchema: { schema?: Record<string, unknown> };
+  commandSchema: Record<string, unknown>;
   discovery?: DiscoveryDescriptor;
 }): string {
   const discovery = command.discovery;
@@ -755,15 +726,15 @@ function renderDiscoveryResultType(command: {
   const completeResult = `{
   complete: true;
   input: ${renderSchemaTypeString(
-    command.commandSchema.schema as Record<string, unknown>,
+    command.commandSchema as Record<string, unknown>,
   )};
 }`;
 
   const stepResults = discovery.steps.map((step) => {
-    const outputSchema = step.outputSchema.schema as Record<string, unknown>;
+    const outputSchema = step.outputSchema as Record<string, unknown>;
     const nextOptionType = renderUnion(
       discovery.steps.map((targetStep) => {
-        const targetInputSchema = targetStep.inputSchema.schema as Record<
+        const targetInputSchema = targetStep.inputSchema as Record<
           string,
           unknown
         >;

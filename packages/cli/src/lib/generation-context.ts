@@ -4,7 +4,7 @@ import { loadConfig } from "./load-config.ts";
 import type { ParsedCommandArguments } from "./parse-args.ts";
 
 export interface GenerationContext {
-  game: GameDefinition;
+  game: GameDefinition<object>;
   configFilePath: string;
   outputDirectory: string;
 }

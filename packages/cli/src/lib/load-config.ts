@@ -7,12 +7,12 @@ interface LoadConfigOptions {
 }
 
 interface RuntimeCliConfig {
-  game: GameDefinition;
+  game: GameDefinition<object>;
   outDir?: string;
 }
 
 export interface LoadedCliConfig {
-  game: GameDefinition;
+  game: GameDefinition<object>;
   outDir?: string;
   configFilePath: string;
   configDirectory: string;
@@ -56,7 +56,7 @@ function isCliConfig(value: unknown): value is RuntimeCliConfig {
   );
 }
 
-function isGameDefinition(value: unknown): value is GameDefinition {
+function isGameDefinition(value: unknown): value is GameDefinition<object> {
   if (!value || typeof value !== "object") {
     return false;
   }

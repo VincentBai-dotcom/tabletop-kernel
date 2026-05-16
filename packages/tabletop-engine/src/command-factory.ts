@@ -39,8 +39,8 @@ function createDiscoveryStepBuilder<
   FacadeGameState extends object,
   TCommandInput extends Record<string, unknown>,
   TStepId extends string,
-  TSteps extends readonly DiscoveryStepDefinition[] =
-    readonly DiscoveryStepDefinition[],
+  TSteps extends readonly DiscoveryStepDefinition<object>[] =
+    readonly DiscoveryStepDefinition<object>[],
 >(
   stepId: TStepId,
 ): DiscoveryStepBuilder<FacadeGameState, TCommandInput, TSteps, TStepId> {
@@ -276,8 +276,8 @@ export function createCommandFactory<FacadeGameState extends object>() {
     return {
       discoverable<
         TSteps extends readonly [
-          DiscoveryStepDefinition,
-          ...DiscoveryStepDefinition[],
+          DiscoveryStepDefinition<object>,
+          ...DiscoveryStepDefinition<object>[],
         ],
       >(
         configure: (
