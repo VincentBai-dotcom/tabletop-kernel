@@ -403,7 +403,7 @@ type MultiActivePlayerAccumulator<
 export function createStageFactory<
   GameState extends object,
 >(): StageFactory<GameState> {
-  return ((id: string) => {
+  return (id: string) => {
     return {
       singleActivePlayer() {
         return createSingleActivePlayerBuilder<
@@ -433,7 +433,7 @@ export function createStageFactory<
         });
       },
     };
-  }) as StageFactory<GameState>;
+  };
 }
 
 function createSingleActivePlayerBuilder<
@@ -480,18 +480,9 @@ function createSingleActivePlayerBuilder<
       >({
         ...accumulator,
         commands,
-      } as SingleActivePlayerAccumulator<GameState, NextCommands, NextStages>);
+      });
     },
     nextStages(nextStages) {
-      const nextAccumulator = {
-        ...accumulator,
-        nextStages,
-      } as unknown as SingleActivePlayerAccumulator<
-        GameState,
-        Commands,
-        TExtractNextStages<typeof nextStages>
-      >;
-
       return createSingleActivePlayerBuilder<
         GameState,
         Commands,
@@ -499,7 +490,14 @@ function createSingleActivePlayerBuilder<
         HasActivePlayer,
         HasCommands,
         HasTransition
-      >(nextAccumulator);
+      >({
+        ...accumulator,
+        nextStages,
+      } as unknown as SingleActivePlayerAccumulator<
+        GameState,
+        Commands,
+        TExtractNextStages<typeof nextStages>
+      >);
     },
     transition(transition) {
       return createSingleActivePlayerBuilder<
@@ -535,16 +533,9 @@ function createSingleActivePlayerBuilder<
         nextStages: accumulator.nextStages,
         transition: accumulator.transition,
         [stageDefinitionBrand]: true,
-      } as SingleActivePlayerStageDefinition<GameState, Commands, NextStages>;
+      };
     },
-  } as SingleActivePlayerStageBuilder<
-    GameState,
-    Commands,
-    NextStages,
-    HasActivePlayer,
-    HasCommands,
-    HasTransition
-  >;
+  };
 }
 
 function createAutomaticBuilder<
@@ -586,7 +577,7 @@ function createAutomaticBuilder<
         nextStages: accumulator.nextStages,
         transition: accumulator.transition,
         [stageDefinitionBrand]: true,
-      } as AutomaticStageDefinition<GameState, NextStages>;
+      };
     },
   };
 }
@@ -693,12 +684,7 @@ function createMultiActivePlayerBuilder<
       >({
         ...accumulator,
         commands,
-      } as MultiActivePlayerAccumulator<
-        GameState,
-        Memory,
-        NextCommands,
-        NextStages
-      >);
+      });
     },
     onSubmit(
       onSubmit: (
@@ -846,24 +832,7 @@ function createMultiActivePlayerBuilder<
         nextStages: accumulator.nextStages,
         transition: accumulator.transition,
         [stageDefinitionBrand]: true,
-      } as unknown as MultiActivePlayerStageDefinition<
-        GameState,
-        Memory,
-        Commands,
-        NextStages
-      >;
+      };
     },
-  } as unknown as MultiActivePlayerStageBuilder<
-    GameState,
-    Memory,
-    Commands,
-    NextStages,
-    HasMemory,
-    HasActivePlayers,
-    HasCommands,
-    HasOnSubmit,
-    HasIsComplete,
-    HasNextStages,
-    HasTransition
-  >;
+  };
 }
