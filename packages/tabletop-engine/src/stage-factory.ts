@@ -324,7 +324,7 @@ export type MultiActivePlayerStageBuilder<
   HasTransition
 >;
 
-export interface StageFactory<GameState extends object = object> {
+export interface StageFactory<GameState extends object> {
   (id: string): {
     singleActivePlayer(): SingleActivePlayerStageBuilder<GameState>;
     automatic(): AutomaticStageBuilder<GameState>;
