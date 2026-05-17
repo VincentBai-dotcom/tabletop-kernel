@@ -1,3 +1,11 @@
+export abstract class GameState {
+  declare protected readonly __tabletopGameStateBrand: never;
+}
+
+export type GameStateClass<TState extends GameState = GameState> = new (
+  ...args: unknown[]
+) => TState;
+
 export type StateClass<TState extends object = object> = new (
   ...args: unknown[]
 ) => TState;
@@ -90,6 +98,7 @@ type AnyVisibilityFieldConfigEntry<TState extends object> = {
 
 export interface StateMetadata {
   type: "state";
+  marked: boolean;
   fields: Record<string, FieldType>;
   fieldVisibility: Record<string, FieldVisibilityConfig>;
   ownedByField?: string;
@@ -136,6 +145,7 @@ function ensureStateMetadata(target: StateClass): StateMetadata {
 
   const created: StateMetadata = {
     type: "state",
+    marked: isGameStateClass(target),
     fields: {},
     fieldVisibility: {},
     ownedByField: undefined,
@@ -160,7 +170,7 @@ function assertVisibilityFieldConfig(config: FieldVisibilityConfig): void {
 
 export function State(): ClassDecorator {
   return (target) => {
-    ensureStateMetadata(target as unknown as StateClass);
+    ensureStateMetadata(target as unknown as StateClass).marked = true;
   };
 }
 
@@ -269,8 +279,22 @@ export function getStateMetadata(target: StateClass): StateMetadata {
   const metadata = STATE_METADATA.get(target);
 
   if (!metadata) {
-    throw new Error(`state_metadata_not_found:${target.name || "anonymous"}`);
+    if (!isGameStateClass(target)) {
+      throw new Error(`state_metadata_not_found:${target.name || "anonymous"}`);
+    }
+
+    return ensureStateMetadata(target);
+  }
+
+  if (!metadata.marked && !isGameStateClass(target)) {
+    throw new Error(
+      `state_field_target_must_extend_game_state:${target.name || "anonymous"}`,
+    );
   }
 
   return metadata;
+}
+
+function isGameStateClass(target: StateClass): target is GameStateClass {
+  return target === GameState || target.prototype instanceof GameState;
 }

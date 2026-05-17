@@ -194,7 +194,14 @@ function visitNestedStateTarget(
 ): void {
   try {
     getStateMetadata(nestedTarget);
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith("state_field_target_must_extend_game_state:")
+    ) {
+      throw error;
+    }
+
     throw new Error(
       `state_field_target_must_be_decorated:${nestedTarget.name || "anonymous"}`,
     );

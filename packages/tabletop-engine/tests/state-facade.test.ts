@@ -3,6 +3,7 @@ import * as visibilityMetadata from "../src/state-facade/metadata";
 import {
   configureVisibility,
   field,
+  GameState,
   getStateMetadata,
   State,
   t,
@@ -125,6 +126,45 @@ test("state decorators capture scalar and nested state metadata", () => {
   }
 
   expect(handField.target()).toBe(HandState);
+});
+
+class BaseClassHandState extends GameState {
+  @field(t.number())
+  size!: number;
+}
+
+class BaseClassPlayerState extends GameState {
+  @field(t.number())
+  health!: number;
+
+  @field(t.state(() => BaseClassHandState))
+  hand!: BaseClassHandState;
+}
+
+class NonGameStateChild {
+  @field(t.number())
+  size!: number;
+}
+
+class InvalidBaseClassPlayerState extends GameState {
+  @field(t.state(() => NonGameStateChild))
+  hand!: NonGameStateChild;
+}
+
+test("GameState subclasses compile without State decorator", () => {
+  const compiled = compileStateFacadeDefinition(BaseClassPlayerState);
+
+  expect(compiled.root).toBe(BaseClassPlayerState);
+  expect(compiled.states.BaseClassPlayerState?.fields.health?.kind).toBe(
+    "number",
+  );
+  expect(compiled.states.BaseClassHandState?.fields.size?.kind).toBe("number");
+});
+
+test("nested state targets must extend GameState", () => {
+  expect(() =>
+    compileStateFacadeDefinition(InvalidBaseClassPlayerState),
+  ).toThrow("state_field_target_must_extend_game_state:NonGameStateChild");
 });
 
 test("field decorator captures composable runtime field type metadata", () => {
