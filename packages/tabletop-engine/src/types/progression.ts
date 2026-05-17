@@ -2,6 +2,7 @@ import type { Command, DefinedCommand } from "./command";
 import type { GameEvent } from "./event";
 import type { RNGApi } from "./rng";
 import type { FieldType, ObjectFieldType } from "../schema";
+import type { GameState as BaseGameState } from "../state-facade/metadata";
 import type { RuntimeState } from "./state";
 
 export const stageDefinitionBrand = Symbol("tabletop-engine.stage-definition");
@@ -41,20 +42,20 @@ export interface ProgressionState {
     | null;
 }
 
-export type StageDefinitionMap<FacadeGameState extends object> = Record<
+export type StageDefinitionMap<FacadeGameState extends BaseGameState> = Record<
   string,
   StageDefinition<FacadeGameState>
 >;
 
 export type StageDefinitionResolver<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   NextStages extends StageDefinitionMap<FacadeGameState> =
     StageDefinitionMap<FacadeGameState>,
 > = () => NextStages;
 
 type CommandFromDefinition<Definition> =
   Definition extends DefinedCommand<
-    infer GameState extends object,
+    infer GameState extends BaseGameState,
     infer Input extends Record<string, unknown>,
     infer DiscoveryInput extends Record<string, unknown>
   >
@@ -66,13 +67,15 @@ type CommandFromDefinition<Definition> =
 export type CommandsFromDefinitions<Definitions extends readonly unknown[]> =
   CommandFromDefinition<Definitions[number]>;
 
-export interface SingleActivePlayerSelectionContext<GameState extends object> {
+export interface SingleActivePlayerSelectionContext<
+  GameState extends BaseGameState,
+> {
   game: Readonly<GameState>;
   runtime: Readonly<RuntimeState>;
 }
 
 export interface SingleActivePlayerTransitionContext<
-  GameState extends object,
+  GameState extends BaseGameState,
   TCommand extends Command = Command,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
@@ -83,7 +86,7 @@ export interface SingleActivePlayerTransitionContext<
   nextStages: Readonly<NextStages>;
 }
 
-export interface AutomaticStageRunContext<GameState extends object> {
+export interface AutomaticStageRunContext<GameState extends BaseGameState> {
   game: GameState;
   runtime: Readonly<RuntimeState>;
   rng: RNGApi;
@@ -91,7 +94,7 @@ export interface AutomaticStageRunContext<GameState extends object> {
 }
 
 export interface AutomaticStageTransitionContext<
-  GameState extends object,
+  GameState extends BaseGameState,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
 > {
@@ -101,7 +104,7 @@ export interface AutomaticStageTransitionContext<
 }
 
 export interface MultiActivePlayerMemoryContext<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object = object,
 > {
   game: Readonly<GameState>;
@@ -110,7 +113,7 @@ export interface MultiActivePlayerMemoryContext<
 }
 
 export interface MultiActivePlayerSubmitContext<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object = object,
   TCommand extends Command = Command,
 > extends MultiActivePlayerMemoryContext<GameState, Memory> {
@@ -119,7 +122,7 @@ export interface MultiActivePlayerSubmitContext<
 }
 
 export interface MultiActivePlayerTransitionContext<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object = object,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
@@ -128,7 +131,7 @@ export interface MultiActivePlayerTransitionContext<
 }
 
 export interface SingleActivePlayerStageDefinition<
-  GameState extends object,
+  GameState extends BaseGameState,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState> =
@@ -151,7 +154,7 @@ export interface SingleActivePlayerStageDefinition<
 }
 
 export interface AutomaticStageDefinition<
-  GameState extends object,
+  GameState extends BaseGameState,
   NextStages extends StageDefinitionMap<GameState> =
     StageDefinitionMap<GameState>,
 > extends StageDefinitionBrand {
@@ -165,7 +168,7 @@ export interface AutomaticStageDefinition<
 }
 
 export interface MultiActivePlayerStageDefinition<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object = object,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
@@ -196,7 +199,7 @@ export interface MultiActivePlayerStageDefinition<
   ): MultiActivePlayerStageDefinition<GameState> | NextStages[keyof NextStages];
 }
 
-export type StageDefinition<GameState extends object> =
+export type StageDefinition<GameState extends BaseGameState> =
   | SingleActivePlayerStageDefinition<GameState>
   | AutomaticStageDefinition<GameState>
   | MultiActivePlayerStageDefinition<GameState>;

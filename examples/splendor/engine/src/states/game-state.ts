@@ -1,5 +1,5 @@
 import type { GameEvent } from "tabletop-engine";
-import { field, State, t } from "tabletop-engine";
+import { field, GameState, t } from "tabletop-engine";
 import { developmentCardsById } from "../data/cards.ts";
 import { nobleTilesById } from "../data/nobles.ts";
 import type { CardCost, DevelopmentCard, NobleTile } from "../data/types.ts";
@@ -17,8 +17,7 @@ const TOKEN_COLOR_MAP = {
   Black: "black",
 } as const satisfies Record<keyof CardCost, GemTokenColor>;
 
-@State()
-export class SplendorGameState {
+export class SplendorGameState extends GameState {
   @field(t.array(t.string()))
   playerOrder: string[] = [];
 

@@ -8,7 +8,7 @@ This package currently provides:
 
 - canonical `{ game, runtime }` state types
 - command definitions with `validate` and `execute`
-- decorator-driven state facade metadata via `@State()`, `@field(...)`, and `t`
+- state facade metadata via `GameState`, `@field(...)`, and `t`
 - `rootState(...)` authoring on `GameDefinitionBuilder`
 - hydrated state facades for command execution, validation, availability, and discovery
 - transactional command execution
@@ -40,11 +40,19 @@ bun run typecheck
 ## State facade authoring
 
 Games can continue to persist and execute against plain canonical state while
-authoring against a decorated root facade class.
+authoring against a root facade class.
 
 ```ts
-@State()
-class CounterState {
+import {
+  createCommandFactory,
+  createStageFactory,
+  field,
+  GameDefinitionBuilder,
+  GameState,
+  t,
+} from "tabletop-engine";
+
+class CounterState extends GameState {
   @field(t.number())
   value!: number;
 
@@ -53,20 +61,29 @@ class CounterState {
   }
 }
 
-const game = new GameDefinitionBuilder<{ value: number }>("counter")
+const defineCommand = createCommandFactory<CounterState>();
+const increment = defineCommand({
+  commandId: "increment",
+  commandSchema: t.object({}),
+})
+  .validate(() => ({ ok: true }))
+  .execute(({ game }) => {
+    game.increment();
+  })
+  .build();
+const turnStage = createStageFactory<CounterState>()("turn")
+  .singleActivePlayer()
+  .activePlayer(() => "player-1")
+  .commands([increment])
+  .nextStages(() => ({ turnStage }))
+  .transition(({ nextStages }) => nextStages.turnStage)
+  .build();
+
+const game = new GameDefinitionBuilder("counter")
   .rootState(CounterState)
-  .initialState(() => ({ value: 0 }))
-  .commands([
-    {
-      commandId: "increment",
-      validate: () => ({ ok: true }),
-      execute: ({ game }) => {
-        (game as CounterState).increment();
-      },
-    },
-  ])
+  .initialStage(turnStage)
   .build();
 ```
 
-The executor still returns plain canonical state. The decorated facade is a
-temporary execution-time authoring layer over a cloned working copy.
+The executor still returns plain canonical state. The facade is a temporary
+execution-time authoring layer over a cloned working copy.

@@ -3,8 +3,8 @@ import { GameDefinitionBuilder } from "../src/game-definition";
 import { createCommandFactory, describeGameProtocol } from "../src/index";
 import {
   configureVisibility,
-  State,
   field,
+  GameState,
 } from "../src/state-facade/metadata";
 import { t } from "../src/schema";
 import { createSelfLoopingTurnStage } from "./helpers/stages";
@@ -29,8 +29,7 @@ const hiddenViewSchema = t.object({
   count: t.number(),
 });
 
-@State()
-class ProtocolPlayerState {
+class ProtocolPlayerState extends GameState {
   @field(t.string())
   id = "";
 
@@ -38,14 +37,12 @@ class ProtocolPlayerState {
   hand: number[] = [];
 }
 
-@State()
-class ProtocolDeckState {
+class ProtocolDeckState extends GameState {
   @field(t.array(t.number()))
   cards: number[] = [];
 }
 
-@State()
-class PlainProtocolRootState {
+class PlainProtocolRootState extends GameState {
   @field(
     t.record(
       t.string(),
@@ -55,8 +52,7 @@ class PlainProtocolRootState {
   players: Record<string, ProtocolPlayerState> = {};
 }
 
-@State()
-class ProtocolRootState {
+class ProtocolRootState extends GameState {
   @field(
     t.record(
       t.string(),

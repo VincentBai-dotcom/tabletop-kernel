@@ -5,20 +5,17 @@ import {
   field,
   GameState,
   getStateMetadata,
-  State,
   t,
 } from "../src/state-facade/metadata";
 import { compileStateFacadeDefinition } from "../src/state-facade/compile";
 import { hydrateStateFacade } from "../src/state-facade/hydrate";
 
-@State()
-class HandState {
+class HandState extends GameState {
   @field(t.number())
   size!: number;
 }
 
-@State()
-class PlayerState {
+class PlayerState extends GameState {
   @field(t.number())
   health!: number;
 
@@ -30,14 +27,12 @@ class PlayerState {
   }
 }
 
-@State()
-class TypedHandState {
+class TypedHandState extends GameState {
   @field(t.number())
   size!: number;
 }
 
-@State()
-class TypedPlayerState {
+class TypedPlayerState extends GameState {
   @field(t.number())
   health!: number;
 
@@ -48,8 +43,7 @@ class TypedPlayerState {
   tags!: string[];
 }
 
-@State()
-class CardStateFacade {
+class CardStateFacade extends GameState {
   @field(t.string())
   id!: string;
 
@@ -58,8 +52,7 @@ class CardStateFacade {
   }
 }
 
-@State()
-class CardCollectionStateFacade {
+class CardCollectionStateFacade extends GameState {
   @field(t.array(t.state(() => CardStateFacade)))
   cards!: CardStateFacade[];
 }
@@ -68,8 +61,7 @@ const hiddenCountSchema = t.object({
   count: t.number(),
 });
 
-@State()
-class SummaryVisibilityPlayerState {
+class SummaryVisibilityPlayerState extends GameState {
   @field(t.string())
   id!: string;
 
@@ -77,8 +69,7 @@ class SummaryVisibilityPlayerState {
   cards!: string[];
 }
 
-@State()
-class SummaryVisibilityDeckState {
+class SummaryVisibilityDeckState extends GameState {
   @field(t.array(t.string()))
   cards!: string[];
 }
@@ -142,12 +133,11 @@ class BaseClassPlayerState extends GameState {
 }
 
 class NonGameStateChild {
-  @field(t.number())
   size!: number;
 }
 
 class InvalidBaseClassPlayerState extends GameState {
-  @field(t.state(() => NonGameStateChild))
+  @field(t.state(() => NonGameStateChild as never))
   hand!: NonGameStateChild;
 }
 
@@ -266,8 +256,7 @@ test("configureVisibility captures hidden visibility schema metadata", () => {
 
 test("configureVisibility rejects schema visibility without derive", () => {
   expect(() => {
-    @State()
-    class MissingHiddenDeriveState {
+    class MissingHiddenDeriveState extends GameState {
       @field(t.array(t.string()))
       cards!: string[];
     }

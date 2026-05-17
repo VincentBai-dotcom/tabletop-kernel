@@ -1,10 +1,10 @@
 import { resolve } from "node:path";
-import type { GameDefinition } from "tabletop-engine";
+import type { GameDefinition, GameState } from "tabletop-engine";
 import { loadConfig } from "./load-config.ts";
 import type { ParsedCommandArguments } from "./parse-args.ts";
 
 export interface GenerationContext {
-  game: GameDefinition<object>;
+  game: GameDefinition<GameState>;
   configFilePath: string;
   outputDirectory: string;
 }

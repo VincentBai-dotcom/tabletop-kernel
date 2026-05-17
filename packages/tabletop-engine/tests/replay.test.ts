@@ -9,13 +9,12 @@ import {
   createSnapshot,
   replayRecord,
   restoreSnapshot,
-  State,
   t,
 } from "../src/index";
+import { GameState } from "../src/state-facade/metadata";
 import { createSelfLoopingTurnStage } from "./helpers/stages";
 
-@State()
-class ReplayRootState {
+class ReplayRootState extends GameState {
   @field(t.number())
   counter = 0;
 

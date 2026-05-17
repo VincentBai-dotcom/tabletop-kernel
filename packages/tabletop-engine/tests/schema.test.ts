@@ -3,8 +3,8 @@ import { createCommandFactory } from "../src/command-factory";
 import {
   configureVisibility,
   field,
+  GameState,
   getStateMetadata,
-  State,
   t,
 } from "../src/state-facade/metadata";
 import { assertSerializableSchema } from "../src/schema";
@@ -18,8 +18,7 @@ type ExtendedSchemaApi = typeof t & {
   record: (key: unknown, value: unknown) => unknown;
 };
 
-@State()
-class ObjectFieldState {
+class ObjectFieldState extends GameState {
   @field(
     (t as ExtendedSchemaApi).object({
       count: t.number(),
@@ -100,8 +99,7 @@ test("state metadata can consume object schemas through field decorators", () =>
   });
 });
 
-@State()
-class NestedSerializableChildState {
+class NestedSerializableChildState extends GameState {
   @field(t.number())
   count!: number;
 }
@@ -217,7 +215,7 @@ test("schema value validation rejects invalid nested values", () => {
 });
 
 test("command schemas reject nested state transport fields at definition time", () => {
-  const defineCommand = createCommandFactory<object>();
+  const defineCommand = createCommandFactory<GameState>();
   const invalidTransportSchema = (t as ExtendedSchemaApi).object({
     child: t.state(() => NestedSerializableChildState),
   }) as never as CommandSchema<{
@@ -235,7 +233,7 @@ test("command schemas reject nested state transport fields at definition time", 
 });
 
 test("discovery schemas reject nested state transport fields at definition time", () => {
-  const defineCommand = createCommandFactory<object>();
+  const defineCommand = createCommandFactory<GameState>();
   const invalidTransportSchema = (t as ExtendedSchemaApi).object({
     child: t.state(() => NestedSerializableChildState),
   }) as never as CommandSchema<{
@@ -261,8 +259,7 @@ test("discovery schemas reject nested state transport fields at definition time"
 
 test("visibility schemas reject nested state transport fields", () => {
   expect(() => {
-    @State()
-    class InvalidHiddenSummaryState {
+    class InvalidHiddenSummaryState extends GameState {
       @field(t.array(t.number()))
       cards!: number[];
     }
@@ -288,8 +285,7 @@ test("visibility schemas reject nested state transport fields", () => {
   }).toThrow("state_field_not_allowed_in_serializable_schema");
 
   expect(() => {
-    @State()
-    class InvalidVisibleToSelfSummaryState {
+    class InvalidVisibleToSelfSummaryState extends GameState {
       @field(t.string())
       id!: string;
 

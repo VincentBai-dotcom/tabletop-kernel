@@ -1,4 +1,4 @@
-interface BuiltGameDefinition {
+export interface BuiltGameDefinition {
   name: string;
   commands: object;
   canonicalGameStateSchema: object;
@@ -12,8 +12,6 @@ export interface TabletopCliConfig<
   outDir?: string;
 }
 
-export function defineConfig<TGame extends BuiltGameDefinition>(
-  config: TabletopCliConfig<TGame>,
-): TabletopCliConfig<TGame> {
+export function defineConfig(config: TabletopCliConfig): TabletopCliConfig {
   return config;
 }

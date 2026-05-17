@@ -5,11 +5,11 @@ import type {
   TSchema,
   TString,
 } from "@sinclair/typebox";
-import type { StateClass } from "../state-facade/metadata";
+import type { GameStateClass } from "../state-facade/metadata";
 
 export const fieldKind = Symbol("tabletop-engine.schema-field-kind");
 
-export type StateFieldTargetFactory = () => StateClass;
+export type StateFieldTargetFactory = () => GameStateClass;
 
 export type NumberFieldType = TNumber & {
   readonly [fieldKind]: "number";

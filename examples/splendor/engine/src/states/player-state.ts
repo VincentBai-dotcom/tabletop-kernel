@@ -1,4 +1,4 @@
-import { configureVisibility, field, State, t } from "tabletop-engine";
+import { configureVisibility, field, GameState, t } from "tabletop-engine";
 import { developmentCardsById } from "../data/cards.ts";
 import type { CardCost, DevelopmentCard } from "../data/types.ts";
 import { type GemTokenColor } from "./constants.ts";
@@ -29,8 +29,7 @@ const hiddenReservedCardSchema = t.object({
   count: t.number(),
 });
 
-@State()
-export class SplendorPlayerState {
+export class SplendorPlayerState extends GameState {
   @field(t.string())
   id = "";
 

@@ -5,13 +5,12 @@ import {
   field,
   GameDefinitionBuilder,
   runScenario,
-  State,
   t,
 } from "../src/index";
+import { GameState } from "../src/state-facade/metadata";
 import { createSelfLoopingTurnStage } from "./helpers/stages";
 
-@State()
-class HarnessCounterRootState {
+class HarnessCounterRootState extends GameState {
   @field(t.number())
   counter = 0;
 

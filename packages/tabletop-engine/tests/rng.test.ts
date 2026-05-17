@@ -4,13 +4,12 @@ import {
   createGameExecutor,
   field,
   GameDefinitionBuilder,
-  State,
   t,
 } from "../src/index";
+import { GameState } from "../src/state-facade/metadata";
 import { createSelfLoopingTurnStage } from "./helpers/stages";
 
-@State()
-class RandomDeckRootState {
+class RandomDeckRootState extends GameState {
   @field(t.number())
   roll = 0;
 
@@ -27,8 +26,7 @@ class RandomDeckRootState {
   }
 }
 
-@State()
-class RandomValueRootState {
+class RandomValueRootState extends GameState {
   @field(t.number())
   value = 0;
 

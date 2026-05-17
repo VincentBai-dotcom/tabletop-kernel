@@ -1,27 +1,27 @@
 import {
   type FieldVisibilityConfig,
+  type GameStateClass,
   getStateMetadata,
-  type StateClass,
 } from "./metadata";
 import type { FieldType } from "../schema";
 
 export interface CompiledStateDefinition {
-  type: StateClass;
+  type: GameStateClass;
   fields: Record<string, FieldType>;
   fieldVisibility: Record<string, FieldVisibilityConfig>;
   ownedByField?: string;
 }
 
 export interface CompiledStateFacadeDefinition {
-  root: StateClass;
+  root: GameStateClass;
   states: Record<string, CompiledStateDefinition>;
 }
 
 export function compileStateFacadeDefinition(
-  root: StateClass,
+  root: GameStateClass,
 ): CompiledStateFacadeDefinition {
   const states: Record<string, CompiledStateDefinition> = {};
-  const visited = new Set<StateClass>();
+  const visited = new Set<GameStateClass>();
 
   visitState(root, states, visited, false);
 
@@ -32,9 +32,9 @@ export function compileStateFacadeDefinition(
 }
 
 function visitState(
-  target: StateClass,
+  target: GameStateClass,
   states: Record<string, CompiledStateDefinition>,
-  visited: Set<StateClass>,
+  visited: Set<GameStateClass>,
   hasOwningPlayerAncestor: boolean,
 ): void {
   if (visited.has(target)) {
@@ -73,7 +73,7 @@ function visitState(
 function visitNestedStateTargets(
   field: FieldType,
   states: Record<string, CompiledStateDefinition>,
-  visited: Set<StateClass>,
+  visited: Set<GameStateClass>,
   hasOwningPlayerAncestor: boolean,
 ): void {
   if (field.kind === "state") {
@@ -131,7 +131,7 @@ function visitNestedStateTargets(
 function visitNestedFieldTypeTargets(
   field: FieldType,
   states: Record<string, CompiledStateDefinition>,
-  visited: Set<StateClass>,
+  visited: Set<GameStateClass>,
   hasOwningPlayerAncestor: boolean,
 ): void {
   if (field.kind === "state") {
@@ -187,31 +187,17 @@ function visitNestedFieldTypeTargets(
 }
 
 function visitNestedStateTarget(
-  nestedTarget: StateClass,
+  nestedTarget: GameStateClass,
   states: Record<string, CompiledStateDefinition>,
-  visited: Set<StateClass>,
+  visited: Set<GameStateClass>,
   hasOwningPlayerAncestor: boolean,
 ): void {
-  try {
-    getStateMetadata(nestedTarget);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.startsWith("state_field_target_must_extend_game_state:")
-    ) {
-      throw error;
-    }
-
-    throw new Error(
-      `state_field_target_must_be_decorated:${nestedTarget.name || "anonymous"}`,
-    );
-  }
-
+  getStateMetadata(nestedTarget);
   visitState(nestedTarget, states, visited, hasOwningPlayerAncestor);
 }
 
 function validateOwnedByField(
-  target: StateClass,
+  target: GameStateClass,
   fields: Record<string, FieldType>,
   ownedByField: string | undefined,
 ) {
@@ -233,7 +219,7 @@ function validateOwnedByField(
 }
 
 function validateVisibilityFields(
-  target: StateClass,
+  target: GameStateClass,
   fields: Record<string, FieldType>,
   fieldVisibility: Record<string, FieldVisibilityConfig>,
 ) {

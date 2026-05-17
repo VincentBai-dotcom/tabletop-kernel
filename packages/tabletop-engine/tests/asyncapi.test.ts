@@ -9,7 +9,7 @@ import {
 import {
   configureVisibility,
   field,
-  State,
+  GameState,
 } from "../src/state-facade/metadata";
 import { t } from "../src/schema";
 import { createSelfLoopingTurnStage } from "./helpers/stages";
@@ -31,8 +31,7 @@ const confirmSelectionOutputSchema = t.object({
   confirmed: t.boolean(),
 });
 
-@State()
-class AsyncApiPlayerState {
+class AsyncApiPlayerState extends GameState {
   @field(t.string())
   id = "";
 
@@ -40,14 +39,12 @@ class AsyncApiPlayerState {
   hand: number[] = [];
 }
 
-@State()
-class AsyncApiDeckState {
+class AsyncApiDeckState extends GameState {
   @field(t.array(t.number()))
   cards: number[] = [];
 }
 
-@State()
-class AsyncApiRootState {
+class AsyncApiRootState extends GameState {
   @field(
     t.record(
       t.string(),

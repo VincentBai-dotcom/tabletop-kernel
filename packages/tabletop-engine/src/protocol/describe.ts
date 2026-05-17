@@ -4,6 +4,7 @@ import type { FieldType, SerializableFieldType } from "../schema";
 import type { CommandSchema } from "../types/command";
 import type {
   FieldVisibilityConfig,
+  GameState as BaseGameState,
   VisibilityMode,
 } from "../state-facade/metadata";
 import type { CompiledStateFacadeDefinition } from "../state-facade/compile";
@@ -32,7 +33,7 @@ export interface GameProtocolDescriptor {
 }
 
 export function describeGameProtocol<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(game: GameDefinition<FacadeGameState, SetupInput>): GameProtocolDescriptor {
   const commands: Record<string, ProtocolCommandDescriptor> = {};
