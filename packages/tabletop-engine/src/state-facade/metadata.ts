@@ -1,4 +1,12 @@
-export type StateClass<TState extends object = object> = new (
+export abstract class GameState {
+  declare protected readonly __tabletopGameStateBrand: never;
+}
+
+export type GameStateClass<TState extends GameState = GameState> = new (
+  ...args: unknown[]
+) => TState;
+
+type Constructor<TState extends object = object> = new (
   ...args: unknown[]
 ) => TState;
 
@@ -125,9 +133,9 @@ type VisibilityConfigurationBuilder<TState extends object> = {
   };
 };
 
-const STATE_METADATA = new WeakMap<StateClass, StateMetadata>();
+const STATE_METADATA = new WeakMap<GameStateClass, StateMetadata>();
 
-function ensureStateMetadata(target: StateClass): StateMetadata {
+function ensureStateMetadata(target: GameStateClass): StateMetadata {
   const existing = STATE_METADATA.get(target);
 
   if (existing) {
@@ -144,8 +152,10 @@ function ensureStateMetadata(target: StateClass): StateMetadata {
   return created;
 }
 
-function resolveDecoratorTarget(target: object): StateClass {
-  return target.constructor as StateClass;
+function resolveDecoratorTarget(target: object): GameStateClass {
+  const constructor = target.constructor as Constructor;
+  assertGameStateClass(constructor);
+  return constructor;
 }
 
 function assertVisibilityFieldConfig(config: FieldVisibilityConfig): void {
@@ -156,12 +166,6 @@ function assertVisibilityFieldConfig(config: FieldVisibilityConfig): void {
       throw new Error("visibility_schema_requires_derive");
     }
   }
-}
-
-export function State(): ClassDecorator {
-  return (target) => {
-    ensureStateMetadata(target as unknown as StateClass);
-  };
 }
 
 export function field(fieldType: FieldType): PropertyDecorator {
@@ -199,8 +203,8 @@ function createVisibleToSelfFieldConfig<TValue, TState extends object>(
   return config;
 }
 
-export function configureVisibility<TState extends object>(
-  target: StateClass<TState>,
+export function configureVisibility<TState extends GameState>(
+  target: GameStateClass<TState>,
   config: (
     builder: VisibilityConfigurationBuilder<TState>,
   ) => VisibilityConfigurationInput<TState>,
@@ -265,12 +269,28 @@ function createVisibilityConfigurationBuilder<
   };
 }
 
-export function getStateMetadata(target: StateClass): StateMetadata {
+export function getStateMetadata(target: Constructor): StateMetadata {
+  assertGameStateClass(target);
+
   const metadata = STATE_METADATA.get(target);
 
   if (!metadata) {
-    throw new Error(`state_metadata_not_found:${target.name || "anonymous"}`);
+    return ensureStateMetadata(target);
   }
 
   return metadata;
+}
+
+function isGameStateClass(target: Constructor): target is GameStateClass {
+  return target === GameState || target.prototype instanceof GameState;
+}
+
+function assertGameStateClass(
+  target: Constructor,
+): asserts target is GameStateClass {
+  if (!isGameStateClass(target)) {
+    throw new Error(
+      `state_field_target_must_extend_game_state:${target.name || "anonymous"}`,
+    );
+  }
 }

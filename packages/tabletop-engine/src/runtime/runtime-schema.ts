@@ -5,11 +5,12 @@ import type {
   SingleActivePlayerStageDefinition,
   StageDefinition,
 } from "../types/progression";
+import type { GameState as BaseGameState } from "../state-facade/metadata";
 
 const seedSchema = Type.Union([Type.String(), Type.Number()]);
 
 function createAutomaticStageStateSchema(
-  stage: AutomaticStageDefinition<object>,
+  stage: AutomaticStageDefinition<BaseGameState>,
 ): TSchema {
   return Type.Object({
     id: Type.Literal(stage.id),
@@ -18,7 +19,7 @@ function createAutomaticStageStateSchema(
 }
 
 function createSingleActivePlayerStageStateSchema(
-  stage: SingleActivePlayerStageDefinition<object>,
+  stage: SingleActivePlayerStageDefinition<BaseGameState>,
 ): TSchema {
   return Type.Object({
     id: Type.Literal(stage.id),
@@ -28,7 +29,7 @@ function createSingleActivePlayerStageStateSchema(
 }
 
 function createMultiActivePlayerStageStateSchema(
-  stage: MultiActivePlayerStageDefinition<object>,
+  stage: MultiActivePlayerStageDefinition<BaseGameState>,
 ): TSchema {
   return Type.Object({
     id: Type.Literal(stage.id),
@@ -38,7 +39,9 @@ function createMultiActivePlayerStageStateSchema(
   });
 }
 
-function createStageStateSchema(stage: StageDefinition<object>): TSchema {
+function createStageStateSchema(
+  stage: StageDefinition<BaseGameState>,
+): TSchema {
   switch (stage.kind) {
     case "automatic":
       return createAutomaticStageStateSchema(stage);
@@ -62,7 +65,7 @@ function createUnionSchema(schemas: TSchema[]): TSchema {
 }
 
 export function compileRuntimeStateSchema(
-  stages: Record<string, StageDefinition<object>>,
+  stages: Record<string, StageDefinition<BaseGameState>>,
 ): TSchema {
   const stageDefinitions = Object.values(stages);
   const currentStageSchema = createUnionSchema(

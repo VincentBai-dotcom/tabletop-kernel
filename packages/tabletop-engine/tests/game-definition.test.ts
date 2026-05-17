@@ -8,24 +8,22 @@ import type { SingleActivePlayerStageDefinition } from "../src/types/progression
 import {
   configureVisibility,
   field,
-  State,
+  GameState,
   t,
 } from "../src/state-facade/metadata";
 
 const emptyCommandSchema = t.object({});
 
-function createTestStage<GameState extends object>(id: string) {
-  return createStageFactory<GameState>()(id);
+function createTestStage<TGameState extends GameState>(id: string) {
+  return createStageFactory<TGameState>()(id);
 }
 
-@State()
-class TestHandState {
+class TestHandState extends GameState {
   @field(t.number())
   size = 0;
 }
 
-@State()
-class TestRootState {
+class TestRootState extends GameState {
   @field(t.number())
   score = 0;
 
@@ -37,38 +35,32 @@ class UndecoratedChildState {
   cards!: number[];
 }
 
-@State()
-class BrokenRootState {
-  @field(t.state(() => UndecoratedChildState))
+class BrokenRootState extends GameState {
+  @field(t.state(() => UndecoratedChildState as never))
   child!: UndecoratedChildState;
 }
 
-@State()
-class TestCardState {
+class TestCardState extends GameState {
   @field(t.string())
   id = "";
 }
 
-@State()
-class TestCollectionRootState {
+class TestCollectionRootState extends GameState {
   @field(t.array(t.state(() => TestCardState)))
   cards: TestCardState[] = [];
 }
 
-@State()
-class VisibleToSelfWithoutOwnerRootState {
+class VisibleToSelfWithoutOwnerRootState extends GameState {
   @field(t.array(t.number()))
   hiddenCards: number[] = [];
 }
 
-@State()
-class OwnedPlayerStateWithoutId {
+class OwnedPlayerStateWithoutId extends GameState {
   @field(t.number())
   score = 0;
 }
 
-@State()
-class VisibilityFieldTypoRootState {
+class VisibilityFieldTypoRootState extends GameState {
   @field(t.array(t.number()))
   hiddenCards: number[] = [];
 }
@@ -88,52 +80,44 @@ configureVisibility(VisibilityFieldTypoRootState, ({ field }) => ({
   ],
 }));
 
-@State()
-class ScoreRootState {
+class ScoreRootState extends GameState {
   @field(t.number())
   score = 0;
 }
 
-@State()
-class MismatchedDefaultRootState {
+class MismatchedDefaultRootState extends GameState {
   @field(t.number())
   name = "";
 }
 
-@State()
-class MismatchedStringDefaultRootState {
+class MismatchedStringDefaultRootState extends GameState {
   @field(t.string())
   name = 123 as never;
 }
 
-@State()
-class MismatchedBooleanDefaultRootState {
+class MismatchedBooleanDefaultRootState extends GameState {
   @field(t.boolean())
   enabled = "yes" as never;
 }
 
-@State()
-class MismatchedArrayDefaultRootState {
+class MismatchedArrayDefaultRootState extends GameState {
   @field(t.array(t.number()))
   values = "not-an-array" as never;
 }
 
-@State()
-class MismatchedRecordDefaultRootState {
+class MismatchedRecordDefaultRootState extends GameState {
   @field(t.record(t.string(), t.number()))
   scores = 123 as never;
 }
 
-@State()
-class MismatchedRecordKeyDefaultRootState {
+class MismatchedRecordKeyDefaultRootState extends GameState {
   @field(t.record(t.number(), t.string()))
   scores = {
     abc: "not-a-number-key",
   } as never;
 }
 
-@State()
-class MismatchedObjectDefaultRootState {
+class MismatchedObjectDefaultRootState extends GameState {
   @field(
     t.object({
       label: t.string(),
@@ -142,14 +126,12 @@ class MismatchedObjectDefaultRootState {
   config = 123 as never;
 }
 
-@State()
-class MismatchedStateDefaultRootState {
+class MismatchedStateDefaultRootState extends GameState {
   @field(t.state(() => TestHandState))
   hand = 123 as never;
 }
 
-@State()
-class UndeclaredDefaultRootState {
+class UndeclaredDefaultRootState extends GameState {
   @field(t.number())
   score = 0;
 
@@ -336,7 +318,7 @@ test("GameDefinitionBuilder rejects initialized public state properties without 
 });
 
 test("GameDefinitionBuilder compiles stage command references into the command map shape", () => {
-  const defineCommand = createCommandFactory<{ score: number }>();
+  const defineCommand = createCommandFactory<ScoreRootState>();
   const incrementScoreCommand = defineCommand({
     commandId: "increment_score",
     commandSchema: emptyCommandSchema,
@@ -385,7 +367,7 @@ test("GameDefinitionBuilder compiles stage command references into the command m
 });
 
 test("GameDefinitionBuilder compiles multi-active stage command references into the command map shape", () => {
-  const defineCommand = createCommandFactory<{ score: number }>();
+  const defineCommand = createCommandFactory<ScoreRootState>();
   const submitVoteCommand = defineCommand({
     commandId: "submit_vote",
     commandSchema: emptyCommandSchema,
@@ -439,8 +421,8 @@ test("GameDefinitionBuilder compiles multi-active stage command references into 
 });
 
 test("GameDefinitionBuilder assembles runtimeStateSchema with multi-active memory shape", () => {
-  const defineCommand = createCommandFactory<{ score: number }>();
-  const defineStage = createStageFactory<{ score: number }>();
+  const defineCommand = createCommandFactory<ScoreRootState>();
+  const defineStage = createStageFactory<ScoreRootState>();
   const submitVoteCommand = defineCommand({
     commandId: "submit_vote",
     commandSchema: emptyCommandSchema,
@@ -530,7 +512,7 @@ test("GameDefinitionBuilder assembles runtimeStateSchema with multi-active memor
 });
 
 test("GameDefinitionBuilder accepts factory-defined commands through stages only", () => {
-  const defineCommand = createCommandFactory<{ score: number }>();
+  const defineCommand = createCommandFactory<ScoreRootState>();
 
   const incrementScoreCommand = defineCommand({
     commandId: "increment_score",
@@ -588,7 +570,7 @@ test("GameDefinitionBuilder accepts factory-defined commands through stages only
 });
 
 test("GameDefinitionBuilder rejects duplicate command ids across reachable stages", () => {
-  const defineCommand = createCommandFactory<{ score: number }>();
+  const defineCommand = createCommandFactory<ScoreRootState>();
   const incrementScoreCommand = defineCommand({
     commandId: "increment_score",
     commandSchema: emptyCommandSchema,
@@ -753,7 +735,7 @@ test("GameDefinitionBuilder compiles reachable root state metadata", () => {
   );
 });
 
-test("GameDefinitionBuilder rejects undecorated nested state targets", () => {
+test("GameDefinitionBuilder rejects nested state targets that do not extend GameState", () => {
   expect(() =>
     new GameDefinitionBuilder("broken-root-state-game")
       .rootState(BrokenRootState)
@@ -761,7 +743,7 @@ test("GameDefinitionBuilder rejects undecorated nested state targets", () => {
         createTestStage<BrokenRootState>("gameEnd").automatic().build(),
       )
       .build(),
-  ).toThrow("state_field_target_must_be_decorated:UndecoratedChildState");
+  ).toThrow("state_field_target_must_extend_game_state:UndecoratedChildState");
 });
 
 test("GameDefinitionBuilder compiles nested state references inside array field types", () => {

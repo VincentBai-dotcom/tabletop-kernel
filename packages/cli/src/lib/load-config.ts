@@ -1,4 +1,4 @@
-import type { GameDefinition } from "tabletop-engine";
+import type { GameDefinition, GameState } from "tabletop-engine";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 interface LoadConfigOptions {
@@ -7,12 +7,12 @@ interface LoadConfigOptions {
 }
 
 interface RuntimeCliConfig {
-  game: GameDefinition<object>;
+  game: GameDefinition<GameState>;
   outDir?: string;
 }
 
 export interface LoadedCliConfig {
-  game: GameDefinition<object>;
+  game: GameDefinition<GameState>;
   outDir?: string;
   configFilePath: string;
   configDirectory: string;
@@ -56,7 +56,7 @@ function isCliConfig(value: unknown): value is RuntimeCliConfig {
   );
 }
 
-function isGameDefinition(value: unknown): value is GameDefinition<object> {
+function isGameDefinition(value: unknown): value is GameDefinition<GameState> {
   if (!value || typeof value !== "object") {
     return false;
   }

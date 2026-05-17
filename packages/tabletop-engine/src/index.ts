@@ -10,8 +10,8 @@ export { t } from "./schema";
 export {
   configureVisibility,
   field,
+  GameState,
   getStateMetadata,
-  State,
 } from "./state-facade/metadata";
 export {
   appendReplayStep,

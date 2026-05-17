@@ -6,7 +6,7 @@ import { GameDefinitionBuilder } from "../src/game-definition";
 import {
   configureVisibility,
   field,
-  State,
+  GameState,
   t,
 } from "../src/state-facade/metadata";
 import {
@@ -38,8 +38,7 @@ const selectCardOutputSchema = t.object({
   cardId: t.number(),
 });
 
-@State()
-class CounterStateFacade {
+class CounterStateFacade extends GameState {
   @field(t.number())
   value = 0;
 
@@ -48,8 +47,7 @@ class CounterStateFacade {
   }
 }
 
-@State()
-class RootCounterStateFacade {
+class RootCounterStateFacade extends GameState {
   @field(t.state(() => CounterStateFacade))
   counter!: CounterStateFacade;
 
@@ -66,14 +64,12 @@ class RootCounterStateFacade {
   }
 }
 
-@State()
-class DefaultChildState {
+class DefaultChildState extends GameState {
   @field(t.number())
   count = 2;
 }
 
-@State()
-class DefaultRootState {
+class DefaultRootState extends GameState {
   @field(t.array(t.string()))
   names = ["alpha"];
 
@@ -84,32 +80,27 @@ class DefaultRootState {
   child!: DefaultChildState;
 }
 
-@State()
-class ExplicitNestedDefaultRootState {
+class ExplicitNestedDefaultRootState extends GameState {
   @field(t.state(() => DefaultChildState))
   child = Object.assign(new DefaultChildState(), { count: 5 });
 }
 
-@State()
-class MissingRequiredDefaultRootState {
+class MissingRequiredDefaultRootState extends GameState {
   @field(t.array(t.string()))
   names!: string[];
 }
 
-@State()
-class NullNestedDefaultRootState {
+class NullNestedDefaultRootState extends GameState {
   @field(t.state(() => DefaultChildState))
   child: DefaultChildState | null = null;
 }
 
-@State()
-class OptionalNestedDefaultRootState {
+class OptionalNestedDefaultRootState extends GameState {
   @field(t.optional(t.state(() => DefaultChildState)))
   child?: DefaultChildState;
 }
 
-@State()
-class VisiblePlayerState {
+class VisiblePlayerState extends GameState {
   @field(t.string())
   id = "";
 
@@ -129,8 +120,7 @@ const hiddenHandSchema = t.object({
   score: t.number(),
 });
 
-@State()
-class VisibleSummaryPlayerState {
+class VisibleSummaryPlayerState extends GameState {
   @field(t.string())
   id = "";
 
@@ -141,8 +131,7 @@ class VisibleSummaryPlayerState {
   score = 0;
 }
 
-@State()
-class VisibleSummaryRootState {
+class VisibleSummaryRootState extends GameState {
   @field(
     t.record(
       t.string(),
@@ -156,8 +145,7 @@ class VisibleSummaryRootState {
   }
 }
 
-@State()
-class VisibleRootState {
+class VisibleRootState extends GameState {
   @field(
     t.record(
       t.string(),
@@ -171,8 +159,7 @@ class VisibleRootState {
   }
 }
 
-@State()
-class HiddenDeckState {
+class HiddenDeckState extends GameState {
   @field(t.array(t.string()))
   cards: string[] = [];
 
@@ -181,8 +168,7 @@ class HiddenDeckState {
   }
 }
 
-@State()
-class HiddenSummaryDeckState {
+class HiddenSummaryDeckState extends GameState {
   @field(t.array(t.string()))
   cards: string[] = [];
 
@@ -191,8 +177,7 @@ class HiddenSummaryDeckState {
   }
 }
 
-@State()
-class HiddenSummaryDeckRootState {
+class HiddenSummaryDeckRootState extends GameState {
   @field(t.state(() => HiddenSummaryDeckState))
   deck!: HiddenSummaryDeckState;
 
@@ -201,8 +186,7 @@ class HiddenSummaryDeckRootState {
   }
 }
 
-@State()
-class HiddenDeckRootState {
+class HiddenDeckRootState extends GameState {
   @field(t.state(() => HiddenDeckState))
   deck!: HiddenDeckState;
 
@@ -211,8 +195,7 @@ class HiddenDeckRootState {
   }
 }
 
-@State()
-class PlainCounterRootState {
+class PlainCounterRootState extends GameState {
   @field(t.number())
   counter = 0;
 
@@ -262,14 +245,12 @@ configureVisibility(HiddenSummaryDeckState, ({ field }) => ({
   ],
 }));
 
-@State()
-class CanPlayRootState {
+class CanPlayRootState extends GameState {
   @field(t.boolean())
   canPlay = true;
 }
 
-@State()
-class EnergyRootState {
+class EnergyRootState extends GameState {
   @field(t.number())
   energy = 1;
 
@@ -278,8 +259,7 @@ class EnergyRootState {
   }
 }
 
-@State()
-class InvalidSetupScoreRootState {
+class InvalidSetupScoreRootState extends GameState {
   @field(t.number())
   score = 0;
 
@@ -288,8 +268,7 @@ class InvalidSetupScoreRootState {
   }
 }
 
-@State()
-class InvalidExecutionScoreRootState {
+class InvalidExecutionScoreRootState extends GameState {
   @field(t.number())
   score = 0;
 
@@ -298,8 +277,7 @@ class InvalidExecutionScoreRootState {
   }
 }
 
-@State()
-class NumericActionsRootState {
+class NumericActionsRootState extends GameState {
   @field(t.number())
   actions = 0;
 
@@ -315,8 +293,7 @@ class NumericActionsRootState {
   }
 }
 
-@State()
-class StringActionsRootState {
+class StringActionsRootState extends GameState {
   @field(t.array(t.string()))
   actions: string[] = [];
 
@@ -341,11 +318,7 @@ test("createGameExecutor hydrates decorated state facades for execution", () => 
       })
       .build(),
   };
-  const game = new GameDefinitionBuilder<{
-    counter: {
-      value: number;
-    };
-  }>("facade-counter-game")
+  const game = new GameDefinitionBuilder("facade-counter-game")
     .rootState(RootCounterStateFacade)
     .initialStage(createSelfLoopingTurnStage(Object.values(commands)))
     .build();
@@ -393,11 +366,7 @@ test("executeCommand rejects successful commands that produce invalid canonical 
 });
 
 test("createGameExecutor can project viewer-safe visible state", () => {
-  const game = new GameDefinitionBuilder<{
-    counter: {
-      value: number;
-    };
-  }>("visible-state-game")
+  const game = new GameDefinitionBuilder("visible-state-game")
     .rootState(RootCounterStateFacade)
     .setup(({ game }) => {
       game.setCounterValue(2);
@@ -597,16 +566,7 @@ test("GameDefinitionBuilder fails when a non-optional nested state defaults to n
 });
 
 test("createGameExecutor projects visibleToSelf fields for the owner only", () => {
-  const game = new GameDefinitionBuilder<{
-    players: Record<
-      string,
-      {
-        id: string;
-        hand: string[];
-        score: number;
-      }
-    >;
-  }>("private-hand-game")
+  const game = new GameDefinitionBuilder("private-hand-game")
     .rootState(VisibleRootState)
     .setup(({ game }) => {
       game.replacePlayers({
@@ -666,11 +626,7 @@ test("createGameExecutor projects visibleToSelf fields for the owner only", () =
 });
 
 test("createGameExecutor projects hidden fields for every viewer", () => {
-  const game = new GameDefinitionBuilder<{
-    deck: {
-      cards: string[];
-    };
-  }>("hidden-deck-game")
+  const game = new GameDefinitionBuilder("hidden-deck-game")
     .rootState(HiddenDeckRootState)
     .setup(({ game }) => {
       game.setDeckCards(["a", "b", "c"]);
@@ -709,11 +665,7 @@ test("createGameExecutor projects hidden fields for every viewer", () => {
 });
 
 test("createGameExecutor projects hidden schema values for hidden fields", () => {
-  const game = new GameDefinitionBuilder<{
-    deck: {
-      cards: string[];
-    };
-  }>("hidden-summary-deck-game")
+  const game = new GameDefinitionBuilder("hidden-summary-deck-game")
     .rootState(HiddenSummaryDeckRootState)
     .setup(({ game }) => {
       game.setDeckCards(["a", "b", "c"]);
@@ -749,16 +701,7 @@ test("createGameExecutor projects hidden schema values for hidden fields", () =>
 });
 
 test("createGameExecutor projects hidden schema values for visibleToSelf fields", () => {
-  const game = new GameDefinitionBuilder<{
-    players: Record<
-      string,
-      {
-        id: string;
-        hand: string[];
-        score: number;
-      }
-    >;
-  }>("private-hand-summary-game")
+  const game = new GameDefinitionBuilder("private-hand-summary-game")
     .rootState(VisibleSummaryRootState)
     .setup(({ game }) => {
       game.replacePlayers({
@@ -826,16 +769,7 @@ test("createGameExecutor projects hidden schema values for visibleToSelf fields"
 });
 
 test("createGameExecutor rejects owned player projection when id is empty", () => {
-  const game = new GameDefinitionBuilder<{
-    players: Record<
-      string,
-      {
-        id: string;
-        hand: string[];
-        score: number;
-      }
-    >;
-  }>("invalid-player-owner-game")
+  const game = new GameDefinitionBuilder("invalid-player-owner-game")
     .rootState(VisibleRootState)
     .setup(({ game }) => {
       game.replacePlayers({
@@ -936,11 +870,7 @@ test("availability and discovery contexts hydrate readonly decorated state facad
       })
       .build(),
   };
-  const game = new GameDefinitionBuilder<{
-    counter: {
-      value: number;
-    };
-  }>("readonly-facade-discovery-game")
+  const game = new GameDefinitionBuilder("readonly-facade-discovery-game")
     .rootState(RootCounterStateFacade)
     .setup(({ game }) => {
       game.setCounterValue(2);
@@ -1010,11 +940,7 @@ test("readonly decorated facades reject mutation during validation", () => {
       .execute(() => {})
       .build(),
   };
-  const game = new GameDefinitionBuilder<{
-    counter: {
-      value: number;
-    };
-  }>("readonly-facade-validation-game")
+  const game = new GameDefinitionBuilder("readonly-facade-validation-game")
     .rootState(RootCounterStateFacade)
     .initialStage(createSelfLoopingTurnStage(Object.values(commands)))
     .build();

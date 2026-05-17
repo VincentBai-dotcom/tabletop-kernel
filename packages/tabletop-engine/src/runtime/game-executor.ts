@@ -33,6 +33,7 @@ import type { CanonicalState, RuntimeState } from "../types/state";
 import type { Viewer, VisibleState } from "../types/visibility";
 import { createRNGService } from "../rng/service";
 import type { CanonicalGameState } from "../state-facade/canonical";
+import type { GameState as BaseGameState } from "../state-facade/metadata";
 import { hydrateStateFacade } from "../state-facade/hydrate";
 import { getView as getVisibleStateView } from "../state-facade/project";
 import {
@@ -42,7 +43,7 @@ import {
 } from "./validation";
 
 type GameExecutorDefinition<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined,
 > = GameDefinition<FacadeGameState, SetupInput>;
 
@@ -72,7 +73,7 @@ export interface GameExecutor<
 }
 
 function createCommandGameView<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   game: GameExecutorDefinition<FacadeGameState, SetupInput>,
@@ -94,7 +95,7 @@ type CreateInitialStateFn<
   : (input: SetupInput, rngSeed: string | number) => CanonicalState<GameState>;
 
 function createInitialRuntimeState<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   game: GameExecutorDefinition<FacadeGameState, SetupInput>,
@@ -121,7 +122,7 @@ function createInitialRuntimeState<
 }
 
 function getCurrentStageDefinition<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   game: GameExecutorDefinition<FacadeGameState, SetupInput>,
@@ -132,14 +133,14 @@ function getCurrentStageDefinition<
     | undefined;
 }
 
-function resolveStageNextStages<GameState extends object>(
+function resolveStageNextStages<GameState extends BaseGameState>(
   stage: StageDefinition<GameState>,
 ) {
   return stage.nextStages?.() ?? {};
 }
 
 function initializeStageMachine<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,
@@ -203,7 +204,7 @@ function initializeStageMachine<
 }
 
 function advanceStageMachine<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,
@@ -274,7 +275,7 @@ function advanceStageMachine<
 }
 
 export function createGameExecutor<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   game: GameExecutorDefinition<FacadeGameState, SetupInput>,
@@ -852,7 +853,7 @@ function isActorAllowedInCurrentStage(
 }
 
 function executeCommandAgainstState<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,

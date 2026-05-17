@@ -3,10 +3,20 @@ import * as tabletopEngine from "../src";
 
 const { createCommandFactory, t } = tabletopEngine;
 
+class TurnCommandState extends tabletopEngine.GameState {
+  turns = 0;
+}
+
+class ScoreCommandState extends tabletopEngine.GameState {
+  score = 0;
+}
+
+class CounterCommandState extends tabletopEngine.GameState {
+  counter = 0;
+}
+
 test("chained builder supports non-discoverable commands", () => {
-  const defineCommand = createCommandFactory<{
-    turns: number;
-  }>();
+  const defineCommand = createCommandFactory<TurnCommandState>();
   const passTurnSchema = t.object({});
 
   const command = defineCommand({
@@ -33,9 +43,7 @@ test("chained builder supports non-discoverable commands", () => {
 });
 
 test("chained builder supports step-authored discovery", () => {
-  const defineCommand = createCommandFactory<{
-    score: number;
-  }>();
+  const defineCommand = createCommandFactory<ScoreCommandState>();
   const commandSchema = t.object({
     amount: t.number(),
   });
@@ -103,9 +111,7 @@ test("chained builder supports step-authored discovery", () => {
 });
 
 test("chained builder supports ordered discovery steps and completion", () => {
-  const defineCommand = createCommandFactory<{
-    counter: number;
-  }>();
+  const defineCommand = createCommandFactory<CounterCommandState>();
 
   const incrementSchema = t.object({
     amount: t.number(),
@@ -198,9 +204,7 @@ test("chained builder supports ordered discovery steps and completion", () => {
 });
 
 test("chained builder supports callback-scoped built discovery steps", () => {
-  const defineCommand = createCommandFactory<{
-    score: number;
-  }>();
+  const defineCommand = createCommandFactory<ScoreCommandState>();
   const commandSchema = t.object({
     amount: t.number(),
   });
@@ -248,9 +252,7 @@ test("chained builder supports callback-scoped built discovery steps", () => {
 });
 
 test("chained builder rejects callback discovery steps without an initial step", () => {
-  const defineCommand = createCommandFactory<{
-    score: number;
-  }>();
+  const defineCommand = createCommandFactory<ScoreCommandState>();
   const commandSchema = t.object({
     amount: t.number(),
   });
@@ -287,9 +289,7 @@ test("chained builder rejects callback discovery steps without an initial step",
 });
 
 test("chained builder rejects duplicate callback initial discovery steps", () => {
-  const defineCommand = createCommandFactory<{
-    score: number;
-  }>();
+  const defineCommand = createCommandFactory<ScoreCommandState>();
   const commandSchema = t.object({
     amount: t.number(),
   });
@@ -348,9 +348,7 @@ test("chained builder rejects duplicate callback initial discovery steps", () =>
 });
 
 test("chained builder still rejects duplicate callback discovery step ids", () => {
-  const defineCommand = createCommandFactory<{
-    score: number;
-  }>();
+  const defineCommand = createCommandFactory<ScoreCommandState>();
   const commandSchema = t.object({
     amount: t.number(),
   });

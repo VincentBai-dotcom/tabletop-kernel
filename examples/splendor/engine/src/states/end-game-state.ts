@@ -1,7 +1,6 @@
-import { field, State, t } from "tabletop-engine";
+import { field, GameState, t } from "tabletop-engine";
 
-@State()
-export class SplendorEndGameState {
+export class SplendorEndGameState extends GameState {
   @field(t.string())
   triggeredByPlayerId!: string;
 

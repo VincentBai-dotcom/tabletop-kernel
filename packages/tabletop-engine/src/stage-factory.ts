@@ -17,6 +17,7 @@ import {
 } from "./types/progression";
 import { assertSerializableSchema } from "./schema";
 import type { FieldType, ObjectFieldType } from "./schema";
+import type { GameState as BaseGameState } from "./state-facade/metadata";
 
 type NoBuilderMethod = Record<never, never>;
 type NoNextStages = Record<string, never>;
@@ -25,7 +26,7 @@ type TExtractNextStages<Resolver> = Resolver extends () => infer NextStages
   : never;
 
 type SingleActivePlayerBuildMethod<
-  GameState extends object,
+  GameState extends BaseGameState,
   Commands extends readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState>,
   HasActivePlayer extends boolean,
@@ -46,14 +47,14 @@ type SingleActivePlayerBuildMethod<
   : NoBuilderMethod;
 
 type AutomaticBuildMethod<
-  GameState extends object,
+  GameState extends BaseGameState,
   NextStages extends StageDefinitionMap<GameState>,
 > = {
   build(): AutomaticStageDefinition<GameState, NextStages>;
 };
 
 type MultiActivePlayerBuildMethod<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object,
   Commands extends readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState>,
@@ -88,7 +89,7 @@ type MultiActivePlayerBuildMethod<
   : NoBuilderMethod;
 
 export type SingleActivePlayerStageBuilder<
-  GameState extends object,
+  GameState extends BaseGameState,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState> = NoNextStages,
@@ -156,7 +157,7 @@ export type SingleActivePlayerStageBuilder<
 >;
 
 export type AutomaticStageBuilder<
-  GameState extends object,
+  GameState extends BaseGameState,
   NextStages extends StageDefinitionMap<GameState> = NoNextStages,
 > = {
   run(
@@ -173,7 +174,7 @@ export type AutomaticStageBuilder<
 } & AutomaticBuildMethod<GameState, NextStages>;
 
 export type MultiActivePlayerStageBuilder<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object = Record<string, never>,
   Commands extends readonly DefinedCommand<GameState>[] =
     readonly DefinedCommand<GameState>[],
@@ -324,7 +325,7 @@ export type MultiActivePlayerStageBuilder<
   HasTransition
 >;
 
-export interface StageFactory<GameState extends object> {
+export interface StageFactory<GameState extends BaseGameState> {
   (id: string): {
     singleActivePlayer(): SingleActivePlayerStageBuilder<GameState>;
     automatic(): AutomaticStageBuilder<GameState>;
@@ -333,7 +334,7 @@ export interface StageFactory<GameState extends object> {
 }
 
 type SingleActivePlayerAccumulator<
-  GameState extends object,
+  GameState extends BaseGameState,
   Commands extends readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState>,
 > = {
@@ -356,7 +357,7 @@ type SingleActivePlayerAccumulator<
 };
 
 type AutomaticAccumulator<
-  GameState extends object,
+  GameState extends BaseGameState,
   NextStages extends StageDefinitionMap<GameState>,
 > = {
   id: string;
@@ -369,7 +370,7 @@ type AutomaticAccumulator<
 };
 
 type MultiActivePlayerAccumulator<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object,
   Commands extends readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState>,
@@ -401,7 +402,7 @@ type MultiActivePlayerAccumulator<
 };
 
 export function createStageFactory<
-  GameState extends object,
+  GameState extends BaseGameState,
 >(): StageFactory<GameState> {
   return (id: string) => {
     return {
@@ -437,7 +438,7 @@ export function createStageFactory<
 }
 
 function createSingleActivePlayerBuilder<
-  GameState extends object,
+  GameState extends BaseGameState,
   Commands extends readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState>,
   HasActivePlayer extends boolean = false,
@@ -539,7 +540,7 @@ function createSingleActivePlayerBuilder<
 }
 
 function createAutomaticBuilder<
-  GameState extends object,
+  GameState extends BaseGameState,
   NextStages extends StageDefinitionMap<GameState>,
 >(
   accumulator: AutomaticAccumulator<GameState, NextStages>,
@@ -583,7 +584,7 @@ function createAutomaticBuilder<
 }
 
 function createMultiActivePlayerBuilder<
-  GameState extends object,
+  GameState extends BaseGameState,
   Memory extends object,
   Commands extends readonly DefinedCommand<GameState>[],
   NextStages extends StageDefinitionMap<GameState>,

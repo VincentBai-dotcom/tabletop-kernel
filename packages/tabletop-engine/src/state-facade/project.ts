@@ -2,7 +2,7 @@ import type { CompiledStateFacadeDefinition } from "./compile";
 import type { FieldType } from "../schema";
 import type {
   FieldVisibilityConfig,
-  StateClass,
+  GameStateClass,
   VisibilityMode,
 } from "./metadata";
 import { hydrateStateNode } from "./hydrate";
@@ -34,7 +34,7 @@ export function getView<TGameState extends object>(
 
 function projectStateNode(
   compiled: CompiledStateFacadeDefinition,
-  target: StateClass,
+  target: GameStateClass,
   backing: unknown,
   viewer: Viewer,
   ownerPlayerId?: string,
@@ -191,7 +191,7 @@ function shouldHideField(
 }
 
 function readOwnerPlayerId(
-  target: StateClass,
+  target: GameStateClass,
   backing: unknown,
   ownedByField: string,
 ): string | undefined {

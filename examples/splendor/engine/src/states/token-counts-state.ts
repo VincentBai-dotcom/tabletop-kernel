@@ -1,10 +1,9 @@
-import { field, State, t } from "tabletop-engine";
+import { field, GameState, t } from "tabletop-engine";
 import { TOKEN_COLORS, type TokenColor } from "./constants.ts";
 
 export type ReturnTokensPayload = Partial<Record<TokenColor, number>>;
 
-@State()
-export class TokenCountsState {
+export class TokenCountsState extends GameState {
   @field(t.number())
   white = 0;
 

@@ -1,4 +1,4 @@
-import { configureVisibility, field, State, t } from "tabletop-engine";
+import { configureVisibility, field, GameState, t } from "tabletop-engine";
 import type { DevelopmentLevel } from "../data/types.ts";
 
 const hiddenDeckSchema = t.object({
@@ -7,8 +7,7 @@ const hiddenDeckSchema = t.object({
   3: t.number(),
 });
 
-@State()
-export class SplendorBoardState {
+export class SplendorBoardState extends GameState {
   @field(t.record(t.number(), t.array(t.number())))
   faceUpByLevel: Record<DevelopmentLevel, number[]> = {
     1: [],

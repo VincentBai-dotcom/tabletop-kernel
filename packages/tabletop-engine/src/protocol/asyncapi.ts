@@ -1,5 +1,6 @@
 import type { TSchema } from "@sinclair/typebox";
 import type { GameDefinition } from "../game-definition";
+import type { GameState as BaseGameState } from "../state-facade/metadata";
 import { describeGameProtocol } from "./describe";
 import {
   describeEngineWebSocketProtocol,
@@ -46,7 +47,7 @@ export interface AsyncApiDocument {
 }
 
 export function generateAsyncApi<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   SetupInput extends object | undefined = undefined,
 >(
   game: GameDefinition<FacadeGameState, SetupInput>,

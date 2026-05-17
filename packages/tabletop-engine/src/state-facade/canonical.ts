@@ -1,7 +1,11 @@
 import { Value } from "@sinclair/typebox/value";
 import type { TSchema } from "@sinclair/typebox";
 import { t, type FieldType, type ObjectFieldType } from "../schema";
-import { getStateMetadata, type StateClass } from "./metadata";
+import {
+  getStateMetadata,
+  type GameState,
+  type GameStateClass,
+} from "./metadata";
 
 type NonFunctionPropertyKeys<TObject> = {
   [K in keyof TObject]: TObject[K] extends (...args: never[]) => unknown
@@ -19,7 +23,7 @@ export type CanonicalGameState<TState> = TState extends readonly (infer TItem)[]
     : TState;
 
 export function compileCanonicalGameStateSchema(
-  root: StateClass,
+  root: GameStateClass,
 ): ObjectFieldType<Record<string, FieldType>> {
   const metadata = getStateMetadata(root);
 
@@ -33,8 +37,8 @@ export function compileCanonicalGameStateSchema(
   );
 }
 
-export function createDefaultCanonicalGameState<TState extends object>(
-  root: StateClass<TState>,
+export function createDefaultCanonicalGameState<TState extends GameState>(
+  root: GameStateClass<TState>,
 ): CanonicalGameState<TState> {
   return createCanonicalStateObject(
     root,
@@ -43,7 +47,7 @@ export function createDefaultCanonicalGameState<TState extends object>(
 }
 
 function createCanonicalStateObject(
-  target: StateClass,
+  target: GameStateClass,
   source: object,
 ): object {
   const metadata = getStateMetadata(target);

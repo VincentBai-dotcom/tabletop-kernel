@@ -20,9 +20,9 @@ import {
   createCommandFactory,
   createStageFactory,
   field,
-  State,
   t,
 } from "../src/index";
+import { GameState } from "../src/state-facade/metadata";
 import type {
   CommandFromSchema,
   InternalCommandDefinition,
@@ -39,14 +39,12 @@ import {
 void (0 as unknown as RemovedCanonicalGameStateOf<never>);
 void (0 as unknown as RemovedCanonicalStateOf<never>);
 
-@State()
-class TypedCounterChildState {
+class TypedCounterChildState extends GameState {
   @field(t.number())
   value = 0;
 }
 
-@State()
-class TypedCounterRootState {
+class TypedCounterRootState extends GameState {
   @field(t.state(() => TypedCounterChildState))
   counter!: TypedCounterChildState;
 
@@ -55,13 +53,38 @@ class TypedCounterRootState {
   }
 }
 
+class ScoreTypeState extends GameState {
+  score = 0;
+}
+
+class ActionsTypeState extends GameState {
+  actions: string[] = [];
+}
+
+class CounterTypeState extends GameState {
+  counter = 0;
+}
+
+class ScoreIncrementTypeState extends GameState {
+  score = 0;
+
+  increment() {}
+}
+
+class IncrementOnlyTypeState extends GameState {
+  increment() {}
+}
+
+class HandCountTypeState extends GameState {
+  handCount = 0;
+}
+
 const typedHiddenSchema = t.object({
   count: t.number(),
   health: t.number(),
 });
 
-@State()
-class TypedVisibilityState {
+class TypedVisibilityState extends GameState {
   @field(t.string())
   id = "";
 
@@ -99,8 +122,7 @@ configureVisibility(TypedVisibilityState, ({ field }) => ({
   ],
 }));
 
-@State()
-class InvalidTypedVisibilityState {
+class InvalidTypedVisibilityState extends GameState {
   @field(t.string())
   id = "";
 
@@ -179,8 +201,8 @@ test("foundational runtime types compose", () => {
 });
 
 test("stage machine types support single-active and automatic stage authoring", () => {
-  const defineStage = createStageFactory<{ score: number }>();
-  const defineCommand = createCommandFactory<{ score: number }>();
+  const defineStage = createStageFactory<ScoreTypeState>();
+  const defineCommand = createCommandFactory<ScoreTypeState>();
   const gameEndStage = defineStage("gameEnd").automatic().build();
   const drawCardCommand = defineCommand({
     commandId: "draw_card",
@@ -194,9 +216,7 @@ test("stage machine types support single-active and automatic stage authoring", 
 
   const playerTurnStage = createPlayerTurnStage();
 
-  function createPlayerTurnStage(): SingleActivePlayerStageDefinition<{
-    score: number;
-  }> {
+  function createPlayerTurnStage(): SingleActivePlayerStageDefinition<ScoreTypeState> {
     return defineStage("playerTurn")
       .singleActivePlayer()
       .activePlayer(({ runtime }) => {
@@ -247,8 +267,8 @@ test("stage machine types support single-active and automatic stage authoring", 
 });
 
 test("stage machine types support multi-active stage authoring", () => {
-  const defineStage = createStageFactory<{ actions: string[] }>();
-  const defineCommand = createCommandFactory<{ actions: string[] }>();
+  const defineStage = createStageFactory<ActionsTypeState>();
+  const defineCommand = createCommandFactory<ActionsTypeState>();
   const gameEndStage = defineStage("gameEnd").automatic().build();
   const submitCommand = defineCommand({
     commandId: "submit",
@@ -265,7 +285,7 @@ test("stage machine types support multi-active stage authoring", () => {
   const stage = createMultiActiveStage();
 
   function createMultiActiveStage(): MultiActivePlayerStageDefinition<
-    { actions: string[] },
+    ActionsTypeState,
     {
       submittedByPlayerId: Record<string, string>;
     }
@@ -367,10 +387,8 @@ test("discovery types compose for step-authored options and completion", () => {
     targets?: number[];
   };
 
-  const availabilityContext: CommandAvailabilityContext<{
-    handCount: number;
-  }> = {
-    game: { handCount: 3 },
+  const availabilityContext: CommandAvailabilityContext<HandCountTypeState> = {
+    game: Object.assign(new HandCountTypeState(), { handCount: 3 }),
     runtime: {
       progression: {
         currentStage: {
@@ -402,7 +420,7 @@ test("discovery types compose for step-authored options and completion", () => {
   };
 
   const discoveryContext: DiscoveryContext<
-    { handCount: number },
+    HandCountTypeState,
     PlayCardDiscoveryInput
   > = {
     ...availabilityContext,
@@ -642,12 +660,10 @@ test("game definition defaults canonical state from the facade shape", () => {
 });
 
 test("game definition builder only exposes stage-based progression authoring", () => {
-  const defineStage = createStageFactory<{ score: number }>();
+  const defineStage = createStageFactory<ScoreTypeState>();
   const gameEndStage = defineStage("gameEnd").automatic().build();
 
-  const builder = new GameDefinitionBuilder<{
-    score: number;
-  }>("score-game");
+  const builder = new GameDefinitionBuilder<ScoreTypeState>("score-game");
 
   // @ts-expect-error commands should not exist on the stage-based builder
   void builder.commands;
@@ -655,17 +671,15 @@ test("game definition builder only exposes stage-based progression authoring", (
   // @ts-expect-error progression should not exist on the stage-based builder
   void builder.progression;
 
-  const stageBuilder = new GameDefinitionBuilder<{
-    score: number;
-  }>("score-game").initialStage(gameEndStage);
+  const stageBuilder = new GameDefinitionBuilder<ScoreTypeState>(
+    "score-game",
+  ).initialStage(gameEndStage);
 
   expect(stageBuilder).toBeObject();
 });
 
 test("consumer command definitions infer step-authored discovery and reject legacy config", () => {
-  const defineCommand = createCommandFactory<{
-    increment(): void;
-  }>();
+  const defineCommand = createCommandFactory<IncrementOnlyTypeState>();
 
   const gainScoreCommandSchema = t.object({
     amount: t.number(),
@@ -765,10 +779,7 @@ test("consumer command definitions infer step-authored discovery and reject lega
 });
 
 test("command factory contextually types command lifecycle methods", () => {
-  const defineCommand = createCommandFactory<{
-    score: number;
-    increment(): void;
-  }>();
+  const defineCommand = createCommandFactory<ScoreIncrementTypeState>();
 
   const commandSchema = t.object({
     amount: t.number(),
@@ -838,9 +849,7 @@ test("command factory contextually types command lifecycle methods", () => {
 });
 
 test("discovery resolver typing keeps next-step input and completion input correlated", () => {
-  const defineCommand = createCommandFactory<{
-    score: number;
-  }>();
+  const defineCommand = createCommandFactory<ScoreTypeState>();
 
   const commandSchema = t.object({
     amount: t.number(),
@@ -925,9 +934,7 @@ test("discovery resolver typing keeps next-step input and completion input corre
 });
 
 test("step builder only exposes resolve after input and output are set", () => {
-  const defineCommand = createCommandFactory<{
-    counter: number;
-  }>();
+  const defineCommand = createCommandFactory<CounterTypeState>();
 
   const commandSchema = t.object({
     amount: t.number(),
@@ -999,9 +1006,7 @@ test("step builder only exposes resolve after input and output are set", () => {
 });
 
 test("command builder hides invalid chained methods at each stage", () => {
-  const defineCommand = createCommandFactory<{
-    counter: number;
-  }>();
+  const defineCommand = createCommandFactory<CounterTypeState>();
 
   const commandSchema = t.object({
     amount: t.number(),
@@ -1078,10 +1083,11 @@ test("internal command definitions still expose canonical state separately from 
     amount: t.number(),
   });
   type GainScoreInput = typeof gainScoreCommandSchema.static;
-  type ScoreFacade = {
-    score: number;
-    increment(): void;
-  };
+  class ScoreFacade extends GameState {
+    score = 0;
+
+    increment() {}
+  }
 
   const definition: InternalCommandDefinition<ScoreFacade, GainScoreInput> = {
     commandId: "gain_score",
@@ -1128,10 +1134,7 @@ test("internal command definitions still expose canonical state separately from 
         },
       },
     },
-    game: {
-      score: 1,
-      increment() {},
-    },
+    game: Object.assign(new ScoreFacade(), { score: 1 }),
     runtime: {
       progression: {
         currentStage: {

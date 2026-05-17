@@ -10,9 +10,10 @@ import type { GameEvent } from "../types/event";
 import type { CanonicalState } from "../types/state";
 import type { RNGApi } from "../types/rng";
 import type { CanonicalGameState } from "../state-facade/canonical";
+import type { GameState as BaseGameState } from "../state-facade/metadata";
 
 export function createValidationContext<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   TCommandInput extends Command,
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,
@@ -28,7 +29,7 @@ export function createValidationContext<
 }
 
 export function createCommandAvailabilityContext<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,
   game: Readonly<FacadeGameState>,
@@ -45,7 +46,7 @@ export function createCommandAvailabilityContext<
 }
 
 export function createDiscoveryContext<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   TDiscoveryInput extends Record<string, unknown>,
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,
@@ -65,7 +66,7 @@ export function createDiscoveryContext<
 }
 
 export function createExecuteContext<
-  FacadeGameState extends object,
+  FacadeGameState extends BaseGameState,
   TCommandInput extends Command,
 >(
   state: CanonicalState<CanonicalGameState<FacadeGameState>>,

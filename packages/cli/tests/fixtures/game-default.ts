@@ -1,13 +1,12 @@
 import {
   createStageFactory,
   field,
+  GameState,
   GameDefinitionBuilder,
-  State,
   t,
 } from "tabletop-engine";
 
-@State()
-class FixtureState {
+class FixtureState extends GameState {
   @field(t.number())
   value = 1;
 }

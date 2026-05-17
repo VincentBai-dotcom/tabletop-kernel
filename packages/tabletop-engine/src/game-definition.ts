@@ -13,11 +13,11 @@ import {
 } from "./state-facade/canonical";
 import { compileRuntimeStateSchema } from "./runtime/runtime-schema";
 import { assertSchemaValue } from "./runtime/validation";
-import type { StateClass } from "./state-facade/metadata";
+import type { GameState, GameStateClass } from "./state-facade/metadata";
 import type { FieldType, ObjectFieldType, ObjectSchemaStatic } from "./schema";
 import type { TSchema } from "@sinclair/typebox";
 
-type CommandDefinitionMap<FacadeGameState extends object> = Record<
+type CommandDefinitionMap<FacadeGameState extends GameState> = Record<
   string,
   CommandDefinition<FacadeGameState>
 >;
@@ -30,17 +30,17 @@ type SetupInputFromSchema<
     : undefined;
 
 export interface GameSetupContext<
-  GameState extends object,
+  FacadeGameState extends GameState,
   SetupInput extends object | undefined = undefined,
 > {
-  game: GameState;
+  game: FacadeGameState;
   runtime: RuntimeState;
   rng: RNGApi;
   input: SetupInput;
 }
 
 export interface GameDefinition<
-  FacadeGameState extends object,
+  FacadeGameState extends GameState,
   SetupInput extends object | undefined = undefined,
 > {
   name: string;
@@ -56,7 +56,7 @@ export interface GameDefinition<
 }
 
 interface GameDefinitionBuilderState<
-  FacadeGameState extends object = object,
+  FacadeGameState extends GameState = GameState,
   SetupInput extends object | undefined = undefined,
 > extends Partial<
   Omit<
@@ -71,13 +71,13 @@ interface GameDefinitionBuilderState<
   >
 > {
   name: string;
-  rootState?: StateClass<FacadeGameState>;
+  rootState?: GameStateClass<FacadeGameState>;
   initialStage?: StageDefinition<FacadeGameState>;
   setup?: (context: GameSetupContext<FacadeGameState, SetupInput>) => void;
 }
 
 export class GameDefinitionBuilder<
-  FacadeGameState extends object = object,
+  FacadeGameState extends GameState = GameState,
   SetupInput extends object | undefined = undefined,
 > {
   private readonly config: GameDefinitionBuilderState<
@@ -91,10 +91,11 @@ export class GameDefinitionBuilder<
     };
   }
 
-  rootState<NextFacadeGameState extends object>(
-    rootState: StateClass<NextFacadeGameState>,
+  rootState<NextFacadeGameState extends GameState>(
+    rootState: GameStateClass<NextFacadeGameState>,
   ): GameDefinitionBuilder<NextFacadeGameState, SetupInput> {
-    this.config.rootState = rootState as unknown as StateClass<FacadeGameState>;
+    this.config.rootState =
+      rootState as unknown as GameStateClass<FacadeGameState>;
     return this as unknown as GameDefinitionBuilder<
       NextFacadeGameState,
       SetupInput
@@ -163,7 +164,7 @@ export class GameDefinitionBuilder<
   }
 }
 
-function collectReachableStages<FacadeGameState extends object>(
+function collectReachableStages<FacadeGameState extends GameState>(
   initialStage: StageDefinition<FacadeGameState>,
 ): Record<string, StageDefinition<FacadeGameState>> {
   const stages: Record<string, StageDefinition<FacadeGameState>> = {};
@@ -191,13 +192,13 @@ function collectReachableStages<FacadeGameState extends object>(
   return stages;
 }
 
-function resolveNextStages<FacadeGameState extends object>(
+function resolveNextStages<FacadeGameState extends GameState>(
   stage: StageDefinition<FacadeGameState>,
 ): StageDefinitionMap<FacadeGameState> {
   return stage.nextStages?.() ?? {};
 }
 
-function compileCommandMapFromStages<FacadeGameState extends object>(
+function compileCommandMapFromStages<FacadeGameState extends GameState>(
   stages: Record<string, StageDefinition<FacadeGameState>>,
 ): CommandDefinitionMap<FacadeGameState> {
   const commandMap: CommandDefinitionMap<FacadeGameState> = {};
